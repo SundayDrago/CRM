@@ -48,7 +48,7 @@
       <h2>{{ pageTitle }}</h2>
 
       <div v-if="currentTab === 'dashboard'">
-        <p>Welcome to the admin dashboard! Here are the key insights.</p>
+        <DashboardPage />
       </div>
 
       <div v-if="currentTab === 'users'">
@@ -78,6 +78,7 @@
 
 <script>
 import SettingsPage from './SettingsPage.vue';
+import DashboardPage from './DashboardPage.vue';
 import AppFooter from '@/components/Footer.vue';
 
 export default {
@@ -85,6 +86,7 @@ export default {
   components: {
     SettingsPage,
     AppFooter,
+    DashboardPage,
   },
   data() {
     return {
@@ -98,7 +100,7 @@ export default {
   computed: {
     pageTitle() {
       const titles = {
-        dashboard: 'Dashboard Overview',
+        dashboard: '',
         users: 'User Management',
         segmentation: 'Customer Segmentation',
         settings: 'Admin Settings',
