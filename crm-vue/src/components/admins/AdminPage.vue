@@ -79,13 +79,12 @@
 <script>
 import SettingsPage from './SettingsPage.vue';
 import DashboardPage from './DashboardPage.vue';
-import AppFooter from '@/components/Footer.vue';
+//import AppFooter from '@/components/Footer.vue';
 
 export default {
   name: 'AdminPage',
   components: {
     SettingsPage,
-    AppFooter,
     DashboardPage,
   },
   data() {

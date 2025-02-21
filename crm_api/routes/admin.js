@@ -15,15 +15,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Admin Registration Route
+// 🟢 Admin Registration Route
 router.post("/register", async (req, res) => {
-    console.log("Headers:", req.headers);
-    console.log("Received raw body:", req.body);
-
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Request body is missing or empty" });
-    }
-
     const { full_name, username, email, password, confirmPassword } = req.body;
 
     if (!full_name || !username || !email || !password || !confirmPassword) {
@@ -43,7 +36,6 @@ router.post("/register", async (req, res) => {
                 return res.status(400).json({ message: "Email or Username already exists" });
             }
 
-            // Generate security code (random 6-character code)
             const securityCode = crypto.randomBytes(3).toString("hex").toUpperCase(); // Example: "A1B2C3"
             const hashedPassword = await bcrypt.hash(password, 10);
             const hashedSecurityCode = await bcrypt.hash(securityCode, 10);
@@ -77,7 +69,7 @@ router.post("/register", async (req, res) => {
     }
 });
 
-// Security Code Verification Route
+// 🟢 Security Code Verification Route
 router.post("/verify-security-code", async (req, res) => {
     const { email, securityCode } = req.body;
 
@@ -86,7 +78,6 @@ router.post("/verify-security-code", async (req, res) => {
     }
 
     try {
-        // Find the admin by email
         db.query("SELECT * FROM admins WHERE email = ?", [email], async (err, result) => {
             if (err) return res.status(500).json({ message: "Database error", error: err });
 
@@ -96,13 +87,11 @@ router.post("/verify-security-code", async (req, res) => {
 
             const admin = result[0];
 
-            // Compare provided security code with hashed version in DB
             const isMatch = await bcrypt.compare(securityCode, admin.security_code);
             if (!isMatch) {
                 return res.status(400).json({ message: "Invalid security code" });
             }
 
-            // Update admin as verified
             db.query("UPDATE admins SET is_verified = ? WHERE email = ?", [true, email], (err, result) => {
                 if (err) return res.status(500).json({ message: "Verification failed", error: err });
 
@@ -114,7 +103,7 @@ router.post("/verify-security-code", async (req, res) => {
     }
 });
 
-// Admin Login Route
+// 🟢 Admin Login Route
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -123,7 +112,6 @@ router.post("/login", async (req, res) => {
     }
 
     try {
-        // Find the admin by email
         db.query("SELECT * FROM admins WHERE email = ?", [email], async (err, result) => {
             if (err) return res.status(500).json({ message: "Database error", error: err });
 
@@ -133,29 +121,76 @@ router.post("/login", async (req, res) => {
 
             const admin = result[0];
 
-            // Check if the password matches
             const isMatch = await bcrypt.compare(password, admin.password);
             if (!isMatch) {
                 return res.status(400).json({ message: "Invalid email or password" });
             }
 
-            // Check if the admin is verified
             if (!admin.is_verified) {
                 return res.status(400).json({ message: "Account not verified. Please verify your email." });
             }
 
-            // Generate a JWT token
-            const token = jwt.sign(
-                { id: admin.id, email: admin.email },
-                "your_jwt_secret", // Use a strong secret key
-                { expiresIn: "1h" } // Token expiration time
-            );
+            const token = jwt.sign({ id: admin.id, email: admin.email }, "your_jwt_secret", { expiresIn: "1h" });
 
-            // Return the JWT token
-            res.status(200).json({
-                message: "Login successful",
-                token: token
-            });
+            res.status(200).json({ message: "Login successful", token: token });
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+// 🟢 Forgot Password Route (Sends Reset Link)
+router.post("/forgot-password", async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+
+    try {
+        db.query("SELECT * FROM admins WHERE email = ?", [email], async (err, result) => {
+            if (err) return res.status(500).json({ message: "Database error", error: err });
+
+            if (result.length === 0) {
+                return res.status(400).json({ message: "Admin not found" });
+            }
+
+            const resetToken = crypto.randomBytes(32).toString("hex");
+            const tokenExpiry = new Date();
+            tokenExpiry.setHours(tokenExpiry.getHours() + 1);
+
+            db.query("UPDATE admins SET reset_token = ?, reset_token_expiry = ? WHERE email = ?", [resetToken, tokenExpiry, email]);
+
+            const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+            const mailOptions = {
+                from: "yacobedan@gmail.com",
+                to: email,
+                subject: "Password Reset Request",
+                text: `Click the link to reset your password:\n\n${resetLink}\n\nExpires in 1 hour.`
+            };
+
+            transporter.sendMail(mailOptions);
+            res.status(200).json({ message: "Password reset link sent." });
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+// 🟢 Reset Password Route
+router.post("/reset-password", async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    try {
+        db.query("SELECT * FROM admins WHERE reset_token = ?", [token], async (err, result) => {
+            if (result.length === 0) {
+                return res.status(400).json({ message: "Invalid or expired token" });
+            }
+
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            db.query("UPDATE admins SET password = ?, reset_token = NULL WHERE reset_token = ?", [hashedPassword, token]);
+
+            res.status(200).json({ message: "Password reset successful." });
         });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });

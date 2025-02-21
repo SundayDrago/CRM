@@ -8,10 +8,21 @@
       </div>
       <div>
         <label for="password">Password:</label>
-        <input type="password" v-model="password" id="password" required />
+        <div class="password-input">
+          <input :type="showPassword ? 'text' : 'password'" v-model="password" id="password" required />
+          <span @click="togglePassword" class="eye-icon">
+            <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </span>
+        </div>
       </div>
       <button type="submit">Login</button>
-      <p>Don't have an account? <router-link to="/register">Register here</router-link></p>
+      <p>
+        <router-link to="/forgot-password" class="forgot-password">Forgot password?</router-link>
+      </p>
+      <p>
+        Don't have an account? 
+        <router-link to="/register">Register here</router-link>
+      </p>
     </form>
   </div>
 </template>
@@ -20,11 +31,12 @@
 import axios from "axios";
 
 export default {
-  name: 'LoginPage',
+  name: "LoginPage",
   data() {
     return {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
+      showPassword: false
     };
   },
   methods: {
@@ -40,13 +52,16 @@ export default {
         localStorage.setItem("authToken", response.data.token);
 
         // Navigate to the admin dashboard
-        this.$router.push('/admin');
+        this.$router.push("/admin");
       } catch (error) {
-        // Handle login errors, e.g., incorrect credentials or server error
+        // Handle login errors
         alert(error.response?.data?.message || "Login failed. Please try again.");
       }
     },
-  },
+    togglePassword() {
+      this.showPassword = !this.showPassword;
+    }
+  }
 };
 </script>
 
@@ -78,6 +93,33 @@ label {
   font-weight: bold;
 }
 
+.password-input {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.password-input input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding-right: 35px;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #555;
+}
+
+.eye-icon:hover {
+  color: #007bff;
+}
+
 input {
   margin: 10px 0;
   padding: 10px;
@@ -105,7 +147,7 @@ button:hover {
 p {
   margin-top: 10px;
   font-size: 0.9em;
-  color: #333; /* Darker color for readability */
+  color: #333;
 }
 
 p a {
@@ -120,8 +162,18 @@ p a:hover {
   text-decoration: underline;
 }
 
-router-link {
-  color: #007bff;
+.forgot-password {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #ff5733;
   font-weight: bold;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.forgot-password:hover {
+  color: #c70039;
+  text-decoration: underline;
 }
 </style>
