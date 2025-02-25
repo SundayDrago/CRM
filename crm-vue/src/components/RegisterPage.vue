@@ -19,12 +19,18 @@
 
       <div>
         <label for="password">Password:</label>
-        <input type="password" v-model="password" id="password" required />
+        <div class="password-container">
+          <input :type="showPassword ? 'text' : 'password'" v-model="password" id="password" required />
+          <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="toggle-icon" @click="togglePasswordVisibility('password')"></i>
+        </div>
       </div>
 
       <div>
         <label for="confirmPassword">Confirm Password:</label>
-        <input type="password" v-model="confirmPassword" id="confirmPassword" required />
+        <div class="password-container">
+          <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" id="confirmPassword" required />
+          <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="toggle-icon" @click="togglePasswordVisibility('confirmPassword')"></i>
+        </div>
       </div>
 
       <div class="checkbox">
@@ -50,25 +56,24 @@ export default {
       email: "",
       password: "",
       confirmPassword: "",
-      termsAccepted: false
+      termsAccepted: false,
+      showPassword: false,
+      showConfirmPassword: false,
     };
   },
   methods: {
     async register() {
-      // Validate password strength
       const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       if (!passwordRegex.test(this.password)) {
         alert("Password must be at least 8 characters long and include a number and special character.");
         return;
       }
 
-      // Validate password confirmation
       if (this.password !== this.confirmPassword) {
         alert("Passwords don't match.");
         return;
       }
 
-      // Ensure terms are accepted
       if (!this.termsAccepted) {
         alert("You must accept the terms and conditions.");
         return;
@@ -80,20 +85,24 @@ export default {
           username: this.username,
           email: this.email,
           password: this.password,
-          confirmPassword: this.confirmPassword
+          confirmPassword: this.confirmPassword,
         });
 
         alert(response.data.message);
-
-        // Redirect user to verification page with email as a query param
         this.$router.push({ path: "/verify", query: { email: this.email } });
-
       } catch (error) {
         console.error("Registration error:", error);
         alert(error.response?.data?.message || "Registration failed. Please try again.");
       }
-    }
-  }
+    },
+    togglePasswordVisibility(field) {
+      if (field === "password") {
+        this.showPassword = !this.showPassword;
+      } else if (field === "confirmPassword") {
+        this.showConfirmPassword = !this.showConfirmPassword;
+      }
+    },
+  },
 };
 </script>
 
@@ -123,6 +132,30 @@ label {
   text-align: left;
   margin-bottom: 5px;
   font-weight: bold;
+}
+
+.password-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-container input {
+  flex-grow: 1;
+  padding-right: 30px;
+}
+
+.toggle-icon {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  font-size: 1.2em;
+  color: #007bff;
+  transition: color 0.3s;
+}
+
+.toggle-icon:hover {
+  color: #0056b3;
 }
 
 input {

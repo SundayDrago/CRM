@@ -1,20 +1,30 @@
 <template>
   <div class="admin-dashboard">
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-left">
+        <img :src="logo" alt="Logo" class="logo" />
+      </div>
+      <div class="search-container">
+        <div class="search-bar">
+          <input type="text" placeholder="Search..." />
+        </div>
+        <button class="search-button" @click="performSearch">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+      <div class="nav-icons">
+        <i class="fas fa-bell notification-icon"></i>
+        <div class="profile-menu">
+          <input type="file" accept="image/*" @change="onProfilePicChange" class="profile-input" ref="fileInput" />
+          <img :src="adminProfile.picture" alt="Profile" class="profile-pic" @click="triggerFileInput" />
+          <span>{{ adminProfile.username }}</span> <!-- Display username here -->
+        </div>
+      </div>
+    </nav>
+
     <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- Avatar Section -->
-      <div class="avatar-section">
-        <div class="avatar-container">
-          <img :src="adminProfile.picture" alt="Admin Profile Picture" class="avatar" />
-          <!-- Online Status -->
-          <div class="online-status" :class="{ online: adminProfile.isOnline }"></div>
-        </div>
-        <label for="file-upload" class="upload-btn">
-          <i class="fas fa-camera"></i> Change Photo
-        </label>
-        <input type="file" id="file-upload" @change="uploadProfilePicture" class="file-input" />
-      </div>
-
       <h2>Admin Panel</h2>
       <nav>
         <ul>
@@ -30,9 +40,6 @@
           <li @click="currentTab = 'settings'" :class="{ active: currentTab === 'settings' }">
             <i class="fas fa-cogs"></i> Settings
           </li>
-          <li @click="currentTab = 'reports'" :class="{ active: currentTab === 'reports' }">
-            <i class="fas fa-file-alt"></i> Reports
-          </li>
           <li @click="currentTab = 'activity'" :class="{ active: currentTab === 'activity' }">
             <i class="fas fa-history"></i> Activity Logs
           </li>
@@ -46,64 +53,57 @@
     <!-- Main Content -->
     <main class="content">
       <h2>{{ pageTitle }}</h2>
-
       <div v-if="currentTab === 'dashboard'">
         <DashboardPage />
       </div>
-
       <div v-if="currentTab === 'users'">
-        <p>Manage users here.</p>
+        <UsersPage />
       </div>
-
       <div v-if="currentTab === 'segmentation'">
-        <p>Manage customer segmentation here.</p>
+        <SegmentPage />
       </div>
-
       <div v-if="currentTab === 'settings'">
         <SettingsPage />
       </div>
-
-      <div v-if="currentTab === 'reports'">
-        <p>Generate reports on user activity and segmentation.</p>
-      </div>
-
       <div v-if="currentTab === 'activity'">
-        <p>View admin activity logs here.</p>
+        <ActivityLogPage />
       </div>
     </main>
-
-    <AppFooter />
   </div>
 </template>
 
 <script>
 import SettingsPage from './SettingsPage.vue';
 import DashboardPage from './DashboardPage.vue';
-//import AppFooter from '@/components/Footer.vue';
+import ActivityLogPage from './ActivityLogPage.vue';
+import SegmentPage from './SegmentPage.vue';
+import UsersPage from './UsersPage.vue';
 
 export default {
   name: 'AdminPage',
   components: {
     SettingsPage,
     DashboardPage,
+    ActivityLogPage,
+    SegmentPage,
+    UsersPage
   },
   data() {
     return {
       currentTab: 'dashboard',
       adminProfile: {
         picture: 'https://via.placeholder.com/80',
-        isOnline: true,
+        username: 'Admin', // Added username property
       },
     };
   },
   computed: {
     pageTitle() {
       const titles = {
-        dashboard: '',
+        dashboard: 'Dashboard',
         users: 'User Management',
         segmentation: 'Customer Segmentation',
-        settings: 'Admin Settings',
-        reports: 'Reports',
+        settings: 'Settings',
         activity: 'Activity Logs',
       };
       return titles[this.currentTab];
@@ -114,14 +114,20 @@ export default {
       alert('Logging out...');
       this.$router.push('/');
     },
-    uploadProfilePicture(event) {
+    performSearch() {
+      alert('Search function is not implemented yet.'); // Placeholder for search functionality
+    },
+    triggerFileInput() {
+      this.$refs.fileInput.click(); // Trigger the file input click
+    },
+    onProfilePicChange(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          this.adminProfile.picture = e.target.result;
+          this.adminProfile.picture = e.target.result; // Update the profile picture
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file); // Convert image file to base64 string
       }
     },
   },
@@ -129,89 +135,112 @@ export default {
 </script>
 
 <style scoped>
-/* Add Font Awesome Icons */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
-
-/* Styles for AdminPage.vue */
 .admin-dashboard {
   display: flex;
   height: 100vh;
   background-color: #f4f4f9;
 }
 
-.sidebar {
-  width: 220px; /* Reduced sidebar width */
-  background-color: #007bff;
-  color: white;
-  padding: 15px; /* Reduced padding */
+.navbar {
   display: flex;
-  flex-direction: column;
   justify-content: space-between;
-}
-
-.avatar-section {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px; /* Reduced bottom margin */
-}
-
-.avatar-container {
-  position: relative;
-  width: 80px; /* Reduced avatar size */
-  height: 80px; /* Reduced avatar size */
-  border-radius: 50%;
-  overflow: hidden;
-  margin-bottom: 8px; /* Reduced margin */
-}
-
-.avatar {
+  background: white;
+  padding: 10px 20px;
+  color: #333;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.online-status {
-  position: absolute;
+  position: fixed;
   top: 0;
-  right: 0;
-  width: 12px; /* Smaller online status indicator */
-  height: 12px; /* Smaller online status indicator */
-  border-radius: 50%;
-  background-color: #28a745;
-  border: 2px solid white;
+  left: 0;
+  height: 60px;
+  z-index: 1000;
 }
 
-.online-status.online {
-  background-color: #28a745;
+.logo {
+  height: 40px;
 }
 
-.upload-btn {
-  margin-top: 8px; /* Reduced margin */
-  display: inline-block;
-  padding: 3px 8px; /* Reduced padding */
-  background-color: #ffffff;
-  color: #007bff;
-  font-size: 12px; /* Reduced font size */
-  cursor: pointer;
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-bar {
+  background: white;
   border-radius: 5px;
-  border: 1px solid #007bff;
-  transition: background-color 0.3s;
 }
 
-.upload-btn:hover {
-  background-color: #007bff;
+.search-bar input {
+  border: 1px solid #ccc;
+  outline: none;
+  padding: 5px;
+  width: 200px;
+  border-radius: 5px;
+}
+
+.search-button {
+  background: #007bff;
   color: white;
+  border: none;
+  padding: 13px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.3s;
+  margin-left: 5px;
 }
 
-.file-input {
+.search-button:hover {
+  background: #0056b3;
+}
+
+.nav-icons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.notification-icon {
+  font-size: 1.2em;
+  margin-right: 10px;
+  cursor: pointer;
+  color: black;
+}
+
+.profile-menu {
+  display: flex;
+  margin-right: 150px;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.profile-input {
   display: none;
+}
+
+.profile-pic {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: white;
+  color: #333;
+  padding: 20px;
+  height: 100vh;
+  padding-top: 70px;
+  border-right: 1px solid #ccc;
 }
 
 .sidebar h2 {
   text-align: center;
-  font-size: 1.3em; /* Reduced font size */
-  margin-bottom: 15px; /* Reduced margin */
+  font-size: 1.3em;
+  margin-bottom: 15px;
 }
 
 .sidebar nav ul {
@@ -220,7 +249,7 @@ export default {
 }
 
 .sidebar nav li {
-  padding: 8px; /* Reduced padding */
+  padding: 10px;
   cursor: pointer;
   border-radius: 5px;
   transition: background 0.3s;
@@ -229,50 +258,35 @@ export default {
 }
 
 .sidebar nav li i {
-  margin-right: 8px; /* Reduced icon spacing */
+  margin-right: 10px;
+  color: black;
 }
 
 .sidebar nav li:hover,
 .sidebar nav li.active {
-  background-color: #0056b3;
+  background-color: #e6e6e6;
 }
 
 .logout {
-  margin-top: auto;
-  background-color: #ff4d4d;
+  background: transparent;
   border: none;
-  padding: 8px; /* Reduced padding */
-  color: white;
-  font-size: 0.9em; /* Reduced font size */
+  color: #333;
+  font-size: 1em;
   cursor: pointer;
-  border-radius: 5px;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
   transition: background 0.3s;
-  display: flex;
-  align-items: center;
-}
-
-.logout i {
-  margin-right: 8px; /* Reduced icon spacing */
 }
 
 .logout:hover {
-  background-color: #cc0000;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .content {
   flex: 1;
-  padding: 15px; /* Reduced padding */
-}
-
-.content h2 {
-  color: #007bff;
-  font-size: 1.5em; /* Reduced font size */
-  margin-bottom: 10px; /* Reduced margin */
-}
-
-.content p {
-  font-size: 1.1em; /* Reduced font size */
+  padding: 20px;
+  margin-top: 70px;
   color: #333;
 }
-
 </style>

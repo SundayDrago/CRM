@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard">
-    <h1>Admin Dashboard is here</h1>
   </div>
 </template>
 
