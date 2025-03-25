@@ -1,5 +1,7 @@
 <template>
-    <div class="activity-log">
+  <div class="activity-log">
+    <h1>Activity Logs</h1>
+    <div class="log-container">
       <table>
         <thead>
           <tr>
@@ -17,56 +19,82 @@
         </tbody>
       </table>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'ActivityLogPage',
-    data() {
-      return {
-        activityLogs: [
-          { action: 'Logged in', user: 'Admin', timestamp: '2025-02-25T10:00:00Z' },
-          { action: 'Updated user information', user: 'Admin', timestamp: '2025-02-25T10:05:00Z' },
-          { action: 'Viewed segmentation data', user: 'Admin', timestamp: '2025-02-25T10:10:00Z' },
-          { action: 'Logged out', user: 'Admin', timestamp: '2025-02-25T10:15:00Z' },
-          // Add more logs as needed
-        ],
-      };
+  </div>
+</template>
+
+<script>
+export default {
+  name: "ActivityLogPage",
+  data() {
+    return {
+      activityLogs: [
+        { action: "Logged in", user: "Admin", timestamp: "2025-02-25T10:00:00Z" },
+        { action: "Updated user information", user: "Admin", timestamp: "2025-02-25T10:05:00Z" },
+        { action: "Viewed segmentation data", user: "Admin", timestamp: "2025-02-25T10:10:00Z" },
+        { action: "Logged out", user: "Admin", timestamp: "2025-02-25T10:15:00Z" },
+      ],
+    };
+  },
+  methods: {
+    formatTimestamp(timestamp) {
+      return new Date(timestamp).toLocaleString(); // Format timestamp to local date string
     },
-    methods: {
-      formatTimestamp(timestamp) {
-        return new Date(timestamp).toLocaleString(); // Format timestamp to local date string
-      },
-    },
-  };
-  </script>
-  
-  <style scoped>
-  .activity-log {
-    padding: 20px;
-  }
-  
-  h2 {
-    margin-bottom: 20px;
-  }
-  
+  },
+};
+</script>
+
+<style scoped>
+.activity-log {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+h2 {
+  text-align: center;
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.log-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fafafa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+td {
+  border-bottom: 1px solid #ddd;
+}
+
+tr:hover {
+  background: #f8f9fa;
+  transition: background 0.3s ease-in-out;
+}
+
+@media (max-width: 600px) {
   table {
-    width: 100%;
-    border-collapse: collapse;
+    font-size: 14px;
   }
-  
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  
-  th {
-    background-color: #f4f4f9;
-  }
-  
-  tr:hover {
-    background-color: #f1f1f1;
-  }
-  </style>
-  
+}
+</style>

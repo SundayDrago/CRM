@@ -1,5 +1,6 @@
 <template>
     <div class="users-page">
+      <h1>Users Management</h1>
       <div class="actions">
         <button class="add-user" @click="showAddUserModal">Add User</button>
       </div>

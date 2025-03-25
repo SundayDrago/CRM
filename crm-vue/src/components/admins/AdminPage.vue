@@ -1,134 +1,142 @@
 <template>
-  <div class="admin-dashboard">
-    <!-- Navbar -->
-    <nav class="navbar">
-      <div class="nav-left">
-        <img :src="logo" alt="Logo" class="logo" />
-      </div>
-      <div class="search-container">
-        <div class="search-bar">
-          <input type="text" placeholder="Search..." />
-        </div>
-        <button class="search-button" @click="performSearch">
-          <i class="fas fa-search"></i>
-        </button>
-      </div>
-      <div class="nav-icons">
-        <i class="fas fa-bell notification-icon"></i>
-        <div class="profile-menu">
-          <input type="file" accept="image/*" @change="onProfilePicChange" class="profile-input" ref="fileInput" />
-          <img :src="adminProfile.picture" alt="Profile" class="profile-pic" @click="triggerFileInput" />
-          <span>{{ adminProfile.username }}</span> <!-- Display username here -->
-        </div>
-      </div>
-    </nav>
-
+  <div class="admin-dashboard" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <h2>Admin Panel</h2>
+      <button class="toggle-sidebar" @click="toggleSidebar">
+        <i :class="isSidebarCollapsed ? 'fas fa-bars' : 'fas fa-chevron-left'"></i>
+      </button>
+      <h2 v-if="!isSidebarCollapsed">Admin Panel</h2>
       <nav>
-        <ul>
+        <ul class="sidebar-menu">
           <li @click="currentTab = 'dashboard'" :class="{ active: currentTab === 'dashboard' }">
-            <i class="fas fa-tachometer-alt"></i> Dashboard
+            <i class="fas fa-tachometer-alt"></i> <span v-if="!isSidebarCollapsed">Dashboard</span>
           </li>
           <li @click="currentTab = 'users'" :class="{ active: currentTab === 'users' }">
-            <i class="fas fa-users"></i> Users
+            <i class="fas fa-users"></i> <span v-if="!isSidebarCollapsed">Users</span>
           </li>
           <li @click="currentTab = 'segmentation'" :class="{ active: currentTab === 'segmentation' }">
-            <i class="fas fa-chart-pie"></i> Segmentation
+            <i class="fas fa-chart-pie"></i> <span v-if="!isSidebarCollapsed">Segmentation</span>
           </li>
           <li @click="currentTab = 'settings'" :class="{ active: currentTab === 'settings' }">
-            <i class="fas fa-cogs"></i> Settings
+            <i class="fas fa-cogs"></i> <span v-if="!isSidebarCollapsed">Settings</span>
           </li>
           <li @click="currentTab = 'activity'" :class="{ active: currentTab === 'activity' }">
-            <i class="fas fa-history"></i> Activity Logs
+            <i class="fas fa-history"></i> <span v-if="!isSidebarCollapsed">Activity Log</span>
+          </li>
+          <li @click="currentTab = 'advisory'" :class="{ active: currentTab === 'advisory' }">
+            <i class="fas fa-lightbulb"></i> <span v-if="!isSidebarCollapsed">Advisory</span>
           </li>
         </ul>
       </nav>
-      <button class="logout" @click="logout">
-        <i class="fas fa-sign-out-alt"></i> Logout
+      <button class="logout-button" @click="confirmLogout">
+        <i class="fas fa-sign-out-alt"></i> <span v-if="!isSidebarCollapsed">Logout</span>
       </button>
     </aside>
 
     <!-- Main Content -->
-    <main class="content">
-      <h2>{{ pageTitle }}</h2>
-      <div v-if="currentTab === 'dashboard'">
-        <DashboardPage />
+    <div class="main-container">
+      <!-- Navbar -->
+      <nav class="navbar">
+        <div class="search-container">
+          <input type="text" placeholder="Search..." class="search-input" />
+          <button class="search-button" @click="performSearch">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+        <div class="nav-icons">
+          <div class="profile-menu" @click="triggerFileInput">
+            <input type="file" accept="image/*" @change="onProfilePicChange" class="profile-input" ref="fileInput" hidden />
+            <img :src="adminProfile.picture || defaultAvatar" alt="Profile" class="profile-pic" />
+            <span>{{ adminProfile.username }}</span>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Dynamic Page Content -->
+      <main class="content">
+        <component :is="currentTabComponent"></component>
+      </main>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div v-if="showLogoutModal" class="modal-overlay">
+      <div class="modal">
+        <p>Are you sure you want to log out?</p>
+        <div class="modal-buttons">
+          <button class="confirm-button" @click="logout">Yes</button>
+          <button class="cancel-button" @click="showLogoutModal = false">No</button>
+        </div>
       </div>
-      <div v-if="currentTab === 'users'">
-        <UsersPage />
-      </div>
-      <div v-if="currentTab === 'segmentation'">
-        <SegmentPage />
-      </div>
-      <div v-if="currentTab === 'settings'">
-        <SettingsPage />
-      </div>
-      <div v-if="currentTab === 'activity'">
-        <ActivityLogPage />
-      </div>
-    </main>
+    </div>
   </div>
 </template>
 
 <script>
-import SettingsPage from './SettingsPage.vue';
 import DashboardPage from './DashboardPage.vue';
-import ActivityLogPage from './ActivityLogPage.vue';
-import SegmentPage from './SegmentPage.vue';
 import UsersPage from './UsersPage.vue';
+import SegmentPage from './SegmentPage.vue';
+import SettingsPage from './SettingsPage.vue';
+import ActivityLogPage from './ActivityLogPage.vue';
+import AdvisoryPage from './AdvisoryPage.vue';
 
 export default {
-  name: 'AdminPage',
-  components: {
-    SettingsPage,
-    DashboardPage,
-    ActivityLogPage,
-    SegmentPage,
-    UsersPage
-  },
+  components: { DashboardPage, UsersPage, SegmentPage, SettingsPage, ActivityLogPage, AdvisoryPage },
   data() {
     return {
+      isSidebarCollapsed: false,
       currentTab: 'dashboard',
-      adminProfile: {
-        picture: 'https://via.placeholder.com/80',
-        username: 'Admin', // Added username property
-      },
+      adminProfile: { picture: '', username: 'Admin' },
+      defaultAvatar: 'https://graph.facebook.com/10000000/picture?type=normal',
+      showLogoutModal: false,
     };
   },
   computed: {
-    pageTitle() {
-      const titles = {
-        dashboard: 'Dashboard',
-        users: 'User Management',
-        segmentation: 'Customer Segmentation',
-        settings: 'Settings',
-        activity: 'Activity Logs',
-      };
-      return titles[this.currentTab];
+    currentTabComponent() {
+      return {
+        dashboard: DashboardPage,
+        users: UsersPage,
+        segmentation: SegmentPage,
+        settings: SettingsPage,
+        activity: ActivityLogPage,
+        advisory:AdvisoryPage,
+      }[this.currentTab];
     },
   },
+  created() {
+    this.loadUserAvatar();
+  },
   methods: {
-    logout() {
-      alert('Logging out...');
-      this.$router.push('/');
+    toggleSidebar() {
+      this.isSidebarCollapsed = !this.isSidebarCollapsed;
     },
-    performSearch() {
-      alert('Search function is not implemented yet.'); // Placeholder for search functionality
-    },
-    triggerFileInput() {
-      this.$refs.fileInput.click(); // Trigger the file input click
+    loadUserAvatar() {
+      const storedAvatar = localStorage.getItem('userAvatar');
+      this.adminProfile.picture = storedAvatar || this.defaultAvatar;
     },
     onProfilePicChange(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          this.adminProfile.picture = e.target.result; // Update the profile picture
+          this.adminProfile.picture = e.target.result;
+          localStorage.setItem('userAvatar', e.target.result);
         };
-        reader.readAsDataURL(file); // Convert image file to base64 string
+        reader.readAsDataURL(file);
       }
+    },
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+    performSearch() {
+      alert('Search function is not implemented yet.');
+    },
+    confirmLogout() {
+      this.showLogoutModal = true;
+    },
+    logout() {
+      this.showLogoutModal = false;
+      localStorage.removeItem('userAvatar');
+      this.$router.push('/');
     },
   },
 };
@@ -138,7 +146,105 @@ export default {
 .admin-dashboard {
   display: flex;
   height: 100vh;
-  background-color: #f4f4f9;
+  background-color: #f8f9fa;
+}
+
+.sidebar {
+  width: 240px;
+  background-color: #ffffff;
+  color: #333;
+  padding: 15px;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-collapsed .sidebar {
+  width: 70px;
+}
+
+.sidebar .toggle-sidebar {
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-bottom: 20px;
+  align-self: flex-start;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu li {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+  border-radius: 5px;
+  color: #333;
+}
+
+.sidebar-menu li:hover {
+  background: #f1f1f1;
+}
+
+.sidebar-menu li.active {
+  background: #e0e0e0;
+  font-weight: bold;
+}
+
+.sidebar-menu i {
+  width: 20px;
+}
+
+.notification-container {
+  position: relative;
+  cursor: pointer;
+}
+.notification-icon {
+  font-size: 1.5em;
+  color: #555;
+}
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  font-size: 0.8em;
+  padding: 4px 8px;
+  border-radius: 50%;
+}
+
+.logout-button {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin-top: auto;
+  width: 100%;
+  text-align: center;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #c0392b;
+}
+
+/* Main Content */
+.main-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .navbar {
@@ -146,147 +252,104 @@ export default {
   justify-content: space-between;
   align-items: center;
   background: white;
-  padding: 10px 20px;
-  color: #333;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 60px;
-  z-index: 1000;
-}
-
-.logo {
-  height: 40px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #ddd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .search-container {
   display: flex;
   align-items: center;
-}
-
-.search-bar {
-  background: white;
+  background: #f1f1f1;
+  padding: 8px;
   border-radius: 5px;
+  width: 250px;
 }
 
-.search-bar input {
-  border: 1px solid #ccc;
-  outline: none;
+.search-input {
+  border: none;
+  background: none;
   padding: 5px;
-  width: 200px;
-  border-radius: 5px;
+  outline: none;
+  flex-grow: 1;
 }
 
 .search-button {
-  background: #007bff;
-  color: white;
+  background: #3498db;
   border: none;
-  padding: 13px 18px;
-  border-radius: 5px;
+  color: white;
+  padding: 5px 10px;
   cursor: pointer;
-  font-size: 1em;
-  transition: background 0.3s;
-  margin-left: 5px;
+  border-radius: 5px;
 }
 
 .search-button:hover {
-  background: #0056b3;
-}
-
-.nav-icons {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.notification-icon {
-  font-size: 1.2em;
-  margin-right: 10px;
-  cursor: pointer;
-  color: black;
+  background: #2980b9;
 }
 
 .profile-menu {
   display: flex;
-  margin-right: 150px;
   align-items: center;
   gap: 10px;
   cursor: pointer;
 }
 
-.profile-input {
-  display: none;
-}
-
 .profile-pic {
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  cursor: pointer;
 }
 
-.sidebar {
-  width: 220px;
-  background-color: white;
-  color: #333;
-  padding: 20px;
-  height: 100vh;
-  padding-top: 70px;
-  border-right: 1px solid #ccc;
-}
-
-.sidebar h2 {
-  text-align: center;
-  font-size: 1.3em;
-  margin-bottom: 15px;
-}
-
-.sidebar nav ul {
-  list-style: none;
-  padding: 0;
-}
-
-.sidebar nav li {
-  padding: 10px;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background 0.3s;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
+  justify-content: center;
   align-items: center;
 }
 
-.sidebar nav li i {
-  margin-right: 10px;
-  color: black;
-}
-
-.sidebar nav li:hover,
-.sidebar nav li.active {
-  background-color: #e6e6e6;
-}
-
-.logout {
-  background: transparent;
-  border: none;
-  color: #333;
-  font-size: 1em;
-  cursor: pointer;
-  padding: 10px;
-  width: 100%;
-  text-align: left;
-  transition: background 0.3s;
-}
-
-.logout:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.content {
-  flex: 1;
+.modal {
+  background: white;
   padding: 20px;
-  margin-top: 70px;
-  color: #333;
+  border-radius: 8px;
+  text-align: center;
+  width: 300px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.confirm-button {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.confirm-button:hover {
+  background: #c0392b;
+}
+
+.cancel-button {
+  background: #bdc3c7;
+  color: black;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #95a5a6;
 }
 </style>

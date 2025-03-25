@@ -1,6 +1,7 @@
 <template>
     <div class="settings-page">
       <!-- Profile Settings Section -->
+      <h1>Settings</h1>
       <section class="settings-section">
         <h3>Profile Settings</h3>
         <form @submit.prevent="updateProfile">

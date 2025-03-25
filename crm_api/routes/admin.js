@@ -196,5 +196,9 @@ router.post("/reset-password", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+// For Profile 
+// 🟢 Get Admin Profile Route
+
+
 
 module.exports = router;
