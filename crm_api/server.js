@@ -13,10 +13,13 @@ app.use(express.urlencoded({ extended: true })); // Parses form data
 // Routes
 const crm = require('./routes/crm');
 const admin = require("./routes/admin");
+const analytics = require('./routes/analytics');
 
 // Use routes after middleware
 app.use("/api/admin", admin);
 app.use('/api/customers', crm);
+app.use('/api', analytics);
+
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Customer Segmentation API' });

@@ -1,46 +1,111 @@
 <template>
-  <div class="register-page">
-    <h2>Admin Registration</h2>
-    <form @submit.prevent="register">
-      <div>
-        <label for="fullName">Full Name:</label>
-        <input type="text" v-model="fullName" id="fullName" required />
+  <div class="register-container">
+    <div class="register-card">
+      <div class="header">
+        <h2>Admin Registration</h2>
+        <p class="subtitle">Create your admin account</p>
       </div>
 
-      <div>
-        <label for="username">Username:</label>
-        <input type="text" v-model="username" id="username" required />
-      </div>
-
-      <div>
-        <label for="email">Email:</label>
-        <input type="email" v-model="email" id="email" required />
-      </div>
-
-      <div>
-        <label for="password">Password:</label>
-        <div class="password-container">
-          <input :type="showPassword ? 'text' : 'password'" v-model="password" id="password" required />
-          <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="toggle-icon" @click="togglePasswordVisibility('password')"></i>
+      <form @submit.prevent="register">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input
+            type="text"
+            v-model="fullName"
+            id="fullName"
+            placeholder="John Doe"
+            required
+          />
         </div>
-      </div>
 
-      <div>
-        <label for="confirmPassword">Confirm Password:</label>
-        <div class="password-container">
-          <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" id="confirmPassword" required />
-          <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="toggle-icon" @click="togglePasswordVisibility('confirmPassword')"></i>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            v-model="username"
+            id="username"
+            placeholder="johndoe123"
+            required
+          />
         </div>
-      </div>
 
-      <div class="checkbox">
-        <input type="checkbox" id="terms" v-model="termsAccepted" required />
-        <label for="terms">I agree to the terms and conditions</label>
-      </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            v-model="email"
+            id="email"
+            placeholder="john.doe@example.com"
+            required
+          />
+        </div>
 
-      <button type="submit">Register</button>
-      <p>Already have an account? <router-link to="/login">Login here</router-link></p>
-    </form>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-wrapper">
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="password"
+              id="password"
+              placeholder="••••••••"
+              required
+            />
+            <span
+              class="toggle-password"
+              @click="togglePasswordVisibility('password')"
+            >
+              <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <div class="password-wrapper">
+            <input
+              :type="showConfirmPassword ? 'text' : 'password'"
+              v-model="confirmPassword"
+              id="confirmPassword"
+              placeholder="••••••••"
+              required
+            />
+            <span
+              class="toggle-password"
+              @click="togglePasswordVisibility('confirmPassword')"
+            >
+              <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </span>
+          </div>
+        </div>
+
+        <div class="terms-group">
+          <label class="checkbox-container">
+            <input
+              type="checkbox"
+              id="terms"
+              v-model="termsAccepted"
+              required
+            />
+            <span class="checkmark"></span>
+            I agree to the <a href="#" class="terms-link">Terms and Conditions</a>
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          class="submit-btn"
+          :disabled="isLoading"
+        >
+          <span v-if="!isLoading">Create Account</span>
+          <span v-else class="loading">Registering...</span>
+        </button>
+
+        <div class="login-link">
+          Already have an account?
+          <router-link to="/login">Sign in</router-link>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -59,23 +124,29 @@ export default {
       termsAccepted: false,
       showPassword: false,
       showConfirmPassword: false,
+      isLoading: false,
     };
   },
   methods: {
     async register() {
+      this.isLoading = true;
       const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
       if (!passwordRegex.test(this.password)) {
-        alert("Password must be at least 8 characters long and include a number and special character.");
+        alert("Password must be at least 8 characters and include letters, numbers, and special characters.");
+        this.isLoading = false;
         return;
       }
 
       if (this.password !== this.confirmPassword) {
         alert("Passwords don't match.");
+        this.isLoading = false;
         return;
       }
 
       if (!this.termsAccepted) {
-        alert("You must accept the terms and conditions.");
+        alert("Please accept the terms and conditions.");
+        this.isLoading = false;
         return;
       }
 
@@ -91,8 +162,9 @@ export default {
         alert(response.data.message);
         this.$router.push({ path: "/verify", query: { email: this.email } });
       } catch (error) {
-        console.error("Registration error:", error);
         alert(error.response?.data?.message || "Registration failed. Please try again.");
+      } finally {
+        this.isLoading = false;
       }
     },
     togglePasswordVisibility(field) {
@@ -107,107 +179,173 @@ export default {
 </script>
 
 <style scoped>
-.register-page {
-  max-width: 400px;
-  margin: 50px auto;
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.register-card {
+  width: 100%;
+  max-width: 450px;
+  background: white;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.header {
   text-align: center;
-  background-color: #f4f4f9;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
 }
 
 h2 {
-  font-size: 1.8em;
-  margin-bottom: 20px;
-  color: #007bff;
+  color: #2c3e50;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
 }
 
-form {
-  display: flex;
-  flex-direction: column;
+.subtitle {
+  color: #7f8c8d;
+  font-size: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
 }
 
 label {
-  text-align: left;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.password-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-container input {
-  flex-grow: 1;
-  padding-right: 30px;
-}
-
-.toggle-icon {
-  position: absolute;
-  right: 10px;
-  cursor: pointer;
-  font-size: 1.2em;
-  color: #007bff;
-  transition: color 0.3s;
-}
-
-.toggle-icon:hover {
-  color: #0056b3;
+  display: block;
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
 input {
-  margin: 10px 0;
-  padding: 10px;
-  font-size: 1em;
-  border: 1px solid #ccc;
-  border-radius: 5px;
   width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.checkbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 10px;
+input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
 
-.checkbox input {
-  margin-right: 5px;
+.password-wrapper {
+  position: relative;
 }
 
-button {
-  padding: 12px;
-  font-size: 1.2em;
-  background-color: #007bff;
-  color: white;
-  border: none;
+.toggle-password {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
   cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-p {
-  margin-top: 10px;
-  font-size: 0.9em;
-  color: #333;
-}
-
-p a {
-  color: #007bff;
-  font-weight: bold;
-  text-decoration: none;
+  color: #7f8c8d;
   transition: color 0.3s;
 }
 
-p a:hover {
-  color: #0056b3;
+.toggle-password:hover {
+  color: #3498db;
+}
+
+.terms-group {
+  margin: 1.5rem 0;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  color: #2c3e50;
+  cursor: pointer;
+}
+
+.checkbox-container input {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  margin-right: 0.75rem;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.checkbox-container input:checked + .checkmark {
+  background: #3498db;
+  border-color: #3498db;
+}
+
+.checkbox-container input:checked + .checkmark:after {
+  content: '\2713';
+  color: white;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+}
+
+.terms-link {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.terms-link:hover {
+  text-decoration: underline;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.submit-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #7f8c8d;
+}
+
+.login-link a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-link a:hover {
   text-decoration: underline;
 }
 </style>

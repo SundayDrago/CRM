@@ -1,6 +1,8 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import { createRouter, createWebHistory } from 'vue-router';
+import Toast from 'vue-toastification'; // Import Toast plugin
+import 'vue-toastification/dist/index.css'; // Import Toast styles
 import '@fortawesome/fontawesome-free/css/all.css';
 
 // Import components for each route
@@ -17,6 +19,7 @@ import SegmentPage from './components/admins/SegmentPage.vue';
 import UsersPage from './components/admins/UsersPage.vue';
 import AdvisoryPage from './components/admins/AdvisoryPage.vue';
 import ContactPage from './components/ContactPage.vue';
+import GetStartedPage from './components/GetStartedPage.vue';
 
 // Define routes
 const routes = [
@@ -32,7 +35,8 @@ const routes = [
     { path: '/segments', component: SegmentPage },
     { path: '/users', component: UsersPage },
     { path: '/contact-us', component: ContactPage },
-    { path: '/:catchAll(.*)', component: NotFoundPage } // 
+    { path: '/:catchAll(.*)', component: NotFoundPage },
+    { path: '/get-started', component: GetStartedPage },
 ];
 
 // Create the router instance
@@ -52,7 +56,8 @@ router.beforeEach((to, from, next) => {
   }
 });
 
-// Create the Vue app and mount it with the router
+// Create the Vue app and mount it with the router and Toast
 const app = createApp(App);
-app.use(router); 
+app.use(router); // Register the router
+app.use(Toast); // Register the Toast plugin
 app.mount('#app');

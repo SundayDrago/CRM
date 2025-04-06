@@ -2,7 +2,7 @@
     <div class="not-found">
       <h1>404 - Page Not Found</h1>
       <p>Oops! The page you are looking for does not exist.</p>
-      <router-link to="/" class="home-link">Go back to Home</router-link>
+      <router-link to="/admin" class="home-link">Back</router-link>
     </div>
   </template>
   

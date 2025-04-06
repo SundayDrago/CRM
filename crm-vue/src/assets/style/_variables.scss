@@ -1,0 +1,29 @@
+// Define color variables
+$primary-color: #1e3a8a; // Dark blue
+$secondary-color: #3b82f6; // Light blue
+$background-light: #ffffff;
+$background-dark: #1e293b;
+$text-light: #f8fafc;
+$text-dark: #1e293b;
+
+// Font settings
+$font-family: 'Inter', sans-serif;
+$font-size-base: 16px;
+
+// Spacing
+$spacing-small: 8px;
+$spacing-medium: 16px;
+$spacing-large: 24px;
+
+// Border radius
+$border-radius: 8px;
+
+// Shadows
+$box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
