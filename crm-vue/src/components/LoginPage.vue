@@ -1,25 +1,25 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <!-- Branding with icon instead of logo -->
+      <!-- Branding Section -->
       <div class="branding">
         <i class="fas fa-chart-pie logo-icon"></i>
         <h1>Customer Segmentation</h1>
         <p>Advanced Analytics Platform</p>
       </div>
 
-      <!-- Login Form -->
+      <!-- Login Form Section -->
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-header">
           <h2>Welcome Back</h2>
-          <p>Please enter your credentials to login</p>
+          <p>Sign in to access your analytics dashboard</p>
         </div>
 
-        <!-- Email Input -->
+        <!-- Email Field -->
         <div class="form-group">
           <label for="email">Email Address</label>
-          <div class="input-with-icon">
-            <i class="fas fa-envelope"></i>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope input-icon"></i>
             <input
               type="email"
               id="email"
@@ -29,17 +29,19 @@
               @input="validateEmail"
             >
           </div>
-          <span v-if="emailError" class="error-message">{{ emailError }}</span>
+          <transition name="fade">
+            <span v-if="emailError" class="error-message">{{ emailError }}</span>
+          </transition>
         </div>
 
-        <!-- Password Input -->
+        <!-- Password Field -->
         <div class="form-group">
           <div class="label-row">
             <label for="password">Password</label>
-            <router-link to="/forgot-password" class="forgot-password">Forgot password?</router-link>
+            <router-link to="/forgot-password" class="forgot-password">Forgot Password?</router-link>
           </div>
-          <div class="input-with-icon">
-            <i class="fas fa-lock"></i>
+          <div class="input-wrapper">
+            <i class="fas fa-lock input-icon"></i>
             <input
               :type="showPassword ? 'text' : 'password'"
               id="password"
@@ -52,26 +54,32 @@
               <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
             </button>
           </div>
-          <span v-if="passwordError" class="error-message">{{ passwordError }}</span>
+          <transition name="fade">
+            <span v-if="passwordError" class="error-message">{{ passwordError }}</span>
+          </transition>
         </div>
 
-        <!-- Remember Me & Submit -->
+        <!-- Form Options -->
         <div class="form-options">
-          <label class="remember-me">
+          <label class="checkbox-container">
             <input type="checkbox" v-model="rememberMe">
-            <span>Remember me</span>
+            <span class="checkmark"></span>
+            <span class="checkbox-label">Remember me</span>
           </label>
         </div>
 
+        <!-- Submit Button -->
         <button type="submit" class="login-btn" :disabled="isLoading">
-          <span v-if="!isLoading">Login</span>
+          <span v-if="!isLoading">Sign In</span>
           <div v-else class="spinner"></div>
         </button>
 
         <!-- Social Login -->
         <div class="social-login">
-          <p>Or login with</p>
-          <div class="social-icons">
+          <div class="divider">
+            <span>Or continue with</span>
+          </div>
+          <div class="social-buttons">
             <button type="button" class="social-btn google" @click="loginWithGoogle">
               <i class="fab fa-google"></i>
             </button>
@@ -81,35 +89,38 @@
           </div>
         </div>
 
-        <!-- Sign Up Link -->
-        <div class="signup-link">
-          Don't have an account? <router-link to="/register">Sign up</router-link>
-        </div>
+        <!-- Registration Link -->
+       .‘‘‘
+        <p class="signup-link">
+          New to the platform? <router-link to="/register">Create an account</router-link>
+        </p>
       </form>
     </div>
 
-    <!-- Back to Home -->
-    <router-link to="/" class="back-to-home">
-      <i class="fas fa-arrow-left"></i> Back to Home
+    <!-- Back to Home Link -->
+    <router-link to="/" class="back-link">
+      <i class="fas fa-arrow-left"></i> Return to Home
     </router-link>
 
     <!-- Error Modal -->
-    <div v-if="showErrorModal" class="modal-overlay">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>Login Error</h3>
-          <button @click="showErrorModal = false" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <p>{{ errorMessage }}</p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showErrorModal = false" class="modal-btn">OK</button>
+    <transition name="modal">
+      <div v-if="showErrorModal" class="modal-overlay" @click.self="showErrorModal = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Login Failed</h3>
+            <button class="close-btn" @click="showErrorModal = false">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>{{ errorMessage }}</p>
+          </div>
+          <div class="modal-footer">
+            <button class="modal-btn" @click="showErrorModal = false">Try Again</button>
+          </div>
         </div>
       </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -132,7 +143,6 @@ export default {
     };
   },
   created() {
-    // Check for saved credentials if "remember me" was checked previously
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail) {
       this.email = savedEmail;
@@ -142,11 +152,7 @@ export default {
   methods: {
     validateEmail() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.email)) {
-        this.emailError = 'Please enter a valid email address';
-      } else {
-        this.emailError = '';
-      }
+      this.emailError = emailRegex.test(this.email) ? '' : 'Please enter a valid email address';
     },
 
     togglePassword() {
@@ -154,41 +160,29 @@ export default {
     },
 
     async handleLogin() {
-      // Validate inputs
       this.validateEmail();
       if (this.emailError || !this.email || !this.password) {
-        if (!this.password) {
-          this.passwordError = 'Please enter your password';
-        }
+        if (!this.password) this.passwordError = 'Password is required';
         return;
       }
 
       this.isLoading = true;
-
       try {
         const response = await axios.post('http://localhost:5000/api/admin/login', {
           email: this.email,
           password: this.password,
         });
 
-        // Store token
-        const token = response.data.token;
-        localStorage.setItem('authToken', token);
-
-        // Remember email if checkbox is checked
+        localStorage.setItem('authToken', response.data.token);
         if (this.rememberMe) {
           localStorage.setItem('rememberedEmail', this.email);
         } else {
           localStorage.removeItem('rememberedEmail');
         }
-
-        // Redirect to dashboard
         this.$router.push('/admin');
       } catch (error) {
-        this.errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+        this.errorMessage = error.response?.data?.message || 'Invalid credentials';
         this.showErrorModal = true;
-
-        // Clear password field on error
         this.password = '';
       } finally {
         this.isLoading = false;
@@ -196,239 +190,242 @@ export default {
     },
 
     loginWithGoogle() {
-      console.log('Logging in with Google');
+      console.log('Google login initiated');
     },
 
     loginWithMicrosoft() {
-      console.log('Logging in with Microsoft');
+      console.log('Microsoft login initiated');
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-/* Color Variables */
-:root {
-  --primary-color: #4361ee;
-  --primary-light: #4895ef;
-  --primary-dark: #3f37c9;
-  --secondary-color: #3a0ca3;
-  --accent-color: #f72585;
-  --success-color: #4cc9f0;
-  --warning-color: #f8961e;
-  --danger-color: #ef233c;
-  --dark-color: #2b2d42;
-  --light-color: #f8f9fa;
-  --gray-light: #e9ecef;
-  --gray-medium: #adb5bd;
-  --gray-dark: #495057;
-  --white: #ffffff;
-  --black: #212529;
-  --border-radius: 8px;
-  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
+$primary: #4a6cf7;
+$secondary: #2d3748;
+$accent: #ed64a6;
+$background: #f7fafc;
+$text: #2d3748;
+$error: #e53e3e;
+$border: #e2e8f0;
 
-/* Base Styles */
 .login-container {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: var(--light-color);
-  padding: 20px;
-  position: relative;
+  background: linear-gradient(135deg, $background 0%, darken($background, 5%) 100%);
+  padding: 1rem;
 }
 
 .login-card {
   width: 100%;
-  max-width: 450px;
-  background-color: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
+  max-width: 420px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .branding {
+  padding: 2rem;
+  background: $primary;
   text-align: center;
-  padding: 30px 20px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: var(--white);
+  color: white;
 
   .logo-icon {
-    font-size: 3rem;
-    margin-bottom: 15px;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
   }
 
   h1 {
-    font-size: 1.8rem;
-    margin: 0 0 5px;
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
   }
 
   p {
-    font-size: 1rem;
-    margin: 0;
+    font-size: 0.9rem;
     opacity: 0.9;
   }
 }
 
 .login-form {
-  padding: 30px;
+  padding: 2rem;
 }
 
 .form-header {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 2rem;
 
   h2 {
     font-size: 1.5rem;
-    color: var(--dark-color);
-    margin: 0 0 5px;
+    font-weight: 600;
+    color: $text;
+    margin-bottom: 0.25rem;
   }
 
   p {
     font-size: 0.9rem;
-    color: var(--gray-dark);
-    margin: 0;
+    color: lighten($text, 20%);
   }
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
 
   label {
     display: block;
     font-size: 0.9rem;
     font-weight: 500;
-    color: var(--dark-color);
-    margin-bottom: 8px;
+    color: $text;
+    margin-bottom: 0.5rem;
+  }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .forgot-password {
+    font-size: 0.85rem;
+    color: $primary;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
-.label-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.input-with-icon {
+.input-wrapper {
   position: relative;
-  display: flex;
-  align-items: center;
 
-  i {
+  .input-icon {
     position: absolute;
-    left: 15px;
-    color: var(--gray-medium);
-    font-size: 1rem;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: lighten($text, 30%);
   }
 
   input {
     width: 100%;
-    padding: 12px 15px 12px 45px;
-    border: 1px solid var(--gray-light);
-    border-radius: var(--border-radius);
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    border: 1px solid $border;
+    border-radius: 8px;
     font-size: 0.95rem;
-    transition: var(--transition);
-    background-color: var(--light-color);
+    transition: all 0.2s ease;
 
     &:focus {
       outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
     }
   }
 
   .toggle-password {
     position: absolute;
-    right: 15px;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
-    color: var(--gray-medium);
+    color: lighten($text, 30%);
     cursor: pointer;
-    font-size: 1rem;
-    padding: 5px;
-
     &:hover {
-      color: var(--primary-color);
+      color: $primary;
     }
   }
 }
 
 .error-message {
-  display: block;
+  color: $error;
   font-size: 0.8rem;
-  color: var(--danger-color);
-  margin-top: 5px;
+  margin-top: 0.25rem;
 }
 
 .form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 20px 0;
+  margin: 1.5rem 0;
 }
 
-.remember-me {
+.checkbox-container {
   display: flex;
   align-items: center;
-  font-size: 0.9rem;
-  color: var(--gray-dark);
   cursor: pointer;
 
   input {
-    margin-right: 8px;
-    accent-color: var(--primary-color);
+    display: none;
+
+    &:checked + .checkmark {
+      background: $primary;
+      border-color: $primary;
+
+      &::after {
+        display: block;
+      }
+    }
   }
-}
 
-.forgot-password {
-  font-size: 0.85rem;
-  color: var(--primary-color);
-  text-decoration: none;
-  transition: var(--transition);
+  .checkmark {
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid $border;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    position: relative;
 
-  &:hover {
-    color: var(--primary-dark);
-    text-decoration: underline;
+    &::after {
+      content: '';
+      display: none;
+      position: absolute;
+      left: 3px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+  }
+
+  .checkbox-label {
+    font-size: 0.9rem;
+    color: $text;
   }
 }
 
 .login-btn {
   width: 100%;
-  padding: 14px;
-  background-color: var(--primary-color);
-  color: var(--white);
+  padding: 0.875rem;
+  background: $primary;
+  color: white;
   border: none;
-  border-radius: var(--border-radius);
-  font-size: 1rem;
+  border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: var(--transition);
-  margin-bottom: 20px;
+  transition: background 0.2s ease;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 
   &:hover:not(:disabled) {
-    background-color: var(--primary-dark);
+    background: darken($primary, 10%);
   }
 
   &:disabled {
-    background-color: var(--gray-light);
+    background: lighten($primary, 20%);
     cursor: not-allowed;
-    opacity: 0.7;
   }
 }
 
 .spinner {
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
-  border-top-color: var(--white);
-  animation: spin 1s ease-in-out infinite;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -436,219 +433,179 @@ export default {
 }
 
 .social-login {
+  margin: 2rem 0;
   text-align: center;
-  margin: 25px 0;
 
-  p {
-    font-size: 0.9rem;
-    color: var(--gray-dark);
-    margin: 0 0 15px;
+  .divider {
     position: relative;
+    margin-bottom: 1rem;
 
-    &::before, &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 30%;
-      height: 1px;
-      background-color: var(--gray-light);
+    span {
+      font-size: 0.9rem;
+      color: lighten($text, 20%);
+      background: white;
+      padding: 0 0.5rem;
+      position: relative;
+      z-index: 1;
     }
 
     &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
       left: 0;
-    }
-
-    &::after {
       right: 0;
+      height: 1px;
+      background: $border;
     }
   }
 }
 
-.social-icons {
+.social-buttons {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 1rem;
 }
 
 .social-btn {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   border: none;
-  font-size: 1.2rem;
+  color: white;
   cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: transform 0.2s ease;
 
   &.google {
-    background-color: #db4437;
-    color: var(--white);
-
-    &:hover {
-      background-color: #c23321;
-    }
+    background: #db4437;
+    &:hover { transform: scale(1.05); }
   }
 
   &.microsoft {
-    background-color: #0078d4;
-    color: var(--white);
-
-    &:hover {
-      background-color: #0062ad;
-    }
+    background: #0078d4;
+    &:hover { transform: scale(1.05); }
   }
 }
 
 .signup-link {
   text-align: center;
   font-size: 0.9rem;
-  color: var(--gray-dark);
-  margin-top: 20px;
+  color: lighten($text, 20%);
 
   a {
-    color: var(--primary-color);
+    color: $primary;
     font-weight: 500;
     text-decoration: none;
-    transition: var(--transition);
-
-    &:hover {
-      color: var(--primary-dark);
-      text-decoration: underline;
-    }
+    &:hover { text-decoration: underline; }
   }
 }
 
-.back-to-home {
+.back-link {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 1.5rem;
+  left: 1.5rem;
+  color: $primary;
+  text-decoration: none;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
-  color: var(--primary-color);
-  font-size: 0.95rem;
-  text-decoration: none;
-  transition: var(--transition);
-
-  i {
-    margin-right: 8px;
-  }
+  gap: 0.5rem;
 
   &:hover {
-    color: var(--primary-dark);
     text-decoration: underline;
   }
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
-.modal {
-  background-color: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
+.modal-content {
+  background: white;
+  border-radius: 12px;
   width: 90%;
   max-width: 400px;
-  overflow: hidden;
+  animation: slideIn 0.2s ease-out;
 }
 
 .modal-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid var(--gray-light);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid $border;
   display: flex;
   justify-content: space-between;
   align-items: center;
 
   h3 {
-    font-size: 1.2rem;
     margin: 0;
-    color: var(--dark-color);
+    font-size: 1.25rem;
+    color: $text;
   }
-}
 
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--gray-medium);
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 5px;
-
-  &:hover {
-    color: var(--dark-color);
+  .close-btn {
+    background: none;
+    border: none;
+    color: lighten($text, 30%);
+    cursor: pointer;
+    &:hover { color: $text; }
   }
 }
 
 .modal-body {
-  padding: 20px;
-
-  p {
-    margin: 0;
-    color: var(--dark-color);
-    line-height: 1.5;
-  }
+  padding: 1.5rem;
+  color: $text;
 }
 
 .modal-footer {
-  padding: 15px 20px;
-  border-top: 1px solid var(--gray-light);
-  display: flex;
-  justify-content: flex-end;
-}
+  padding: 1rem 1.5rem;
+  border-top: 1px solid $border;
+  text-align: right;
 
-.modal-btn {
-  padding: 8px 16px;
-  background-color: var(--primary-color);
-  color: var(--white);
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: var(--transition);
-
-  &:hover {
-    background-color: var(--primary-dark);
+  .modal-btn {
+    padding: 0.5rem 1rem;
+    background: $primary;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    &:hover { background: darken($primary, 10%); }
   }
 }
 
-/* Responsive Design */
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active, .modal-leave-active {
+  transition: opacity 0.2s;
+}
+.modal-enter-from, .modal-leave-to {
+  opacity: 0;
+}
+
 @media (max-width: 480px) {
-  .login-container {
-    padding: 15px;
+  .login-card {
+    margin: 1rem;
   }
 
   .branding {
-    padding: 20px 15px;
-
-    h1 {
-      font-size: 1.5rem;
-    }
-
-    p {
-      font-size: 0.9rem;
-    }
+    padding: 1.5rem;
   }
 
   .login-form {
-    padding: 20px 15px;
-  }
-
-  .back-to-home {
-    font-size: 0.85rem;
-    top: 15px;
-    left: 15px;
+    padding: 1.5rem;
   }
 }
 </style>

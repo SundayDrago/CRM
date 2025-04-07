@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db.config/crm_db"); // Ensure this is your correct DB config
+const db = require("../db.config/crm_db");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 // Middleware to verify JWT (for protected routes)
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+    const token = authHeader && authHeader.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
     try {
@@ -26,46 +26,9 @@ const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
         user: "yacobedan@gmail.com", // Replace with your email
-        pass: "vwdgnqgomanftnjv"   // Use an app password if 2FA is enabled
+        pass: "vwdgnqgomanftnjv"   // Use an app-specific password if 2FA is enabled
     }
 });
-
-// Constants for login attempt limits
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
-
-// Helper function to notify admin of lockout
-const notifyAdminOfLockout = (user, attemptTime) => {
-    const mailOptions = {
-        from: "yacobedan@gmail.com",
-        to: "admin@example.com", // Replace with actual admin email or fetch from DB
-        subject: "Account Lockout Notification - CRM System",
-        text: `
-            Dear Admin,
-
-            An account has been locked due to exceeding the allowed login attempts.
-
-            User Details:
-            - Name: ${user.name}
-            - Email: ${user.email}
-            - Time of Last Attempt: ${new Date(attemptTime).toLocaleString()}
-            - Number of Attempts: ${user.login_attempts}
-
-            Please review this account for security purposes.
-
-            Regards,
-            CRM System
-        `
-    };
-
-    transporter.sendMail(mailOptions, (error) => {
-        if (error) {
-            console.error("Failed to send lockout notification:", error);
-        } else {
-            console.log("Lockout notification sent to admin");
-        }
-    });
-};
 
 // 🟢 Admin Registration Route
 router.post("/register", async (req, res) => {
@@ -84,7 +47,7 @@ router.post("/register", async (req, res) => {
             if (err) return res.status(500).json({ message: "Database error", error: err });
 
             if (result.length > 0) {
-                return res.status(400).json({ message: "Email or Username already exists" });
+                return res.status(400).json({ message: "Email or username already exists" });
             }
 
             const securityCode = crypto.randomBytes(3).toString("hex").toUpperCase();
@@ -106,9 +69,10 @@ router.post("/register", async (req, res) => {
 
                     transporter.sendMail(mailOptions, (error) => {
                         if (error) {
-                            return res.status(500).json({ message: "Email could not be sent", error });
+                            console.error("Email sending error:", error);
+                            return res.status(500).json({ message: "Email could not be sent", error: error.message });
                         }
-                        res.status(201).json({ message: "Admin registered. Check email for security code." }); // Fixed typo 'Ares'
+                        res.status(201).json({ message: "Admin registered. Check email for security code." });
                     });
                 }
             );
@@ -117,6 +81,22 @@ router.post("/register", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+
+// 🟢 Get Admin Profile Route (Protected)
+router.get("/profile", authenticateToken, (req, res) => {
+    const adminId = req.admin.id;
+
+    db.query("SELECT username, email, avatar FROM admins WHERE id = ?", [adminId], (err, result) => {
+        if (err) return res.status(500).json({ message: "Database error", error: err });
+        if (result.length === 0) {
+            return res.status(404).json({ message: "Admin not found" });
+        }
+
+        res.status(200).json(result[0]); // includes full_name
+    });
+});
+
 
 // 🟢 Security Code Verification Route
 router.post("/verify-security-code", async (req, res) => {
@@ -150,7 +130,7 @@ router.post("/verify-security-code", async (req, res) => {
     }
 });
 
-// 🟢 Admin Login Route (Updated for Lockout)
+// 🟢 Admin Login Route
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -167,48 +147,14 @@ router.post("/login", async (req, res) => {
             }
 
             const admin = result[0];
-
-            // Check if account is locked
-            if (admin.is_locked && new Date() < new Date(admin.lockout_until)) {
-                const remainingTime = Math.ceil((new Date(admin.lockout_until) - new Date()) / 60000);
-                return res.status(403).json({ 
-                    message: `Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.` 
-                });
-            }
-
             const isMatch = await bcrypt.compare(password, admin.password);
             if (!isMatch) {
-                const newAttempts = (admin.login_attempts || 0) + 1;
-                if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-                    const lockoutUntil = new Date(Date.now() + LOCKOUT_DURATION);
-                    db.query(
-                        "UPDATE admins SET login_attempts = ?, is_locked = ?, lockout_until = ? WHERE email = ?",
-                        [newAttempts, true, lockoutUntil, email],
-                        (err) => {
-                            if (err) console.error("Failed to update lockout status:", err);
-                            notifyAdminOfLockout(admin, Date.now());
-                            res.status(403).json({ message: "Account locked due to too many failed attempts. Admin notified." });
-                        }
-                    );
-                } else {
-                    db.query(
-                        "UPDATE admins SET login_attempts = ? WHERE email = ?",
-                        [newAttempts, email],
-                        (err) => {
-                            if (err) console.error("Failed to update login attempts:", err);
-                            res.status(400).json({ message: `Invalid email or password. Attempt ${newAttempts} of ${MAX_LOGIN_ATTEMPTS}` });
-                        }
-                    );
-                }
-                return;
+                return res.status(400).json({ message: "Invalid email or password" });
             }
 
             if (!admin.is_verified) {
                 return res.status(400).json({ message: "Account not verified. Please verify your email." });
             }
-
-            // Reset login attempts on successful login
-            db.query("UPDATE admins SET login_attempts = 0, is_locked = 0, lockout_until = NULL WHERE email = ?", [email]);
 
             const token = jwt.sign({ id: admin.id, email: admin.email }, "your_jwt_secret", { expiresIn: "1h" });
             res.status(200).json({ message: "Login successful", token });
@@ -251,7 +197,8 @@ router.post("/forgot-password", async (req, res) => {
 
                 transporter.sendMail(mailOptions, (error) => {
                     if (error) {
-                        return res.status(500).json({ message: "Email could not be sent", error });
+                        console.error("Email sending error:", error);
+                        return res.status(500).json({ message: "Email could not be sent", error: error.message });
                     }
                     res.status(200).json({ message: "Password reset link sent." });
                 });
@@ -300,7 +247,7 @@ router.post("/reset-password", async (req, res) => {
 
 // 🟢 Get All Users (Protected Route)
 router.get("/users", authenticateToken, (req, res) => {
-    db.query("SELECT id, name, email, status FROM users", (err, result) => {
+    db.query("SELECT id, username, email, status FROM users", (err, result) => {
         if (err) return res.status(500).json({ message: "Database error", error: err });
         res.status(200).json(result);
     });
@@ -309,10 +256,11 @@ router.get("/users", authenticateToken, (req, res) => {
 // 🟢 Invite User (Protected Route)
 router.post("/users/invite", authenticateToken, async (req, res) => {
     console.log("Hit /api/admin/users/invite"); // Debug log
-    const { name, email } = req.body;
+    const { username, email } = req.body;
+    const created_by = req.admin.id; // Get admin ID from JWT
 
-    if (!name || !email) {
-        return res.status(400).json({ message: "Name and email are required" });
+    if (!username || !email) {
+        return res.status(400).json({ message: "Username and email are required" });
     }
 
     try {
@@ -323,23 +271,30 @@ router.post("/users/invite", authenticateToken, async (req, res) => {
             }
 
             const tempPassword = crypto.randomBytes(8).toString("hex");
-            const hashedPassword = await bcrypt.hash(tempPassword, 10);
-            const setupToken = crypto.randomBytes(32).toString("hex");
+            const hashedTempPassword = await bcrypt.hash(tempPassword, 10);
+            const tempToken = crypto.randomBytes(32).toString("hex");
             const tokenExpiry = new Date();
             tokenExpiry.setHours(tokenExpiry.getHours() + 24);
 
             db.query(
-                "INSERT INTO users (name, email, password, status, setup_token, setup_token_expiry) VALUES (?, ?, ?, ?, ?, ?)",
-                [name, email, hashedPassword, "Pending", setupToken, tokenExpiry],
+                "INSERT INTO users (username, email, temp_password, temp_token, token_expires_at, created_by, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [username, email, hashedTempPassword, tempToken, tokenExpiry, created_by, "pending"],
                 (err, result) => {
                     if (err) return res.status(500).json({ message: "Database error", error: err });
 
-                    const setupLink = `http://localhost:5173/setup-account/${setupToken}`;
+                    const setupLink = `http://localhost:5173/setup-account/${tempToken}`;
                     const mailOptions = {
                         from: "yacobedan@gmail.com",
                         to: email,
                         subject: "Account Setup Invitation - CRM System",
-                        text: `Hello ${name},\n\nYou have been invited to join the CRM system.\n\nTemporary Password: ${tempPassword}\nSetup Link: ${setupLink}\n\nThis link expires in 24 hours.\n\nThank you!`
+                        html: `
+                            <h2>Hello ${username},</h2>
+                            <p>You have been invited to join the CRM system by an admin.</p>
+                            <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+                            <p>Click the link below to set up your account:</p>
+                            <a href="${setupLink}" style="padding: 10px 20px; background: #4361ee; color: white; text-decoration: none; border-radius: 5px;">Set Up Account</a>
+                            <p>This link expires in 24 hours.</p>
+                        `
                     };
 
                     transporter.sendMail(mailOptions, (error) => {
@@ -364,10 +319,10 @@ router.post("/users/invite", authenticateToken, async (req, res) => {
 // 🟢 Update User (Protected Route)
 router.put("/users/:id", authenticateToken, async (req, res) => {
     const { id } = req.params;
-    const { name, email } = req.body;
+    const { username, email } = req.body;
 
-    if (!name || !email) {
-        return res.status(400).json({ message: "Name and email are required" });
+    if (!username || !email) {
+        return res.status(400).json({ message: "Username and email are required" });
     }
 
     try {
@@ -378,8 +333,8 @@ router.put("/users/:id", authenticateToken, async (req, res) => {
             }
 
             db.query(
-                "UPDATE users SET name = ?, email = ? WHERE id = ?",
-                [name, email, id],
+                "UPDATE users SET username = ?, email = ? WHERE id = ?",
+                [username, email, id],
                 (err) => {
                     if (err) return res.status(500).json({ message: "Database error", error: err });
                     res.status(200).json({ message: "User updated successfully" });
@@ -410,14 +365,14 @@ router.delete("/users/:id", authenticateToken, (req, res) => {
 
 // 🟢 Setup Account Route
 router.post("/setup-account", async (req, res) => {
-    const { token, newPassword } = req.body;
+    const { token, newPassword, tempPassword } = req.body;
 
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: "Token and new password are required" });
+    if (!token || !newPassword || !tempPassword) {
+        return res.status(400).json({ message: "Token, temporary password, and new password are required" });
     }
 
     try {
-        db.query("SELECT * FROM users WHERE setup_token = ?", [token], async (err, result) => {
+        db.query("SELECT * FROM users WHERE temp_token = ?", [token], async (err, result) => {
             if (err) return res.status(500).json({ message: "Database error", error: err });
             if (result.length === 0) {
                 return res.status(400).json({ message: "Invalid or expired token" });
@@ -425,14 +380,19 @@ router.post("/setup-account", async (req, res) => {
 
             const user = result[0];
             const now = new Date();
-            if (new Date(user.setup_token_expiry) < now) {
+            if (new Date(user.token_expires_at) < now) {
                 return res.status(400).json({ message: "Setup token has expired" });
+            }
+
+            const isTempPasswordValid = await bcrypt.compare(tempPassword, user.temp_password);
+            if (!isTempPasswordValid) {
+                return res.status(400).json({ message: "Invalid temporary password" });
             }
 
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             db.query(
-                "UPDATE users SET password = ?, status = ?, setup_token = NULL, setup_token_expiry = NULL WHERE setup_token = ?",
-                [hashedPassword, "Active", token],
+                "UPDATE users SET password = ?, temp_password = NULL, temp_token = NULL, token_expires_at = NULL, status = ? WHERE temp_token = ?",
+                [hashedPassword, "active", token],
                 (err) => {
                     if (err) return res.status(500).json({ message: "Database error", error: err });
                     res.status(200).json({ message: "Account setup successful. You can now log in." });
@@ -440,7 +400,8 @@ router.post("/setup-account", async (req, res) => {
             );
         });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        console.error("Server error in /setup-account:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 

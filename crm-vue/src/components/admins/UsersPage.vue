@@ -13,7 +13,7 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>Name</th>
+            <th>Username</th>
             <th>Email</th>
             <th>Status</th>
             <th>Actions</th>
@@ -22,7 +22,7 @@
         <tbody>
           <tr v-for="user in users" :key="user.id">
             <td>{{ user.id }}</td>
-            <td>{{ user.name }}</td>
+            <td>{{ user.username }}</td>
             <td>{{ user.email }}</td>
             <td>
               <span :class="['status', user.status.toLowerCase()]">{{ user.status }}</span>
@@ -48,15 +48,15 @@
         <h3>{{ isEditing ? 'Edit User' : 'Add User' }}</h3>
         <form @submit.prevent="isEditing ? updateUser() : createUser()">
           <div class="form-group">
-            <label for="name">Name</label>
-            <input id="name" v-model="form.name" placeholder="Enter name" required />
+            <label for="username">Username</label>
+            <input id="username" v-model="form.username" placeholder="Enter username" required />
           </div>
           <div class="form-group">
             <label for="email">Email</label>
             <input id="email" type="email" v-model="form.email" placeholder="Enter email" required />
           </div>
           <div v-if="!isEditing" class="form-group">
-            <p class="info-text">An invitation email with a temporary password and setup link will be sent.</p>
+            <p class="info-text">An invitation email with a temporary password and setup link will be sent to the user.</p>
           </div>
           <div class="form-buttons">
             <button type="submit" class="submit-button" :disabled="isSubmitting">
@@ -89,7 +89,7 @@ export default {
       successMessage: '',
       form: {
         id: null,
-        name: '',
+        username: '',
         email: '',
       },
     };
@@ -98,8 +98,13 @@ export default {
     async fetchUsers() {
       this.isLoading = true;
       try {
-        const response = await axios.get('/api/users');
-        this.users = response.data;
+        const response = await axios.get('http://localhost:3000/api/users');
+        this.users = response.data.map(user => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          status: user.status.charAt(0).toUpperCase() + user.status.slice(1), // Capitalize status
+        }));
       } catch (error) {
         console.error('Error fetching users:', error);
         this.errorMessage = 'Failed to load users. Please try again later.';
@@ -109,7 +114,7 @@ export default {
     },
     showAddUserModal() {
       this.isEditing = false;
-      this.form = { id: null, name: '', email: '' };
+      this.form = { id: null, username: '', email: '' };
       this.showAddUserForm = true;
       this.showEditUserForm = false;
       this.errorMessage = '';
@@ -120,14 +125,15 @@ export default {
       this.errorMessage = '';
       this.successMessage = '';
       try {
-        const response = await axios.post('/api/users/invite', {
-          name: this.form.name,
+        const response = await axios.post('http://localhost:3000/api/users/create', {
+          username: this.form.username,
           email: this.form.email,
+          created_by: 1, // Replace with actual admin ID from your auth system (e.g., from Vuex or localStorage)
         });
 
         this.users.push({
-          id: response.data.id,
-          name: this.form.name,
+          id: response.data.userId,
+          username: this.form.username,
           email: this.form.email,
           status: 'Pending',
         });
@@ -138,7 +144,7 @@ export default {
           this.isSubmitting = false;
         }, 1500);
       } catch (error) {
-        this.errorMessage = 'Failed to send invitation. Please try again.';
+        this.errorMessage = error.response?.data?.error || 'Failed to send invitation. Please try again.';
         console.error('Error creating user:', error);
         this.isSubmitting = false;
       }
@@ -154,15 +160,22 @@ export default {
     async updateUser() {
       this.isSubmitting = true;
       this.errorMessage = '';
+      this.successMessage = '';
       try {
-        await axios.put(`/api/users/${this.form.id}`, this.form);
+        await axios.put(`http://localhost:3000/api/users/${this.form.id}`, {
+          username: this.form.username,
+          email: this.form.email,
+        });
         const index = this.users.findIndex(u => u.id === this.form.id);
         this.users[index] = { ...this.form };
-        this.showEditUserForm = false;
+        this.successMessage = 'User updated successfully!';
+        setTimeout(() => {
+          this.showEditUserForm = false;
+          this.isSubmitting = false;
+        }, 1500);
       } catch (error) {
-        this.errorMessage = 'Failed to update user. Please try again.';
+        this.errorMessage = error.response?.data?.error || 'Failed to update user. Please try again.';
         console.error('Error updating user:', error);
-      } finally {
         this.isSubmitting = false;
       }
     },
@@ -173,10 +186,11 @@ export default {
     },
     async deleteUser(userId) {
       try {
-        await axios.delete(`/api/users/${userId}`);
+        await axios.delete(`http://localhost:3000/api/users/${userId}`);
         this.users = this.users.filter(user => user.id !== userId);
       } catch (error) {
         console.error('Error deleting user:', error);
+        this.errorMessage = 'Failed to delete user. Please try again.';
       }
     },
     cancel() {
@@ -288,6 +302,11 @@ td {
 
 .status.active {
   background: #2ecc71;
+  color: #fff;
+}
+
+.status.inactive {
+  background: #95a5a6;
   color: #fff;
 }
 

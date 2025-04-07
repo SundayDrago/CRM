@@ -1,84 +1,31 @@
 <template>
   <div class="segmentation-page">
-    <h1>Customer Segmentation</h1>
-    
-    <!-- Controls -->
-    <div class="controls">
-      <button @click="loadModelSegments" class="action-button">Load Model Segments</button>
-      <button @click="fetchAllSegments" class="action-button">View All Segments</button>
-      <button @click="exportSegments" class="action-button">Export Segments</button>
-      <div class="file-upload-wrapper">
-        <input 
-          type="file" 
-          id="fileUpload" 
-          ref="fileInput" 
-          @change="handleFileUpload" 
-          accept=".csv,.xlsx,.json"
-          style="display: none"
-        >
-        <button @click="triggerFileUpload" class="action-button" :disabled="isUploading">
-          <span v-if="!isUploading">Upload Dataset</span>
-          <span v-else>Uploading...</span>
+    <div class="header">
+      <h1>Customer Segments</h1>
+      <div class="header-actions">
+        <button @click="fetchAllSegments" class="refresh-button">
+          <span>Refresh Segments</span>
         </button>
-        <div v-if="uploadMessage" class="upload-message" :class="{ success: uploadSuccess, error: !uploadSuccess }">
-          {{ uploadMessage }}
-          <span v-if="uploadSuccess && targetFolder">Saved to: {{ targetFolder }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Folder Selection Modal -->
-    <div v-if="showFolderDialog" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Select Destination Folder</h3>
-        <div class="folder-options">
-          <label v-for="folder in availableFolders" :key="folder" class="folder-option">
-            <input type="radio" v-model="selectedFolder" :value="folder">
-            <span>{{ folder }}</span>
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button @click="confirmUpload" class="confirm-button">Confirm</button>
-          <button @click="cancelUpload" class="cancel-button">Cancel</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Segment Modal -->
-    <div v-if="showEditModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3>Edit Segment</h3>
-        <div class="edit-form">
-          <label for="editCriteria">Criteria:</label>
-          <textarea
-            id="editCriteria"
-            v-model="editSegmentData.criteria"
-            placeholder="Enter new criteria (e.g., age > 30 AND income < 50000)"
-            rows="4"
-          ></textarea>
-        </div>
-        <div class="modal-actions">
-          <button @click="saveSegmentChanges" class="confirm-button">Save</button>
-          <button @click="closeEditModal" class="cancel-button">Cancel</button>
-        </div>
+        <button @click="loadModelSegments" class="model-button">
+          <span>Load Model Segments</span>
+        </button>
       </div>
     </div>
 
     <!-- Loading Indicator -->
     <div v-if="isLoading" class="loading">
+      <div class="spinner"></div>
       <p>Loading segments...</p>
     </div>
 
     <!-- Segment List in Enhanced Table Format -->
-    <div v-else-if="segments.length" class="segment-table">
-      <h3>Existing Segments</h3>
-      <div class="table-container">
+    <div v-else class="segment-content">
+      <div v-if="segments.length" class="segment-table">
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Customers</th>
+              <th>Segment Name</th>
+              <th>Customer Count</th>
               <th>Criteria</th>
               <th>Source</th>
               <th>Actions</th>
@@ -86,28 +33,64 @@
           </thead>
           <tbody>
             <tr v-for="segment in segments" :key="segment.id" class="segment-row">
-              <td>{{ segment.id }}</td>
               <td>{{ segment.name }}</td>
-              <td>{{ segment.count }}</td>
-              <td>{{ segment.criteria || 'N/A' }}</td>
-              <td>{{ segment.source || 'Manual' }}</td>
+              <td>{{ segment.count.toLocaleString() }}</td>
+              <td class="criteria-cell">{{ segment.criteria || 'N/A' }}</td>
+              <td>
+                <span class="source-tag" :class="segment.source.toLowerCase()">
+                  {{ segment.source || 'Manual' }}
+                </span>
+              </td>
               <td class="actions-cell">
-                <div class="action-buttons">
-                  <button @click="openEditModal(segment)" class="edit-button">
-                    <span>Edit</span>
-                  </button>
-                  <button @click="confirmDelete(segment.id)" class="delete-button">
-                    <span>Delete</span>
-                  </button>
-                </div>
+                <button @click="openEditModal(segment)" class="edit-button">
+                  <i class="icon-edit"></i>
+                </button>
+                <button @click="confirmDelete(segment.id)" class="delete-button">
+                  <i class="icon-delete"></i>
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+      <div v-else class="no-segments">
+        <div class="empty-state">
+          <i class="icon-segment"></i>
+          <h3>No segments available</h3>
+          <p>Create new segments or load model segments to get started</p>
+          <button @click="loadModelSegments" class="primary-button">
+            Load Model Segments
+          </button>
+        </div>
+      </div>
     </div>
-    <div v-else class="no-segments">
-      <p>No segments available. Upload a dataset and load from model to get started.</p>
+
+    <!-- Edit Segment Modal -->
+    <div v-if="showEditModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Segment Criteria</h3>
+          <button @click="closeEditModal" class="close-button">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Segment Name</label>
+            <input type="text" v-model="editSegmentData.name" readonly>
+          </div>
+          <div class="form-group">
+            <label>Criteria</label>
+            <textarea
+              v-model="editSegmentData.criteria"
+              placeholder="Enter segment criteria (e.g., age > 30 AND income < 50000)"
+              rows="5"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeEditModal" class="cancel-button">Cancel</button>
+          <button @click="saveSegmentChanges" class="save-button">Save Changes</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -121,78 +104,15 @@ export default {
     return {
       segments: [],
       isLoading: false,
-      isUploading: false,
-      showFolderDialog: false,
-      selectedFile: null,
-      availableFolders: [
-        'customer_data/raw',
-        'customer_data/processed',
-        'customer_data/segmented',
-        'customer_data/archived'
-      ],
-      selectedFolder: 'customer_data/raw',
-      uploadMessage: '',
-      uploadSuccess: false,
-      targetFolder: '',
       showEditModal: false,
       editSegmentData: {
         id: null,
+        name: '',
         criteria: ''
       }
     };
   },
   methods: {
-    triggerFileUpload() {
-      this.$refs.fileInput.click();
-    },
-    
-    handleFileUpload(event) {
-      const files = event.target.files;
-      if (files.length === 0) return;
-      this.selectedFile = files[0];
-      this.showFolderDialog = true;
-    },
-    
-    async confirmUpload() {
-      if (!this.selectedFile) return;
-      this.showFolderDialog = false;
-      this.isUploading = true;
-      this.uploadMessage = '';
-      
-      try {
-        const formData = new FormData();
-        formData.append('file', this.selectedFile);
-        
-        const response = await axios.post('http://127.0.0.1:5000/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        
-        this.uploadSuccess = true;
-        this.targetFolder = response.data.path;
-        this.uploadMessage = 'File uploaded successfully!';
-        
-        this.$refs.fileInput.value = '';
-        this.selectedFile = null;
-        
-        await this.loadModelSegments();
-      } catch (error) {
-        this.uploadSuccess = false;
-        this.uploadMessage = error.response?.data?.error || error.message || 'Upload failed';
-      } finally {
-        this.isUploading = false;
-        setTimeout(() => {
-          this.uploadMessage = '';
-          this.targetFolder = '';
-        }, 5000);
-      }
-    },
-    
-    cancelUpload() {
-      this.showFolderDialog = false;
-      this.selectedFile = null;
-      this.$refs.fileInput.value = '';
-    },
-    
     async fetchAllSegments() {
       this.isLoading = true;
       try {
@@ -201,7 +121,9 @@ export default {
       } catch (error) {
         console.error("Error fetching segments:", error);
         this.segments = [];
-        this.$toast.error(error.response?.data?.error || error.message || 'Failed to fetch segments');
+        // Handle both response errors and network errors
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch segments';
+        this.$toast.error(errorMessage);
       } finally {
         this.isLoading = false;
       }
@@ -210,34 +132,23 @@ export default {
     async loadModelSegments() {
       this.isLoading = true;
       try {
-        const response = await axios.get('http://127.0.0.1:5000/segments');
-        this.segments = response.data.filter(segment => segment.source === "Model");
+        const response = await axios.get('http://127.0.0.1:5000/segments/model');
+        this.segments = response.data;
+        this.$toast.success('Model segments loaded successfully');
       } catch (error) {
         console.error("Error loading model segments:", error);
-        this.segments = [];
-        this.$toast.error(error.response?.data?.error || error.message || 'Failed to load model segments');
+        // Handle both response errors and network errors
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to load model segments';
+        this.$toast.error(errorMessage);
       } finally {
         this.isLoading = false;
       }
     },
 
-    exportSegments() {
-      if (!this.segments.length) {
-        this.$toast.warning('No segments to export');
-        return;
-      }
-      const csv = ['ID,Name,Customers,Criteria,Source', ...this.segments.map(s => 
-        `${s.id},${s.name},${s.count},"${s.criteria || 'N/A'}",${s.source || 'Manual'}`)].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'segments.csv';
-      link.click();
-    },
-
     openEditModal(segment) {
       this.editSegmentData = {
         id: segment.id,
+        name: segment.name,
         criteria: segment.criteria || ''
       };
       this.showEditModal = true;
@@ -245,11 +156,11 @@ export default {
 
     closeEditModal() {
       this.showEditModal = false;
-      this.editSegmentData = { id: null, criteria: '' };
+      this.editSegmentData = { id: null, name: '', criteria: '' };
     },
 
     async saveSegmentChanges() {
-      if (!this.editSegmentData.id || !this.editSegmentData.criteria.trim()) {
+      if (!this.editSegmentData.criteria.trim()) {
         this.$toast.error('Criteria cannot be empty');
         return;
       }
@@ -259,266 +170,138 @@ export default {
         await axios.put(`http://127.0.0.1:5000/segments/${this.editSegmentData.id}`, {
           criteria: this.editSegmentData.criteria
         });
-        
+
         this.$toast.success('Segment updated successfully');
         this.closeEditModal();
-        
-        // Refresh the segments list to reflect the updated clustering
         await this.fetchAllSegments();
       } catch (error) {
         console.error("Error updating segment:", error);
-        this.$toast.error(error.response?.data?.error || error.message || 'Failed to update segment');
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to update segment';
+        this.$toast.error(errorMessage);
       } finally {
         this.isLoading = false;
       }
     },
 
-    confirmDelete(id) {
-      if (confirm(`Are you sure you want to delete segment ${id}?`)) {
-        this.segments = this.segments.filter(segment => segment.id !== id);
-        this.$toast.success(`Segment ${id} deleted`);
+    async confirmDelete(id) {
+      if (confirm('Are you sure you want to delete this segment?')) {
+        try {
+          await axios.delete(`http://127.0.0.1:5000/segments/${id}`);
+          this.segments = this.segments.filter(segment => segment.id !== id);
+          this.$toast.success('Segment deleted successfully');
+        } catch (error) {
+          console.error("Error deleting segment:", error);
+          const errorMessage = error.response?.data?.error || error.message || 'Failed to delete segment';
+          this.$toast.error(errorMessage);
+        }
       }
     }
+  },
+  created() {
+    this.fetchAllSegments();
   }
 };
 </script>
 
 <style scoped>
-/* General Page Styling */
+/* Base Styles */
 .segmentation-page {
-  padding: 30px;
-  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  background-color: #f9fafb;
-  min-height: 100vh;
-  max-width: 1400px;
+  padding: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 30px;
-  text-align: left;
-}
-
-h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 20px;
-}
-
-/* Controls Section */
-.controls {
+/* Header Styles */
+.header {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 40px;
-  align-items: center;
+  gap: 1rem;
 }
 
-.action-button {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.action-button:hover {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
-  transform: translateY(-1px);
-}
-
-.action-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* File Upload Wrapper */
-.file-upload-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.upload-message {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  padding: 10px 15px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  width: max-content;
-  max-width: 300px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-}
-
-.upload-message.success {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.upload-message.error {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-/* Modal Styling (Shared for Folder and Edit Modals) */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: #ffffff;
-  padding: 25px;
-  border-radius: 10px;
-  width: 450px;
-  max-width: 90%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal-content h3 {
-  font-size: 1.5rem;
-  margin-bottom: 20px;
-  color: #1f2937;
-}
-
-.folder-options {
-  margin: 20px 0;
-}
-
-.folder-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.folder-option:hover {
-  background-color: #f3f4f6;
-}
-
-.folder-option input[type="radio"] {
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1a1a1a;
   margin: 0;
 }
 
-.folder-option span {
-  font-size: 0.95rem;
-  color: #4b5563;
-}
-
-.edit-form {
-  margin: 20px 0;
-}
-
-.edit-form label {
-  display: block;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.edit-form textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  color: #4b5563;
-  resize: vertical;
-  transition: border-color 0.2s ease;
-}
-
-.edit-form textarea:focus {
-  border-color: #3b82f6;
-  outline: none;
-}
-
-.modal-actions {
+.header-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 0.75rem;
 }
 
-.confirm-button {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  padding: 10px 20px;
-  border: none;
+.refresh-button, .model-button {
+  padding: 0.6rem 1rem;
   border-radius: 6px;
   font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.confirm-button:hover {
-  background: linear-gradient(135deg, #059669, #047857);
+.refresh-button {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
 }
 
-.cancel-button {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+.refresh-button:hover {
+  background-color: #e5e7eb;
+}
+
+.model-button {
+  background-color: #3b82f6;
   color: white;
-  padding: 10px 20px;
   border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s ease;
 }
 
-.cancel-button:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+.model-button:hover {
+  background-color: #2563eb;
 }
 
 /* Loading Indicator */
 .loading {
-  text-align: center;
-  padding: 40px;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .loading p {
-  font-size: 1.1rem;
   color: #6b7280;
-  margin: 0;
+  font-size: 0.95rem;
 }
 
-/* Enhanced Segment Table */
+/* Segment Table */
+.segment-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
 .segment-table {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 40px;
-}
-
-.table-container {
   overflow-x: auto;
 }
 
@@ -526,143 +309,282 @@ table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  min-width: 800px;
 }
 
 thead {
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  color: #374151;
+  background-color: #f9fafb;
 }
 
 th {
-  padding: 16px 20px;
+  padding: 1rem;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 2px solid #d1d5db;
-}
-
-tbody tr {
-  transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-tbody tr:hover {
-  background-color: #f9fafb;
-  transform: translateY(-1px);
-}
-
-td {
-  padding: 20px;
-  font-size: 0.95rem;
-  color: #4b5563;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.actions-cell {
-  padding: 20px;
+td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
+  font-size: 0.9rem;
 }
 
-.action-buttons {
+.criteria-cell {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.source-tag.model {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.source-tag.manual {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.actions-cell {
   display: flex;
-  gap: 10px;
-  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.edit-button, .delete-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
 }
 
 .edit-button {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #fef3c7;
+  color: #d97706;
 }
 
 .edit-button:hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  transform: translateY(-1px);
+  background-color: #fde68a;
 }
 
 .delete-button {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #fee2e2;
+  color: #ef4444;
 }
 
 .delete-button:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: translateY(-1px);
+  background-color: #fecaca;
 }
 
-/* No Segments Message */
+/* Empty State */
 .no-segments {
+  padding: 3rem;
   text-align: center;
-  padding: 40px;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.no-segments p {
-  font-size: 1.1rem;
+.empty-state {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.empty-state i {
+  font-size: 2.5rem;
+  color: #9ca3af;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  color: #1f2937;
+  margin: 0;
+}
+
+.empty-state p {
   color: #6b7280;
   margin: 0;
+  font-size: 0.95rem;
+}
+
+.primary-button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primary-button:hover {
+  background-color: #2563eb;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  margin: 0;
+  color: #1f2937;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.form-group input, .form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group input {
+  background-color: #f9fafb;
+}
+
+.modal-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.cancel-button, .save-button {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-button {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.cancel-button:hover {
+  background-color: #e5e7eb;
+}
+
+.save-button {
+  background-color: #10b981;
+  color: white;
+  border: none;
+}
+
+.save-button:hover {
+  background-color: #059669;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .controls {
+  .header {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
-  .action-button {
+  .header-actions {
     width: 100%;
-    margin-bottom: 10px;
   }
 
-  .table-container {
-    overflow-x: auto;
-  }
-
-  table {
-    min-width: 600px;
+  .refresh-button, .model-button {
+    flex: 1;
+    justify-content: center;
   }
 
   .modal-content {
-    width: 90%;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    gap: 8px;
+    margin: 1rem;
+    width: calc(100% - 2rem);
   }
 }
 
-@media (max-width: 480px) {
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  th, td {
-    font-size: 0.85rem;
-    padding: 12px;
-  }
-
-  .edit-button, .delete-button {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-}
+/* Icons (using Unicode for simplicity - replace with actual icon components if available) */
+.icon-edit::before { content: "✏️"; }
+.icon-delete::before { content: "🗑️"; }
+.icon-segment::before { content: "👥"; }
 </style>

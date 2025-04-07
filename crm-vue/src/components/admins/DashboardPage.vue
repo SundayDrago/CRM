@@ -795,58 +795,61 @@ export default {
 };
 </script>
 <style scoped>
-/* Base Styles */
+/* Base Styles: Foundation for the dashboard layout */
 .dashboard {
-  padding: 20px;
+  padding: 2vw; /* Fluid padding based on viewport width */
   font-family: "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   color: #333;
   max-width: 1800px;
   margin: 0 auto;
   background-color: #f8fafc;
+  min-height: 100vh; /* Ensures dashboard fills screen height */
 }
 
+/* Header: Title and subtitle with responsive typography */
 .dashboard-header {
   text-align: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .dashboard-header h1 {
-  font-size: 2.2rem;
+  font-size: clamp(1.8rem, 5vw, 2.2rem); /* Scales between 1.8rem and 2.2rem */
   font-weight: 600;
   color: #1a365d;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
   color: #718096;
   font-weight: 500;
 }
 
+/* Section Title: Consistent heading style across sections */
 .section-title {
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 3.5vw, 1.5rem);
   font-weight: 600;
   color: #2d3748;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
-/* Controls Section */
+/* Controls Section: Interactive controls for refreshing and filtering */
 .controls-section {
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 1rem;
   align-items: center;
   justify-content: space-between;
   background: white;
-  padding: 20px;
+  padding: 1.5rem;
   border-radius: 10px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
@@ -854,29 +857,35 @@ export default {
 .refresh-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
   background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
-.refresh-button:hover {
+.refresh-button:hover,
+.refresh-button:focus {
   background-color: #3182ce;
+  outline: none; /* Accessibility: Remove default focus outline */
+}
+
+.refresh-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* Accessibility: Focus ring */
 }
 
 .icon {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2vw, 1.1rem);
 }
 
 .time-selector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.75rem;
 }
 
 .time-selector label {
@@ -885,55 +894,63 @@ export default {
 }
 
 .time-range {
-  padding: 10px 15px;
+  padding: 0.6rem 1rem;
   border: 1px solid #cbd5e0;
   border-radius: 6px;
   background-color: white;
-  font-size: 0.95rem;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
   cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.time-range:focus {
+  border-color: #4299e1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
 }
 
 .model-info {
   display: flex;
-  gap: 15px;
-  font-size: 0.9rem;
+  gap: 1rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
 }
 
 .model-version {
   background-color: #edf2f7;
-  padding: 5px 10px;
+  padding: 0.4rem 0.8rem;
   border-radius: 4px;
   color: #4a5568;
 }
 
 .accuracy {
   background-color: #ebf8ff;
-  padding: 5px 10px;
+  padding: 0.4rem 0.8rem;
   border-radius: 4px;
   color: #3182ce;
 }
 
-/* Metrics Grid */
+/* Metrics Grid: Key predictive KPIs in a responsive grid */
 .metrics-section {
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 1.5rem;
 }
 
 .metric-card {
   background: white;
   border-radius: 10px;
-  padding: 20px;
+  padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 
-.metric-card:hover {
+.metric-card:hover,
+.metric-card:focus-within {
   transform: translateY(-3px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
@@ -942,19 +959,19 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
 }
 
 .metric-header h3 {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
   color: #2d3748;
   margin: 0;
 }
 
 .confidence {
-  font-size: 0.75rem;
-  padding: 3px 8px;
+  font-size: clamp(0.7rem, 1.5vw, 0.75rem);
+  padding: 0.2rem 0.5rem;
   border-radius: 10px;
   font-weight: 500;
 }
@@ -975,22 +992,22 @@ export default {
 }
 
 .metric-value {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
   color: #1a365d;
-  margin-bottom: 10px;
+  margin-bottom: 0.75rem;
 }
 
 .metric-trend {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .trend-indicator {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
 }
 
 .trend-indicator.up {
@@ -1002,12 +1019,12 @@ export default {
 }
 
 .trend-period {
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   color: #718096;
 }
 
 .metric-description {
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
   color: #718096;
   line-height: 1.5;
 }
@@ -1017,61 +1034,61 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 2.5rem;
   background: white;
   border-radius: 10px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border: 4px solid #e2e8f0;
   border-top-color: #4299e1;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Chart Grid */
+/* Chart Grid: Visualizations for insights */
 .visualization-section {
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
 .chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
+  gap: 1.5rem;
 }
 
 .chart-card {
   background: white;
   border-radius: 10px;
-  padding: 20px;
+  padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .chart-card h3 {
-  font-size: 1.2rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.2rem);
   font-weight: 600;
   color: #2d3748;
   margin-top: 0;
-  margin-bottom: 5px;
+  margin-bottom: 0.3rem;
 }
 
 .chart-subtitle {
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
   color: #718096;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
 .chart-container canvas {
   width: 100% !important;
-  height: 300px !important;
+  height: clamp(200px, 50vw, 300px) !important;
 }
 
 .importance-card {
@@ -1080,14 +1097,14 @@ export default {
 
 .feature-list {
   display: grid;
-  gap: 15px;
+  gap: 1rem;
 }
 
 .feature-item {
   display: grid;
-  grid-template-columns: 200px 1fr 60px;
+  grid-template-columns: minmax(150px, 1fr) 2fr minmax(50px, auto);
   align-items: center;
-  gap: 15px;
+  gap: 1rem;
 }
 
 .feature-name {
@@ -1096,7 +1113,7 @@ export default {
 }
 
 .feature-bar-container {
-  height: 20px;
+  height: 1.25rem;
   background-color: #edf2f7;
   border-radius: 4px;
   overflow: hidden;
@@ -1110,26 +1127,26 @@ export default {
 }
 
 .feature-value {
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
   color: #718096;
   text-align: right;
 }
 
-/* Recommendations */
+/* Recommendations: Actionable AI suggestions */
 .recommendations-section {
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
 .recommendations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 1.5rem;
 }
 
 .recommendation-card {
   background: white;
   border-radius: 10px;
-  padding: 20px;
+  padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -1138,15 +1155,15 @@ export default {
 .rec-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .rec-priority {
-  font-size: 0.7rem;
+  font-size: clamp(0.65rem, 1.5vw, 0.7rem);
   font-weight: 700;
   text-transform: uppercase;
-  padding: 3px 8px;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
 }
 
@@ -1166,30 +1183,30 @@ export default {
 }
 
 .rec-header h3 {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
   color: #2d3748;
   margin: 0;
 }
 
 .rec-description {
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
   color: #4a5568;
   line-height: 1.5;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
   flex-grow: 1;
 }
 
 .rec-metrics {
   display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-  font-size: 0.85rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
 }
 
 .rec-metric {
   background-color: #f7fafc;
-  padding: 5px 10px;
+  padding: 0.4rem 0.75rem;
   border-radius: 4px;
 }
 
@@ -1199,43 +1216,48 @@ export default {
 
 .rec-action {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
-.rec-action:hover {
+.rec-action:hover,
+.rec-action:focus {
   background-color: #3182ce;
 }
 
-/* Predictions Table and Form */
+.rec-action:focus-visible {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+/* Predictions Section: Form and table for customer predictions */
 .predictions-section {
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
 .form-container {
   background: white;
   border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .segment-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 1rem;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 1rem;
 }
 
 .form-group {
@@ -1244,33 +1266,46 @@ export default {
 }
 
 .form-group label {
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
   font-weight: 500;
   color: #4a5568;
-  margin-bottom: 5px;
+  margin-bottom: 0.3rem;
 }
 
 .form-group input,
 .form-group select {
-  padding: 8px;
+  padding: 0.5rem;
   border: 1px solid #cbd5e0;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #4299e1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
 }
 
 .submit-button {
-  padding: 10px;
+  padding: 0.75rem;
   background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
-.submit-button:hover {
+.submit-button:hover,
+.submit-button:focus {
   background-color: #3182ce;
+}
+
+.submit-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
 .table-container {
@@ -1287,7 +1322,7 @@ export default {
 
 .predictions-table th {
   text-align: left;
-  padding: 15px;
+  padding: clamp(0.75rem, 2vw, 1rem);
   background-color: #f7fafc;
   font-weight: 600;
   color: #4a5568;
@@ -1300,11 +1335,11 @@ export default {
 }
 
 .sort-icon {
-  margin-left: 5px;
+  margin-left: 0.3rem;
 }
 
 .predictions-table td {
-  padding: 12px 15px;
+  padding: clamp(0.75rem, 2vw, 1rem);
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -1319,15 +1354,15 @@ export default {
 }
 
 .customer-id {
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   color: #718096;
 }
 
 .segment-tag {
   display: inline-block;
-  padding: 4px 8px;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   font-weight: 500;
 }
 
@@ -1354,11 +1389,11 @@ export default {
 .risk-meter {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .risk-bar {
-  height: 8px;
+  height: 0.5rem;
   border-radius: 4px;
   flex-grow: 1;
   background-color: #e2e8f0;
@@ -1380,9 +1415,9 @@ export default {
 .risk-bar.high { color: #e53e3e; }
 
 .risk-value {
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
   font-weight: 500;
-  min-width: 40px;
+  min-width: 2.5rem;
   text-align: right;
 }
 
@@ -1392,37 +1427,48 @@ export default {
 }
 
 .action-button {
-  padding: 5px 10px;
+  padding: 0.3rem 0.75rem;
   border: none;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   font-weight: 500;
   cursor: pointer;
-  margin-right: 5px;
   background-color: #ebf8ff;
   color: #3182ce;
+  transition: background-color 0.2s ease;
 }
 
-.action-button:hover {
+.action-button:hover,
+.action-button:focus {
   background-color: #d6e9ff;
+}
+
+.action-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 15px;
+  padding: 1rem;
   background-color: #f7fafc;
-  gap: 15px;
+  gap: 1rem;
 }
 
 .pagination button {
-  padding: 5px 10px;
+  padding: 0.4rem 0.75rem;
   background-color: #edf2f7;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled),
+.pagination button:focus:not(:disabled) {
+  background-color: #d6e9ff;
 }
 
 .pagination button:disabled {
@@ -1430,36 +1476,41 @@ export default {
   cursor: not-allowed;
 }
 
-/* Query Section */
+/* Query Section: Filters and chart for customer queries */
 .query-section {
-  margin-top: 40px;
+  margin-top: 2.5rem;
   background: white;
   border-radius: 10px;
-  padding: 25px;
+  padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .query-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
   align-items: end;
 }
 
 .reset-button {
-  padding: 10px 15px;
+  padding: 0.75rem 1rem;
   background-color: #f8f9fa;
   border: 1px solid #ddd;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   height: fit-content;
 }
 
-.reset-button:hover {
+.reset-button:hover,
+.reset-button:focus {
   background-color: #e9ecef;
+}
+
+.reset-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
 .query-loading {
@@ -1467,28 +1518,28 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 2.5rem;
 }
 
 .query-summary {
-  margin-top: 20px;
-  padding: 15px;
+  margin-top: 1.5rem;
+  padding: 1rem;
   background-color: #f8f9fa;
   border-radius: 8px;
 }
 
 .query-summary p {
-  font-size: 1.1rem;
-  margin-bottom: 15px;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  margin-bottom: 1rem;
 }
 
 .breakdown {
-  margin-top: 15px;
+  margin-top: 1rem;
 }
 
 .breakdown h4 {
-  margin-bottom: 10px;
-  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: clamp(0.9rem, 2vw, 1rem);
   color: #495057;
 }
 
@@ -1499,7 +1550,7 @@ export default {
 }
 
 .breakdown li {
-  padding: 8px 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
@@ -1509,7 +1560,7 @@ export default {
   border-bottom: none;
 }
 
-/* Modal */
+/* Modal: Detailed view for metric cards */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1526,8 +1577,7 @@ export default {
 .metric-modal {
   background: white;
   border-radius: 10px;
-  width: 90%;
-  max-width: 900px;
+  width: clamp(300px, 90vw, 900px);
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -1537,12 +1587,12 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 1.5rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-header h2 {
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
   font-weight: 600;
   color: #1a365d;
   margin: 0;
@@ -1551,22 +1601,33 @@ export default {
 .close-modal {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
   cursor: pointer;
   color: #718096;
-  padding: 5px;
+  padding: 0.3rem;
+  transition: color 0.2s ease;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+  color: #2d3748;
+}
+
+.close-modal:focus-visible {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 1.5rem;
 }
 
 .metric-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -1576,13 +1637,13 @@ export default {
 }
 
 .summary-label {
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
   color: #718096;
-  margin-bottom: 5px;
+  margin-bottom: 0.3rem;
 }
 
 .summary-value {
-  font-size: 1.3rem;
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
   font-weight: 600;
   color: #1a365d;
 }
@@ -1596,9 +1657,9 @@ export default {
 
 .summary-confidence {
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 0.2rem 0.5rem;
   border-radius: 10px;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
   display: inline-block;
 }
 
@@ -1607,22 +1668,22 @@ export default {
 .summary-confidence.low { background-color: #fed7d7; color: #e53e3e; }
 
 .metric-chart {
-  height: 300px;
-  margin-bottom: 30px;
+  height: clamp(200px, 50vw, 300px);
+  margin-bottom: 2rem;
 }
 
 .metric-details h3 {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
   color: #2d3748;
-  margin-top: 20px;
-  margin-bottom: 10px;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .metric-details p {
   line-height: 1.6;
   color: #4a5568;
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
 }
 
 .influencers-list {
@@ -1633,7 +1694,7 @@ export default {
 .influencers-list li {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 0.75rem 0;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -1647,41 +1708,163 @@ export default {
 .factor-impact.negative { color: #e53e3e; }
 
 .modal-footer {
-  padding: 15px 20px;
+  padding: 1rem 1.5rem;
   border-top: 1px solid #e2e8f0;
   text-align: right;
 }
 
 .modal-close-btn {
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modal-close-btn:hover,
+.modal-close-btn:focus {
+  background-color: #3182ce;
+}
+
+.modal-close-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
 /* Responsive Adjustments */
 @media (max-width: 1024px) {
-  .chart-grid { grid-template-columns: 1fr; }
-  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Tablet adjustments */
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  }
+
+  .feature-item {
+    grid-template-columns: 1fr 1fr auto;
+  }
+
+  .metric-summary {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  }
 }
 
 @media (max-width: 768px) {
-  .controls { flex-direction: column; align-items: stretch; }
-  .metrics-grid { grid-template-columns: 1fr; }
-  .recommendations-grid { grid-template-columns: 1fr; }
-  .predictions-table { display: block; overflow-x: auto; }
-  .form-grid { grid-template-columns: 1fr; }
-  .query-filters { grid-template-columns: 1fr; }
+  /* Larger phone/tablet adjustments */
+  .dashboard {
+    padding: 1rem;
+  }
+
+  .controls {
+    padding: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .query-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .predictions-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .feature-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .feature-name {
+    margin-bottom: 0.25rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .dashboard { padding: 15px; }
-  .dashboard-header h1 { font-size: 1.8rem; }
-  .metric-modal { width: 95%; }
-  .feature-item { grid-template-columns: 1fr; gap: 5px; }
-  .feature-name { margin-bottom: 5px; }
+  /* Small phone adjustments */
+  .dashboard-header h1 {
+    font-size: clamp(1.5rem, 4vw, 1.8rem);
+  }
+
+  .section-title {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+  }
+
+  .refresh-button,
+  .submit-button,
+  .rec-action,
+  .reset-button,
+  .modal-close-btn {
+    padding: 0.5rem 1rem;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
+  }
+
+  .metric-value {
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
+  }
+
+  .chart-container canvas {
+    height: 200px !important;
+  }
+
+  .modal-header h2 {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+  }
+
+  .metric-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card,
+  .chart-card,
+  .recommendation-card,
+  .form-container,
+  .table-container,
+  .query-section {
+    padding: 1rem;
+  }
+
+  .spinner {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .metric-card,
+  .refresh-button,
+  .submit-button,
+  .rec-action,
+  .modal-close-btn,
+  .action-button,
+  .feature-bar {
+    transition: none;
+  }
+
+  .spinner {
+    animation: none;
+    border: 4px solid #4299e1;
+  }
 }
 </style>

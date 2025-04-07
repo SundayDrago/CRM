@@ -23,12 +23,32 @@
           <li
             v-for="item in menuItems"
             :key="item.id"
-            @click="selectMenuItem(item.id)"
-            :class="{ 'active': currentTab === item.id, 'has-notification': item.hasNotification }"
+            :class="{ 'active': currentTab === item.id || (item.subItems && item.subItems.some(sub => sub.id === currentTab)), 'has-notification': item.hasNotification }"
           >
-            <i :class="item.icon"></i>
-            <span v-if="!isSidebarCollapsed">{{ item.label }}</span>
-            <span v-if="item.hasNotification && !isSidebarCollapsed" class="notification-badge"></span>
+            <!-- Regular Menu Item -->
+            <div v-if="!item.subItems" @click="selectMenuItem(item.id)" class="menu-item">
+              <i :class="item.icon"></i>
+              <span v-if="!isSidebarCollapsed">{{ item.label }}</span>
+              <span v-if="item.hasNotification && !isSidebarCollapsed" class="notification-badge"></span>
+            </div>
+            <!-- Dropdown Menu Item -->
+            <div v-else class="dropdown-toggle" @click="toggleDropdown(item.id)">
+              <i :class="item.icon"></i>
+              <span v-if="!isSidebarCollapsed">{{ item.label }}</span>
+              <i v-if="!isSidebarCollapsed" class="fas fa-chevron-down dropdown-arrow" :class="{ 'rotated': item.isOpen }"></i>
+            </div>
+            <!-- Submenu -->
+            <ul v-if="item.subItems && item.isOpen && !isSidebarCollapsed" class="submenu">
+              <li
+                v-for="subItem in item.subItems"
+                :key="subItem.id"
+                @click.stop="selectSubMenuItem(subItem.id)"
+                :class="{ 'active': currentTab === subItem.id }"
+              >
+                <i :class="subItem.icon"></i>
+                <span>{{ subItem.label }}</span>
+              </li>
+            </ul>
           </li>
         </ul>
       </nav>
@@ -172,13 +192,15 @@
 import DashboardPage from './DashboardPage.vue';
 import UsersPage from './UsersPage.vue';
 import SegmentPage from './SegmentPage.vue';
+import CreateSegmentsPage from './segments/CreateSegmentsPage.vue'; // New component
+import ReportPage from './ReportPage.vue'; // New component
 import SettingsPage from './SettingsPage.vue';
 import ActivityLogPage from './ActivityLogPage.vue';
 import AdvisoryPage from './AdvisoryPage.vue';
 import debounce from 'lodash/debounce';
 
 export default {
-  components: { DashboardPage, UsersPage, SegmentPage, SettingsPage, ActivityLogPage, AdvisoryPage },
+  components: { DashboardPage, UsersPage, SegmentPage, CreateSegmentsPage, ReportPage, SettingsPage, ActivityLogPage, AdvisoryPage },
   data() {
     return {
       isSidebarCollapsed: false,
@@ -198,7 +220,18 @@ export default {
       menuItems: [
         { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt', hasNotification: false },
         { id: 'users', label: 'User Management', icon: 'fas fa-users', hasNotification: true },
-        { id: 'segmentation', label: 'Segmentation', icon: 'fas fa-chart-pie', hasNotification: false },
+        {
+          id: 'segmentation',
+          label: 'Segmentation',
+          icon: 'fas fa-chart-pie',
+          hasNotification: false,
+          isOpen: false,
+          subItems: [
+            { id: 'view-segments', label: 'View', icon: 'fas fa-eye' },
+            { id: 'create-segment', label: 'Create Segment', icon: 'fas fa-plus' },
+          ],
+        },
+        { id: 'reports', label: 'Reports', icon: 'fas fa-chart-bar', hasNotification: false }, // New Reports item
         { id: 'settings', label: 'System Settings', icon: 'fas fa-cogs', hasNotification: false },
         { id: 'activity', label: 'Activity Log', icon: 'fas fa-history', hasNotification: false },
         { id: 'advisory', label: 'Advisory', icon: 'fas fa-lightbulb', hasNotification: true },
@@ -216,14 +249,23 @@ export default {
       return {
         dashboard: DashboardPage,
         users: UsersPage,
-        segmentation: SegmentPage,
+        'view-segments': SegmentPage,
+        'create-segment': CreateSegmentsPage,
+        reports: ReportPage,
         settings: SettingsPage,
         activity: ActivityLogPage,
         advisory: AdvisoryPage,
-      }[this.currentTab];
+      }[this.currentTab] || DashboardPage;
     },
     currentTabLabel() {
-      return this.menuItems.find(item => item.id === this.currentTab)?.label || 'Dashboard';
+      const item = this.menuItems.find(i => i.id === this.currentTab);
+      if (item) return item.label;
+      const parentItem = this.menuItems.find(i => i.subItems && i.subItems.some(sub => sub.id === this.currentTab));
+      if (parentItem) {
+        const subItem = parentItem.subItems.find(sub => sub.id === this.currentTab);
+        return `${parentItem.label} - ${subItem.label}`;
+      }
+      return 'Dashboard';
     },
     unreadNotifications() {
       return this.notifications.filter(n => !n.read).length;
@@ -242,7 +284,6 @@ export default {
       this.applyTheme();
     }
 
-    // Initialize debounced search
     this.debouncedSearch = debounce(this.performSearch, 300);
   },
   beforeUnmount() {
@@ -252,11 +293,12 @@ export default {
   methods: {
     async fetchUserProfile() {
       try {
-        const response = await fetch('https://your-api.com/user/profile', {
+        const response = await fetch('http://localhost:3000/api/admin/profile', { // Update to your actual API
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         const data = await response.json();
-        this.adminProfile.username = data.full_name || 'Admin';
+        console.log('User Profile:', data);
+        this.adminProfile.username = data.username || 'Admin';
         if (data.avatar) this.adminProfile.picture = data.avatar;
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -270,9 +312,25 @@ export default {
       this.sidebarOpen = !this.sidebarOpen;
     },
     selectMenuItem(id) {
-      this.currentTab = id;
+      const item = this.menuItems.find(i => i.id === id);
+      if (!item.subItems) {
+        this.currentTab = id;
+        this.sidebarOpen = false;
+        this.searchQuery = '';
+      }
+    },
+    toggleDropdown(id) {
+      const item = this.menuItems.find(i => i.id === id);
+      if (item.subItems) {
+        item.isOpen = !item.isOpen;
+      }
+    },
+    selectSubMenuItem(subId) {
+      this.currentTab = subId;
       this.sidebarOpen = false;
-      this.searchQuery = ''; // Reset search when switching tabs
+      this.searchQuery = '';
+      const parentItem = this.menuItems.find(i => i.subItems && i.subItems.some(sub => sub.id === subId));
+      if (parentItem) parentItem.isOpen = false; // Close dropdown after selection
     },
     loadUserAvatar() {
       const storedAvatar = localStorage.getItem('userAvatar');
@@ -295,16 +353,13 @@ export default {
     performSearch() {
       if (this.searchQuery.trim()) {
         console.log(`Searching across ${this.currentTabLabel} for:`, this.searchQuery);
-        // Emit event to child component to handle search
         this.$emit('update-search', this.searchQuery);
       } else {
-        // Reset search when query is empty
         this.$emit('update-search', '');
       }
     },
     updateSearchResults(results) {
       console.log('Search results from child:', results);
-      // Optionally handle results here if needed
     },
     toggleNotifications() {
       this.notificationsOpen = !this.notificationsOpen;
@@ -321,7 +376,7 @@ export default {
       this.$router.push('/notifications');
     },
     navigateToProfile() {
-      this.$router.push('/setting');
+      this.$router.push('/settings'); // Fixed route name
     },
     confirmLogout() {
       this.showLogoutModal = true;
@@ -350,7 +405,6 @@ export default {
   },
 };
 </script>
-
 <style scoped lang="scss">
 :root {
   --primary-color: #4361ee;
@@ -422,6 +476,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--gray-light);
+  min-height: 70px;
 }
 
 .toggle-sidebar, .mobile-toggle-sidebar {
@@ -439,7 +494,6 @@ export default {
   }
 }
 
-/* Add these new styles for the logo */
 .logo-container {
   display: flex;
   align-items: center;
@@ -466,16 +520,6 @@ export default {
   object-fit: contain;
 }
 
-/* Update the sidebar-header to accommodate the logo */
-.sidebar-header {
-  padding: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--gray-light);
-  min-height: 70px; /* Ensure consistent height */
-}
-
 .sidebar-menu {
   list-style: none;
   padding: 10px 0;
@@ -484,37 +528,104 @@ export default {
 }
 
 .sidebar-menu li {
-  padding: 12px 15px;
   margin: 5px 10px;
+  border-radius: var(--border-radius);
+  position: relative;
+}
+
+/* Menu Item (Regular Items) */
+.menu-item {
+  padding: 12px 15px;
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 500;
-  transition: var(--transition);
-  border-radius: var(--border-radius);
   color: var(--gray-dark);
+  transition: var(--transition);
   &:hover {
     background-color: var(--gray-light);
     color: var(--primary-color);
   }
-  &.active {
-    background-color: rgba(67, 97, 238, 0.1);
+}
+
+/* Dropdown Toggle (Segmentation) */
+.dropdown-toggle {
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--gray-dark);
+  transition: var(--transition);
+  position: relative;
+  &:hover {
+    background-color: var(--gray-light);
     color: var(--primary-color);
-    font-weight: 600;
   }
-  &.has-notification::after {
-    content: '';
-    position: absolute;
-    top: 12px;
-    right: 15px;
-    width: 8px;
-    height: 8px;
-    background-color: var(--accent-color);
-    border-radius: 50%;
+  .dropdown-arrow {
+    font-size: 0.8rem;
+    margin-left: auto;
+    transition: transform 0.3s;
+    &.rotated {
+      transform: rotate(180deg);
+    }
   }
-  i { font-size: 1.1rem; min-width: 20px; }
+}
+
+/* Submenu (View, Create Segment) */
+.submenu {
+  list-style: none;
+  padding: 5px 0;
+  margin: 0 0 5px 0;
+  background-color: var(--gray-light);
+  border-radius: var(--border-radius);
+  li {
+    padding: 10px 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: var(--gray-dark);
+    cursor: pointer;
+    transition: var(--transition);
+    &:hover {
+      background-color: var(--gray-medium);
+      color: var(--primary-color);
+    }
+    &.active {
+      background-color: rgba(67, 97, 238, 0.2);
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+    i {
+      font-size: 1rem;
+      min-width: 20px;
+    }
+  }
+}
+
+/* Active State for Menu Items and Dropdown */
+.sidebar-menu li.active > .menu-item,
+.sidebar-menu li.active > .dropdown-toggle {
+  background-color: rgba(67, 97, 238, 0.1);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Notification Badge */
+.sidebar-menu li.has-notification::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-color);
+  border-radius: 50%;
 }
 
 .notification-badge {
@@ -524,6 +635,7 @@ export default {
   padding: 2px 6px;
   font-size: 0.7rem;
   font-weight: bold;
+  margin-left: auto;
 }
 
 .sidebar-footer {
@@ -566,6 +678,7 @@ export default {
   z-index: 10;
 }
 
+/* Rest of the styles remain unchanged */
 .navbar-left {
   display: flex;
   align-items: center;
@@ -835,11 +948,7 @@ export default {
   min-height: calc(100vh - 120px);
 }
 
-/* ==================== */
-/* Logout Modal Styles  */
-/* ==================== */
-
-/* Overlay */
+/* Logout Modal Styles */
 .logout-modal-overlay {
   position: fixed;
   top: 0;
@@ -855,14 +964,12 @@ export default {
   transition: opacity 0.3s ease;
 }
 
-/* Container */
 .logout-modal-container {
   width: 100%;
   max-width: 420px;
   padding: 0 20px;
 }
 
-/* Content */
 .logout-modal-content {
   background-color: var(--white);
   border-radius: 12px;
@@ -874,12 +981,10 @@ export default {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* Icon */
 .modal-icon-wrapper {
   margin-bottom: 20px;
   display: flex;
   justify-content: center;
-
   .warning-icon {
     font-size: 64px;
     color: var(--warning-color);
@@ -894,7 +999,6 @@ export default {
   }
 }
 
-/* Text */
 .modal-title {
   font-size: 1.5rem;
   font-weight: 600;
@@ -910,7 +1014,6 @@ export default {
   margin: 0 0 28px 0;
 }
 
-/* Buttons */
 .modal-action-buttons {
   display: flex;
   gap: 16px;
@@ -929,7 +1032,6 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
@@ -939,13 +1041,11 @@ export default {
 .primary-button {
   background-color: var(--danger-color);
   color: white;
-
   &:hover {
     background-color: darken(#ef233c, 8%);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(239, 35, 60, 0.3);
   }
-
   &:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(239, 35, 60, 0.3);
@@ -955,20 +1055,17 @@ export default {
 .secondary-button {
   background-color: var(--gray-light);
   color: var(--gray-dark);
-
   &:hover {
     background-color: darken(#e9ecef, 5%);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
-
   &:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Animations */
 .modal-transition-enter-active,
 .modal-transition-leave-active {
   transition: opacity 0.3s ease;
@@ -989,27 +1086,22 @@ export default {
   .logout-modal-content {
     padding: 24px;
   }
-
   .modal-icon-wrapper .warning-icon {
     width: 80px;
     height: 80px;
     font-size: 48px;
   }
-
   .modal-title {
     font-size: 1.3rem;
   }
-
   .modal-message {
     font-size: 0.95rem;
     margin-bottom: 24px;
   }
-
   .modal-action-buttons {
     flex-direction: column;
     gap: 12px;
   }
-
   .modal-button {
     width: 100%;
     padding: 12px;

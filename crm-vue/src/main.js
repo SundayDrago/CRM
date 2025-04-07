@@ -18,7 +18,9 @@ import ActivityLogPage from './components/admins/ActivityLogPage.vue';
 import SegmentPage from './components/admins/SegmentPage.vue';
 import UsersPage from './components/admins/UsersPage.vue';
 import AdvisoryPage from './components/admins/AdvisoryPage.vue';
+import ReportPage from './components/admins/ReportPage.vue';
 import ContactPage from './components/ContactPage.vue';
+import CreateSegmentsPage from './components/admins/segments/CreateSegmentsPage.vue';
 import GetStartedPage from './components/GetStartedPage.vue';
 
 // Define routes
@@ -34,7 +36,9 @@ const routes = [
     { path: '/advisory', component: AdvisoryPage }, 
     { path: '/segments', component: SegmentPage },
     { path: '/users', component: UsersPage },
+    { path: '/report', component: ReportPage },
     { path: '/contact-us', component: ContactPage },
+    { path: '/create', component: CreateSegmentsPage },
     { path: '/:catchAll(.*)', component: NotFoundPage },
     { path: '/get-started', component: GetStartedPage },
 ];

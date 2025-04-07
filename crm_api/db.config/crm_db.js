@@ -5,6 +5,8 @@ const db = mysql.createConnection({
   user: "root", 
   password: "", 
   database: "crm_db",
+   waitForConnections: true,
+  connectionLimit: 10,
 });
 
 db.connect((err) => {
