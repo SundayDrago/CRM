@@ -55,49 +55,6 @@
       </div>
     </section>
 
-    <!-- Model Visualization Section -->
-    <section class="visualization-section">
-      <h2 class="section-title">Model Insights</h2>
-      <div class="chart-grid">
-        <div class="chart-card importance-card">
-          <h3>Feature Importance</h3>
-          <div class="feature-list">
-            <div v-for="(feature, index) in featureImportance" :key="index" class="feature-item">
-              <span class="feature-name">{{ feature.name }}</span>
-              <div class="feature-bar-container">
-                <div class="feature-bar" :style="{ width: feature.importance + '%' }"></div>
-              </div>
-              <span class="feature-value">{{ feature.importance }}%</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="chart-card">
-          <h3>Customer Segmentation</h3>
-          <p class="chart-subtitle">Predicted cluster distribution</p>
-          <div class="chart-container">
-            <canvas id="segmentChart"></canvas>
-          </div>
-        </div>
-
-        <div class="chart-card">
-          <h3>Spending Forecast</h3>
-          <p class="chart-subtitle">Next {{ timeRange }} prediction</p>
-          <div class="chart-container">
-            <canvas id="spendingChart"></canvas>
-          </div>
-        </div>
-
-        <div class="chart-card">
-          <h3>Churn Risk Analysis</h3>
-          <p class="chart-subtitle">Customer count by risk level</p>
-          <div class="chart-container">
-            <canvas id="churnChart"></canvas>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Actionable Recommendations -->
     <section class="recommendations-section">
       <h2 class="section-title">AI Recommendations</h2>
@@ -120,6 +77,19 @@
         </div>
       </div>
     </section>
+
+
+<!-- Model Insights Section -->
+<section class="insights-section">
+  <h2 class="section-title">Model Insights</h2>
+  <div class="insights-grid">
+    <div class="insight-card" v-for="graph in insightGraphs" :key="graph.id">
+      <h3>{{ graph.title }}</h3>
+      <img :src="graph.src" :alt="graph.title" class="insight-image" />
+      <p class="insight-description">{{ graph.description }}</p>
+    </div>
+  </div>
+</section>
 
     <!-- Customer Predictions Section with Form -->
     <section class="predictions-section">
@@ -154,21 +124,20 @@
             <div class="form-group">
               <label>Monthly Income:</label>
                 <select v-model="newCustomer['Monthly Income']" required>
-                  <option value="<450,000">&lt;450,000</option>
+                  <option value="&lt;450,000">&lt;450,000</option>
                   <option value="450,000-1,000,000">450,000-1,000,000</option>
                   <option value="1,000,000-2,000,000">1,000,000-2,000,000</option>
-                  <option value=">2,000,000">&gt;2,000,000</option>
+                  <option value="&gt;2,000,000">&gt;2,000,000</option>
                 </select>
             </div>
             <div class="form-group">
               <label>Average Spending:</label>
                 <select v-model="newCustomer['Average spending']" required>
-                  <option value="<50,000">&lt;50,000</option>
+                  <option value="&lt;50,000">&lt;50,000</option>
                   <option value="50,000-100,000">50,000-100,000</option>
                   <option value="100,000-200,000">100,000-200,000</option>
-                  <option value=">200,000">&gt;200,000</option>
+                  <option value="&gt;200,000">&gt;200,000</option>
                 </select>
-
             </div>
             <div class="form-group">
               <label>Frequency (Regular):</label>
@@ -238,73 +207,73 @@
       </div>
     </section>
 
-<!-- Updated Query Section -->
-<section class="query-section">
-  <h2 class="section-title">Customer Query</h2>
-  <div class="query-filters">
-    <div class="form-group">
-      <label for="ageFilter">Age:</label>
-      <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
-        <option value="">All Ages</option>
-        <option value="18-24">18-24</option>
-        <option value="25-34">25-34</option>
-        <option value="35-44">35-44</option>
-        <option value="45-54">45-54</option>
-        <option value="55+">55+</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="genderFilter">Gender:</label>
-      <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
-        <option value="">All Genders</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="regionFilter">Region:</label>
-      <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
-        <option value="">All Regions</option>
-        <option value="Central">Central</option>
-        <option value="Eastern">Eastern</option>
-        <option value="Western">Western</option>
-        <option value="Northern">Northern</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="spendingFilter">Spending:</label>
-       <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
-         <option value="">All Spending</option>
-         <option value="<50,000">&lt;50,000</option>
-         <option value="50,000-100,000">50,000-100,000</option>
-         <option value="100,000-200,000">100,000-200,000</option>
-         <option value=">200,000">&gt;200,000</option>
-       </select>
-    </div>
-    <button @click="resetFilters" class="reset-button">Reset Filters</button>
-  </div>
-
-  <div v-if="queryLoading" class="query-loading">
-    <div class="spinner"></div>
-    <p>Loading customer data...</p>
-  </div>
-
-  <div v-else class="chart-container">
-    <canvas id="queryChart"></canvas>
-    <div v-if="queryData" class="query-summary">
-      <p>Showing: <strong>{{ queryData.total }}</strong> customers matching your filters</p>
-      <div v-if="activeFilterCount === 1" class="breakdown">
-        <h4>Breakdown by {{ activeFilterName }}:</h4>
-        <ul>
-          <li v-for="(count, value) in queryData.counts[activeFilterName]" :key="value">
-            {{ value }}: {{ count }} ({{ Math.round((count / queryData.total) * 100) }}%)
-          </li>
-        </ul>
+    <!-- Updated Query Section -->
+    <section class="query-section">
+      <h2 class="section-title">Customer Query</h2>
+      <div class="query-filters">
+        <div class="form-group">
+          <label for="ageFilter">Age:</label>
+<select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
+  <option value="">All Ages</option>
+  <option value="18-24">18-24</option>
+  <option value="25-34">25-34</option>
+  <option value="35-44">35-44</option> <!-- Fixed: Was </div> -->
+  <option value="45-54">45-54</option>
+  <option value="55+">55+</option>
+</select>
+        </div>
+        <div class="form-group">
+          <label for="genderFilter">Gender:</label>
+          <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="regionFilter">Region:</label>
+          <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
+            <option value="">All Regions</option>
+            <option value="Central">Central</option>
+            <option value="Eastern">Eastern</option>
+            <option value="Western">Western</option>
+            <option value="Northern">Northern</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="spendingFilter">Spending:</label>
+<select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
+  <option value="">All Spending</option>
+  <option value="&lt;50,000">&lt;50,000</option>
+  <option value="50,000-100,000">50,000-100,000</option>
+  <option value="100,000-200,000">100,000-200,000</option>
+  <option value="&gt;200,000">&gt;200,000</option>
+</select>
+        </div>
+        <button @click="resetFilters" class="reset-button">Reset Filters</button>
       </div>
-    </div>
-  </div>
-</section>
+
+      <div v-if="queryLoading" class="query-loading">
+        <div class="spinner"></div>
+        <p>Loading customer data...</p>
+      </div>
+
+      <div v-else class="chart-container">
+        <canvas id="queryChart"></canvas>
+        <div v-if="queryData" class="query-summary">
+          <p>Showing: <strong>{{ queryData.total }}</strong> customers matching your filters</p>
+          <div v-if="activeFilterCount === 1" class="breakdown">
+            <h4>Breakdown by {{ activeFilterName }}:</h4>
+            <ul>
+              <li v-for="(count, value) in queryData.counts[activeFilterName]" :key="value">
+                {{ value }}: {{ count }} ({{ Math.round((count / queryData.total) * 100) }}%)
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Modal for Metric Details -->
     <div v-if="selectedMetric" class="modal-overlay" @click.self="selectedMetric = null">
@@ -400,6 +369,14 @@ export default {
         "Rate of Satisfaction": 3,
         "Rate of availability of products": 3,
       },
+      insightGraphs: [
+        { id: 1, title: "Age Distribution", src: "http://127.0.0.1:5000//static/img/age_distribution.png", description: "Distribution of customers by age group" },
+        { id: 2, title: "Average Spending Distribution", src: "http://127.0.0.1:5000//static/img/avg_spending_distribution.png", description: "Spending patterns across customer segments" },
+        { id: 3, title: "Cluster Characteristics", src: "http://127.0.0.1:5000//static/img/cluster_characteristics.png", description: "Key traits defining each cluster" },
+        { id: 4, title: "Region Distribution", src: "http://127.0.0.1:5000//static/img/region_distribution.png", description: "Geographical spread of customers" },
+        { id: 5, title: "Shopping Frequency", src: "http://127.0.0.1:5000//static/img/shopping_frequency.png", description: "How often customers shop" },
+        { id: 6, title: "Silhouette Analysis", src: "http://127.0.0.1:5000//static/img/silhouette_analysis.png", description: "Cluster quality assessment" },
+      ],
       queryFilters: {
         age: "",
         gender: "",
@@ -407,7 +384,7 @@ export default {
         spending: "",
       },
       queryData: null,
-      queryLoading: false, // Added queryLoading
+      queryLoading: false,
     };
   },
   computed: {
@@ -453,7 +430,6 @@ export default {
         this.featureImportance = response.data.featureImportance || [];
         this.recommendations = response.data.recommendations || [];
         this.customerPredictions = response.data.customerPredictions || [];
-        this.updateCharts(response.data.chartData || {});
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         this.showError("Failed to load dashboard data: " + error.message);
@@ -463,46 +439,6 @@ export default {
     },
     createCharts() {
       const chartConfigs = [
-        {
-          id: "segmentChart",
-          type: "doughnut",
-          options: {
-            plugins: {
-              tooltip: {
-                callbacks: {
-                  label: (context) => {
-                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                    const value = context.raw;
-                    const percentage = Math.round((value / total) * 100);
-                    return `${context.label}: ${value} (${percentage}%)`;
-                  },
-                },
-              },
-            },
-          },
-        },
-        {
-          id: "spendingChart",
-          type: "line",
-          options: {
-            scales: {
-              y: {
-                beginAtZero: false,
-                ticks: { callback: (value) => `UGX ${(value / 1000).toLocaleString()}K` },
-              },
-            },
-            plugins: {
-              tooltip: { callbacks: { label: (context) => `UGX ${context.raw.toLocaleString()}` } },
-            },
-          },
-        },
-        {
-          id: "churnChart",
-          type: "bar",
-          options: {
-            scales: { y: { beginAtZero: true } },
-          },
-        },
         {
           id: "queryChart",
           type: "bar",
@@ -534,38 +470,6 @@ export default {
           console.log(`Chart ${id} initialized`);
         }
       });
-    },
-    updateCharts(chartData) {
-      if (!chartData || !this.charts["segmentChart"] || !this.charts["spendingChart"] || !this.charts["churnChart"]) {
-        console.error("Chart data or chart instances missing");
-        return;
-      }
-
-      this.charts["segmentChart"].data.labels = chartData.segments.labels || [];
-      this.charts["segmentChart"].data.datasets = [
-        { data: chartData.segments.data || [], backgroundColor: chartData.segments.colors || [], borderWidth: 1 },
-      ];
-      this.charts["segmentChart"].update();
-
-      this.charts["spendingChart"].data.labels = chartData.spending.labels || [];
-      this.charts["spendingChart"].data.datasets = [
-        {
-          label: "Predicted Spending",
-          data: chartData.spending.data || [],
-          borderColor: chartData.spending.color || "#4e79a7",
-          backgroundColor: this.hexToRgba(chartData.spending.color || "#4e79a7", 0.1),
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-        },
-      ];
-      this.charts["spendingChart"].update();
-
-      this.charts["churnChart"].data.labels = chartData.churn.labels || [];
-      this.charts["churnChart"].data.datasets = [
-        { label: "Customers", data: chartData.churn.data || [], backgroundColor: chartData.churn.colors || [], borderWidth: 1 },
-      ];
-      this.charts["churnChart"].update();
     },
     async fetchQueryData() {
       this.queryLoading = true;
@@ -638,7 +542,6 @@ export default {
             nextPurchase: response.data.nextPurchase || new Date(Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
           };
           this.customerPredictions.unshift(newPrediction);
-          this.updateSegmentChart();
           this.newCustomer.name = "";
         } else {
           this.showError("Segmentation failed: " + response.data.error);
@@ -656,21 +559,6 @@ export default {
         ">200,000": 5000,
       };
       return ranges[spendingRange] || 1000;
-    },
-    updateSegmentChart() {
-      const segmentCounts = this.customerPredictions.reduce((acc, curr) => {
-        acc[curr.segment] = (acc[curr.segment] || 0) + 1;
-        return acc;
-      }, {});
-      const labels = Object.keys(segmentCounts);
-      const data = Object.values(segmentCounts);
-      const colors = labels.map((_, i) => ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2"][i % 4]);
-
-      this.charts["segmentChart"].data.labels = labels;
-      this.charts["segmentChart"].data.datasets = [
-        { data, backgroundColor: colors, borderWidth: 1 },
-      ];
-      this.charts["segmentChart"].update();
     },
     formatCurrency(value) {
       return `UGX ${Number(value).toLocaleString()}`;
@@ -794,6 +682,7 @@ export default {
   },
 };
 </script>
+
 <style scoped>
 /* Base Styles: Foundation for the dashboard layout */
 .dashboard {
@@ -907,6 +796,81 @@ export default {
   border-color: #4299e1;
   outline: none;
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+}
+
+/* Model Insights Section: Static image graphs */
+.insights-section {
+  margin-bottom: 2rem;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 1.5rem;
+}
+
+.insight-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.insight-card h3 {
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-weight: 600;
+  color: #2d3748;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.insight-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.insight-description {
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  color: #718096;
+  line-height: 1.5;
+}
+
+/* Responsive Adjustments for Insights */
+@media (max-width: 1024px) {
+  .insights-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .insight-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .insight-card h3 {
+    font-size: clamp(0.9rem, 2vw, 1rem);
+  }
+
+  .insight-image {
+    max-width: 90%;
+  }
+
+  .insight-description {
+    font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  }
 }
 
 .model-info {

@@ -75,7 +75,7 @@ export default {
       this.isLoading = true;
       try {
         const response = await axios.get('http://127.0.0.1:5000/reports');
-        this.reports = response.data;
+        this.reports = response.data.reports || [];
       } catch (error) {
         console.error('Error fetching reports:', error);
         this.reports = [];
@@ -90,13 +90,12 @@ export default {
       this.isLoading = true;
       try {
         const response = await axios.post('http://127.0.0.1:5000/reports/generate', {
-          type: 'Segmentation' // Adjust payload based on your API
+          type: 'Segmentation',
         });
         this.$toast.success('Report generated successfully');
-        this.reports.push(response.data); // Add new report to the list
+        this.reports.push(response.data); // Use the response directly
       } catch (error) {
         console.error('Error generating report:', error);
-        // Robust error handling: safely extract message or fallback
         const errorMessage = error.response?.data?.error || error.message || 'Failed to generate report';
         this.$toast.error(errorMessage);
       } finally {
@@ -105,10 +104,10 @@ export default {
     },
 
     downloadReport(fileUrl) {
-      const fullUrl = `http://127.0.0.1:5000${fileUrl}`; // Adjust base URL if needed
+      const fullUrl = `http://127.0.0.1:5000${fileUrl}`;
       const link = document.createElement('a');
       link.href = fullUrl;
-      link.download = fileUrl.split('/').pop(); // Extract filename
+      link.download = fileUrl.split('/').pop();
       link.click();
     },
 
@@ -136,7 +135,7 @@ export default {
 </script>
 
 <style scoped>
-/* General Page Styling */
+/* [Same CSS as provided previously, no changes needed] */
 .reports-page {
   padding: 30px;
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -146,7 +145,6 @@ export default {
   margin: 0 auto;
 }
 
-/* Header */
 .header {
   display: flex;
   justify-content: space-between;
@@ -202,7 +200,6 @@ h1 {
   transform: translateY(-1px);
 }
 
-/* Loading Indicator */
 .loading {
   text-align: center;
   padding: 40px;
@@ -232,7 +229,6 @@ h1 {
   margin: 0;
 }
 
-/* Reports Grid */
 .reports-content {
   margin-bottom: 40px;
 }
@@ -349,7 +345,6 @@ h1 {
   transform: translateY(-1px);
 }
 
-/* No Reports State */
 .no-reports {
   text-align: center;
   padding: 40px;
@@ -382,7 +377,6 @@ h1 {
   margin-bottom: 20px;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .header {
     flex-direction: column;

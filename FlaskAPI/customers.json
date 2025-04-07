@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1000,
+    "name": "Customer 1",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 1500,
+    "nextPurchase": "2025-04-13"
+  },
+  {
+    "id": 1001,
+    "name": "Customer",
+    "segment": "Young, Moderate-Income Shoppers",
+    "churnRisk": 10,
+    "predictedValue": 500,
+    "nextPurchase": "2025-05-05"
+  },
+  {
+    "id": 1002,
+    "name": "Customer 3",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 500,
+    "nextPurchase": "2025-04-25"
+  }
+]
