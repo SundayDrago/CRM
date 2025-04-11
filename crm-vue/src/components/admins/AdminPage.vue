@@ -192,8 +192,8 @@
 import DashboardPage from './DashboardPage.vue';
 import UsersPage from './UsersPage.vue';
 import SegmentPage from './SegmentPage.vue';
-import CreateSegmentsPage from './segments/CreateSegmentsPage.vue'; // New component
-import ReportPage from './ReportPage.vue'; // New component
+import CreateSegmentsPage from './segments/CreateSegmentsPage.vue';
+import ReportPage from './ReportPage.vue';
 import SettingsPage from './SettingsPage.vue';
 import ActivityLogPage from './ActivityLogPage.vue';
 import AdvisoryPage from './AdvisoryPage.vue';
@@ -231,17 +231,12 @@ export default {
             { id: 'create-segment', label: 'Create Segment', icon: 'fas fa-plus' },
           ],
         },
-        { id: 'reports', label: 'Reports', icon: 'fas fa-chart-bar', hasNotification: false }, // New Reports item
+        { id: 'reports', label: 'Reports', icon: 'fas fa-chart-bar', hasNotification: false },
         { id: 'settings', label: 'System Settings', icon: 'fas fa-cogs', hasNotification: false },
         { id: 'activity', label: 'Activity Log', icon: 'fas fa-history', hasNotification: false },
         { id: 'advisory', label: 'Advisory', icon: 'fas fa-lightbulb', hasNotification: true },
       ],
-      notifications: [
-        { id: 1, title: 'New user registration', time: '2 mins ago', icon: 'fas fa-user-plus', read: false },
-        { id: 2, title: 'System update available', time: '1 hour ago', icon: 'fas fa-download', read: false },
-        { id: 3, title: 'Segmentation analysis complete', time: '3 hours ago', icon: 'fas fa-chart-pie', read: true },
-        { id: 4, title: 'New advisory report generated', time: '1 day ago', icon: 'fas fa-file-alt', read: true },
-      ],
+      notifications: [],
     };
   },
   computed: {
@@ -274,6 +269,7 @@ export default {
   created() {
     this.loadUserAvatar();
     this.fetchUserProfile();
+    this.fetchNotifications();
     this.updateOnlineStatus();
     window.addEventListener('online', this.updateOnlineStatus);
     window.addEventListener('offline', this.updateOnlineStatus);
@@ -293,16 +289,49 @@ export default {
   methods: {
     async fetchUserProfile() {
       try {
-        const response = await fetch('http://localhost:3000/api/admin/profile', { // Update to your actual API
+        const response = await fetch('http://localhost:3000/api/admin/profile', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
+        if (!response.ok) throw new Error('Failed to fetch profile');
         const data = await response.json();
-        console.log('User Profile:', data);
         this.adminProfile.username = data.username || 'Admin';
         if (data.avatar) this.adminProfile.picture = data.avatar;
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }
+    },
+    loadUserAvatar() {
+      const storedAvatar = localStorage.getItem('userAvatar');
+      if (storedAvatar) this.adminProfile.picture = storedAvatar;
+    },
+    onProfilePicChange(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.adminProfile.picture = e.target.result;
+          localStorage.setItem('userAvatar', e.target.result);
+          this.updateProfilePicture(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    async updateProfilePicture(imageData) {
+      try {
+        await fetch('http://localhost:3000/api/admin/profile/avatar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({ avatar: imageData }),
+        });
+      } catch (error) {
+        console.error('Error updating profile picture:', error);
+      }
+    },
+    triggerFileInput() {
+      this.$refs.fileInput.click();
     },
     toggleSidebar() {
       this.isSidebarCollapsed = !this.isSidebarCollapsed;
@@ -330,53 +359,82 @@ export default {
       this.sidebarOpen = false;
       this.searchQuery = '';
       const parentItem = this.menuItems.find(i => i.subItems && i.subItems.some(sub => sub.id === subId));
-      if (parentItem) parentItem.isOpen = false; // Close dropdown after selection
-    },
-    loadUserAvatar() {
-      const storedAvatar = localStorage.getItem('userAvatar');
-      if (storedAvatar) this.adminProfile.picture = storedAvatar;
-    },
-    onProfilePicChange(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          this.adminProfile.picture = e.target.result;
-          localStorage.setItem('userAvatar', e.target.result);
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-    triggerFileInput() {
-      this.$refs.fileInput.click();
+      if (parentItem) parentItem.isOpen = false;
     },
     performSearch() {
       if (this.searchQuery.trim()) {
         console.log(`Searching across ${this.currentTabLabel} for:`, this.searchQuery);
-        this.$emit('update-search', this.searchQuery);
+        this.$refs.currentTabComponent?.search?.(this.searchQuery);
       } else {
-        this.$emit('update-search', '');
+        this.$refs.currentTabComponent?.search?.('');
       }
     },
     updateSearchResults(results) {
       console.log('Search results from child:', results);
     },
+    async fetchNotifications() {
+      try {
+        const response = await fetch('http://localhost:3000/api/notifications', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        const data = await response.json();
+        this.notifications = data.map(n => ({
+          id: n.id,
+          title: n.title,
+          time: this.formatTime(n.timestamp),
+          icon: n.icon || 'fas fa-bell',
+          read: n.read || false,
+        }));
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        this.notifications = [
+          { id: 1, title: 'New user registration', time: '2 mins ago', icon: 'fas fa-user-plus', read: false },
+          { id: 2, title: 'System update available', time: '1 hour ago', icon: 'fas fa-download', read: false },
+          { id: 3, title: 'Segmentation analysis complete', time: '3 hours ago', icon: 'fas fa-chart-pie', read: true },
+          { id: 4, title: 'New advisory report generated', time: '1 day ago', icon: 'fas fa-file-alt', read: true },
+        ];
+      }
+    },
+    formatTime(timestamp) {
+      const now = new Date();
+      const time = new Date(timestamp);
+      const diff = (now - time) / 1000;
+      if (diff < 60) return `${Math.round(diff)} secs ago`;
+      if (diff < 3600) return `${Math.round(diff / 60)} mins ago`;
+      if (diff < 86400) return `${Math.round(diff / 3600)} hours ago`;
+      return `${Math.round(diff / 86400)} days ago`;
+    },
     toggleNotifications() {
       this.notificationsOpen = !this.notificationsOpen;
       this.profileMenuOpen = false;
+      if (this.notificationsOpen && this.unreadNotifications > 0) {
+        this.markAllAsRead();
+      }
+    },
+    async markAllAsRead() {
+      try {
+        await fetch('http://localhost:3000/api/notifications/read', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+        this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+      }
+    },
+    viewAllNotifications() {
+      this.$router.push('/notifications');
+      this.notificationsOpen = false;
     },
     toggleProfileMenu() {
       this.profileMenuOpen = !this.profileMenuOpen;
       this.notificationsOpen = false;
     },
-    markAllAsRead() {
-      this.notifications = this.notifications.map(n => ({ ...n, read: true }));
-    },
-    viewAllNotifications() {
-      this.$router.push('/notifications');
-    },
     navigateToProfile() {
-      this.$router.push('/settings'); // Fixed route name
+      this.$router.push('/settings');
+      this.profileMenuOpen = false;
     },
     confirmLogout() {
       this.showLogoutModal = true;

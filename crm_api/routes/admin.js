@@ -6,15 +6,18 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
-// Middleware to verify JWT (for protected routes)
-const authenticateToken = (req, res, next) => {
+// Middleware to verify JWT and ensure admin access
+const authenticateAdminToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
     try {
         const decoded = jwt.verify(token, "your_jwt_secret");
-        req.admin = decoded; // Attach admin info to request
+        req.user = decoded;
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ message: "Access denied. Admin privileges required." });
+        }
         next();
     } catch (error) {
         res.status(403).json({ message: "Invalid token" });
@@ -25,112 +28,66 @@ const authenticateToken = (req, res, next) => {
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: "yacobedan@gmail.com", // Replace with your email
-        pass: "vwdgnqgomanftnjv"   // Use an app-specific password if 2FA is enabled
+        user: "yacobedan@gmail.com",
+        pass: "qdbdgryrzwodqksg"
     }
 });
 
-// 🟢 Admin Registration Route
-router.post("/register", async (req, res) => {
-    const { full_name, username, email, password, confirmPassword } = req.body;
+// Notification endpoint
+router.post('/users/send-notification', authenticateAdminToken, async (req, res) => {
+  try {
+    const { email, type, changes, userId } = req.body;
 
-    if (!full_name || !username || !email || !password || !confirmPassword) {
-        return res.status(400).json({ message: "All fields are required" });
-    }
+    let mailOptions;
+    let subject;
+    let text;
 
-    if (password !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
-    }
+    switch (type) {
+      case 'account_updated':
+        subject = 'Your Account Has Been Updated';
+        text = `Dear user,\n\n`;
+        text += `Your account information has been updated by an administrator.\n\n`;
 
-    try {
-        db.query("SELECT * FROM admins WHERE email = ? OR username = ?", [email, username], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
-
-            if (result.length > 0) {
-                return res.status(400).json({ message: "Email or username already exists" });
-            }
-
-            const securityCode = crypto.randomBytes(3).toString("hex").toUpperCase();
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const hashedSecurityCode = await bcrypt.hash(securityCode, 10);
-
-            db.query(
-                "INSERT INTO admins (full_name, username, email, password, security_code, is_verified) VALUES (?, ?, ?, ?, ?, ?)",
-                [full_name, username, email, hashedPassword, hashedSecurityCode, false],
-                (err, result) => {
-                    if (err) return res.status(500).json({ message: "Registration failed", error: err });
-
-                    const mailOptions = {
-                        from: "yacobedan@gmail.com",
-                        to: email,
-                        subject: "Admin Security Code - CRM System",
-                        text: `Hello ${full_name},\n\nYour security code is: ${securityCode}.\n\nPlease enter this code to verify your email.\n\nThank you!`
-                    };
-
-                    transporter.sendMail(mailOptions, (error) => {
-                        if (error) {
-                            console.error("Email sending error:", error);
-                            return res.status(500).json({ message: "Email could not be sent", error: error.message });
-                        }
-                        res.status(201).json({ message: "Admin registered. Check email for security code." });
-                    });
-                }
-            );
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
-});
-
-
-// 🟢 Get Admin Profile Route (Protected)
-router.get("/profile", authenticateToken, (req, res) => {
-    const adminId = req.admin.id;
-
-    db.query("SELECT username, email, avatar FROM admins WHERE id = ?", [adminId], (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error", error: err });
-        if (result.length === 0) {
-            return res.status(404).json({ message: "Admin not found" });
+        if (changes.username) {
+          text += `Username changed from "${changes.username.old}" to "${changes.username.new}"\n`;
+        }
+        if (changes.email) {
+          text += `Email changed from "${changes.email.old}" to "${changes.email.new}"\n`;
         }
 
-        res.status(200).json(result[0]); // includes full_name
-    });
-});
+        text += `\nIf you did not request these changes, please contact support immediately.\n\n`;
+        text += `Best regards,\nThe Support Team`;
+        break;
 
+      case 'account_deleted':
+        subject = 'Your Account Has Been Deleted';
+        text = `Dear user,\n\n`;
+        text += `Your account has been deleted from our system by an administrator.\n\n`;
+        text += `You will no longer be able to access our services with this account.\n\n`;
+        text += `If you believe this was done in error, please contact support immediately.\n\n`;
+        text += `Best regards,\nThe Support Team`;
+        break;
 
-// 🟢 Security Code Verification Route
-router.post("/verify-security-code", async (req, res) => {
-    const { email, securityCode } = req.body;
-
-    if (!email || !securityCode) {
-        return res.status(400).json({ message: "Email and security code are required" });
+      default:
+        return res.status(400).json({ message: 'Invalid notification type' });
     }
 
-    try {
-        db.query("SELECT * FROM admins WHERE email = ?", [email], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
+    mailOptions = {
+      from: process.env.EMAIL_FROM || "yacobedan@gmail.com",
+      to: email,
+      subject: subject,
+      text: text,
+    };
 
-            if (result.length === 0) {
-                return res.status(400).json({ message: "Admin not found" });
-            }
-
-            const admin = result[0];
-            const isMatch = await bcrypt.compare(securityCode, admin.security_code);
-            if (!isMatch) {
-                return res.status(400).json({ message: "Invalid security code" });
-            }
-
-            db.query("UPDATE admins SET is_verified = ? WHERE email = ?", [true, email], (err) => {
-                if (err) return res.status(500).json({ message: "Verification failed", error: err });
-                res.status(200).json({ message: "Email verified. Admin account activated." });
-            });
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: 'Notification sent successfully' });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    res.status(500).json({ message: 'Failed to send notification' });
+  }
 });
 
-// 🟢 Admin Login Route
+// admin.js
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -139,274 +96,349 @@ router.post("/login", async (req, res) => {
     }
 
     try {
-        db.query("SELECT * FROM admins WHERE email = ?", [email], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
+        const [admins] = await db.promise().query("SELECT * FROM admins WHERE email = ?", [email]);
+        if (admins.length === 0) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
 
-            if (result.length === 0) {
-                return res.status(400).json({ message: "Invalid email or password" });
-            }
+        const admin = admins[0];
+        const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
 
-            const admin = result[0];
-            const isMatch = await bcrypt.compare(password, admin.password);
-            if (!isMatch) {
-                return res.status(400).json({ message: "Invalid email or password" });
-            }
+        if (!admin.is_verified) {
+            return res.status(403).json({ message: "Email not verified" });
+        }
 
-            if (!admin.is_verified) {
-                return res.status(400).json({ message: "Account not verified. Please verify your email." });
-            }
-
-            const token = jwt.sign({ id: admin.id, email: admin.email }, "your_jwt_secret", { expiresIn: "1h" });
-            res.status(200).json({ message: "Login successful", token });
-        });
+        const token = jwt.sign({ id: admin.id, isAdmin: true }, "your_jwt_secret", { expiresIn: "1h" });
+        res.status(200).json({ message: "Login successful", token, redirect: "/admin" });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
-// 🟢 Forgot Password Route
-router.post("/forgot-password", async (req, res) => {
-    const { email } = req.body;
+// 🟢 Admin Registration Route
+router.post("/register", async (req, res) => {
+    const { full_name, username, email, password, confirmPassword } = req.body;
 
-    if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+    // Input validation
+    if (!full_name || !username || !email || !password || !confirmPassword) {
+        return res.status(400).json({ message: "All fields are required" });
+    }
+    if (password !== confirmPassword) {
+        return res.status(400).json({ message: "Passwords do not match" });
+    }
+    if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long" });
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
     }
 
     try {
-        db.query("SELECT * FROM admins WHERE email = ?", [email], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
+        // Check for existing email in both admins and users tables
+        const [existingAdmins] = await db.promise().query(
+            "SELECT * FROM admins WHERE email = ? OR username = ?",
+            [email, username]
+        );
+        const [existingUsers] = await db.promise().query(
+            "SELECT * FROM users WHERE email = ?",
+            [email]
+        );
 
-            if (result.length === 0) {
-                return res.status(400).json({ message: "Admin not found" });
+        if (existingAdmins.length > 0) {
+            return res.status(400).json({
+                message: existingAdmins[0].email === email ? "Email already exists" : "Username already exists"
+            });
+        }
+        if (existingUsers.length > 0) {
+            return res.status(400).json({ message: "Email already exists in user accounts" });
+        }
+
+        const securityCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedSecurityCode = await bcrypt.hash(securityCode, 10);
+
+        await db.promise().query(
+            "INSERT INTO admins (full_name, username, email, password, security_code, is_verified) VALUES (?, ?, ?, ?, ?, ?)",
+            [full_name, username, email, hashedPassword, hashedSecurityCode, false]
+        );
+
+        const mailOptions = {
+            from: "yacobedan@gmail.com",
+            to: email,
+            subject: "Admin Security Code - CRM System",
+            text: `Hello ${full_name},\n\nYour security code is: ${securityCode}.\n\nPlease enter this code to verify your email.\n\nThank you!`
+        };
+
+        transporter.sendMail(mailOptions, (error) => {
+            if (error) {
+                console.error("Email sending error:", error);
+                return res.status(500).json({ message: "Email could not be sent", error: error.message });
             }
+            res.status(201).json({ message: "Admin registered. Check your email for the security code." });
+        });
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
 
-            const resetToken = crypto.randomBytes(32).toString("hex");
-            const tokenExpiry = new Date();
-            tokenExpiry.setHours(tokenExpiry.getHours() + 1);
+// 🟢 Admin Security Code Verification Route
+router.post("/verify-security-code", async (req, res) => {
+    const { email, securityCode } = req.body;
 
-            db.query("UPDATE admins SET reset_token = ?, reset_token_expiry = ? WHERE email = ?", [resetToken, tokenExpiry, email], (err) => {
-                if (err) return res.status(500).json({ message: "Database error", error: err });
+    // Input validation
+    if (!email || !securityCode) {
+        return res.status(400).json({ message: "Email and security code are required" });
+    }
 
-                const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
-                const mailOptions = {
-                    from: "yacobedan@gmail.com",
-                    to: email,
-                    subject: "Password Reset Request",
-                    text: `Click the link to reset your password:\n\n${resetLink}\n\nExpires in 1 hour.`
-                };
+    try {
+        const [admins] = await db.promise().query("SELECT * FROM admins WHERE email = ?", [email]);
+        if (admins.length === 0) {
+            return res.status(404).json({ message: "Admin not found" });
+        }
 
-                transporter.sendMail(mailOptions, (error) => {
-                    if (error) {
-                        console.error("Email sending error:", error);
-                        return res.status(500).json({ message: "Email could not be sent", error: error.message });
-                    }
-                    res.status(200).json({ message: "Password reset link sent." });
-                });
+        const admin = admins[0];
+        const isMatch = await bcrypt.compare(securityCode, admin.security_code);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid security code" });
+        }
+
+        await db.promise().query("UPDATE admins SET is_verified = ? WHERE email = ?", [true, email]);
+        res.status(200).json({ message: "Email verified. Admin account activated." });
+    } catch (error) {
+        console.error("Verification error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// 🟢 Get Admin Profile Route
+router.get("/profile", authenticateAdminToken, async (req, res) => {
+    const adminId = req.user.id;
+
+    try {
+        const [admins] = await db.promise().query(
+            "SELECT full_name, username, email, avatar FROM admins WHERE id = ?",
+            [adminId]
+        );
+        if (admins.length === 0) {
+            return res.status(404).json({ message: "Admin not found" });
+        }
+
+        res.status(200).json(admins[0]);
+    } catch (error) {
+        console.error("Profile fetch error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// 🟢 Get All Users (Admin-Only Route)
+router.get("/users", authenticateAdminToken, async (req, res) => {
+    try {
+        const [users] = await db.promise().query(
+            "SELECT id, username, email, status, created_by, created_at FROM users"
+        );
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Users fetch error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// 🟢 Invite User (Admin-Only Route)
+router.post("/users/invite", authenticateAdminToken, async (req, res) => {
+    const { username, email } = req.body;
+    const created_by = req.user.id;
+
+    // Input validation
+    if (!username || !email) {
+        return res.status(400).json({ message: "Username and email are required" });
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    try {
+        // Check for existing email in both users and admins tables
+        const [existingUsers] = await db.promise().query("SELECT id FROM users WHERE email = ?", [email]);
+        const [existingAdmins] = await db.promise().query("SELECT id FROM admins WHERE email = ?", [email]);
+
+        if (existingUsers.length > 0) {
+            return res.status(400).json({ message: "Email already exists" });
+        }
+        if (existingAdmins.length > 0) {
+            return res.status(400).json({ message: "Email already exists in admin accounts" });
+        }
+
+        const tempPassword = crypto.randomBytes(4).toString("hex");
+        const hashedTempPassword = await bcrypt.hash(tempPassword, 10);
+        const tempToken = jwt.sign({ email }, "your_jwt_secret", { expiresIn: "24h" });
+        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        const [result] = await db.promise().query(
+            "INSERT INTO users (username, email, temp_password, temp_token, token_expires_at, created_by, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [username, email, hashedTempPassword, tempToken, tokenExpiry, created_by, "pending"]
+        );
+
+        const setupLink = `http://localhost:8080/setup-account?token=${tempToken}`;
+        const mailOptions = {
+            from: "yacobedan@gmail.com",
+            to: email,
+            subject: "You've Been Invited to Join Our System",
+            html: `
+                <h3>Hello ${username},</h3>
+                <p>You've been invited to join our system by an administrator.</p>
+                <p><strong>Here are your temporary credentials:</strong></p>
+                <p><b>Username:</b> ${username}</p>
+                <p><b>Temporary Password:</b> ${tempPassword}</p>
+                <p>Please click the button below to set up your account and choose a permanent password:</p>
+                <a href="${setupLink}" style="background: #4361ee; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block; margin: 10px 0;">Set Up Account</a>
+                <p><i>This link will expire in 24 hours. If you don't set up your account by then, you'll need to contact your administrator for a new invitation.</i></p>
+                <p>If you didn't expect this invitation, please ignore this email or contact our support team.</p>
+                <p>Best regards,<br>The Support Team</p>
+            `,
+        };
+
+        transporter.sendMail(mailOptions, (error) => {
+            if (error) {
+                console.error("Email sending error:", error);
+                return res.status(500).json({ message: "Email sending failed", error: error.message });
+            }
+            res.status(201).json({
+                message: "User invited successfully",
+                userId: result.insertId,
             });
         });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
-});
-
-// 🟢 Reset Password Route
-router.post("/reset-password", async (req, res) => {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: "Token and new password are required" });
-    }
-
-    try {
-        db.query("SELECT * FROM admins WHERE reset_token = ?", [token], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
-            if (result.length === 0) {
-                return res.status(400).json({ message: "Invalid or expired token" });
-            }
-
-            const admin = result[0];
-            const now = new Date();
-            if (new Date(admin.reset_token_expiry) < now) {
-                return res.status(400).json({ message: "Token has expired" });
-            }
-
-            const hashedPassword = await bcrypt.hash(newPassword, 10);
-            db.query(
-                "UPDATE admins SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE reset_token = ?",
-                [hashedPassword, token],
-                (err) => {
-                    if (err) return res.status(500).json({ message: "Database error", error: err });
-                    res.status(200).json({ message: "Password reset successful." });
-                }
-            );
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
-});
-
-// 🟢 Get All Users (Protected Route)
-router.get("/users", authenticateToken, (req, res) => {
-    db.query("SELECT id, username, email, status FROM users", (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error", error: err });
-        res.status(200).json(result);
-    });
-});
-
-// 🟢 Invite User (Protected Route)
-router.post("/users/invite", authenticateToken, async (req, res) => {
-    console.log("Hit /api/admin/users/invite"); // Debug log
-    const { username, email } = req.body;
-    const created_by = req.admin.id; // Get admin ID from JWT
-
-    if (!username || !email) {
-        return res.status(400).json({ message: "Username and email are required" });
-    }
-
-    try {
-        db.query("SELECT * FROM users WHERE email = ?", [email], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
-            if (result.length > 0) {
-                return res.status(400).json({ message: "User with this email already exists" });
-            }
-
-            const tempPassword = crypto.randomBytes(8).toString("hex");
-            const hashedTempPassword = await bcrypt.hash(tempPassword, 10);
-            const tempToken = crypto.randomBytes(32).toString("hex");
-            const tokenExpiry = new Date();
-            tokenExpiry.setHours(tokenExpiry.getHours() + 24);
-
-            db.query(
-                "INSERT INTO users (username, email, temp_password, temp_token, token_expires_at, created_by, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [username, email, hashedTempPassword, tempToken, tokenExpiry, created_by, "pending"],
-                (err, result) => {
-                    if (err) return res.status(500).json({ message: "Database error", error: err });
-
-                    const setupLink = `http://localhost:5173/setup-account/${tempToken}`;
-                    const mailOptions = {
-                        from: "yacobedan@gmail.com",
-                        to: email,
-                        subject: "Account Setup Invitation - CRM System",
-                        html: `
-                            <h2>Hello ${username},</h2>
-                            <p>You have been invited to join the CRM system by an admin.</p>
-                            <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-                            <p>Click the link below to set up your account:</p>
-                            <a href="${setupLink}" style="padding: 10px 20px; background: #4361ee; color: white; text-decoration: none; border-radius: 5px;">Set Up Account</a>
-                            <p>This link expires in 24 hours.</p>
-                        `
-                    };
-
-                    transporter.sendMail(mailOptions, (error) => {
-                        if (error) {
-                            console.error("Email sending error:", error);
-                            return res.status(500).json({ message: "Failed to send invitation email", error: error.message });
-                        }
-                        res.status(201).json({
-                            message: "User invited successfully",
-                            id: result.insertId
-                        });
-                    });
-                }
-            );
-        });
-    } catch (error) {
-        console.error("Server error in /users/invite:", error);
+        console.error("Invite error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
-// 🟢 Update User (Protected Route)
-router.put("/users/:id", authenticateToken, async (req, res) => {
+// 🟢 Update User (Admin-Only Route)
+router.put("/users/:id", authenticateAdminToken, async (req, res) => {
     const { id } = req.params;
-    const { username, email } = req.body;
+    const { username, email, status } = req.body;
 
+    // Input validation
     if (!username || !email) {
         return res.status(400).json({ message: "Username and email are required" });
     }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+    }
+    if (status && !["pending", "active", "inactive"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+    }
 
     try {
-        db.query("SELECT * FROM users WHERE id = ?", [id], (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
-            if (result.length === 0) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            db.query(
-                "UPDATE users SET username = ?, email = ? WHERE id = ?",
-                [username, email, id],
-                (err) => {
-                    if (err) return res.status(500).json({ message: "Database error", error: err });
-                    res.status(200).json({ message: "User updated successfully" });
-                }
-            );
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
-});
-
-// 🟢 Delete User (Protected Route)
-router.delete("/users/:id", authenticateToken, (req, res) => {
-    const { id } = req.params;
-
-    db.query("SELECT * FROM users WHERE id = ?", [id], (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error", error: err });
-        if (result.length === 0) {
+        const [users] = await db.promise().query("SELECT * FROM users WHERE id = ?", [id]);
+        if (users.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        db.query("DELETE FROM users WHERE id = ?", [id], (err) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
-            res.status(200).json({ message: "User deleted successfully" });
-        });
-    });
-});
+        const oldUserData = users[0];
+        const changes = {};
 
-// 🟢 Setup Account Route
-router.post("/setup-account", async (req, res) => {
-    const { token, newPassword, tempPassword } = req.body;
+        if (oldUserData.username !== username) {
+            changes.username = { old: oldUserData.username, new: username };
+        }
+        if (oldUserData.email !== email) {
+            changes.email = { old: oldUserData.email, new: email };
+        }
+        if (status && oldUserData.status !== status) {
+            changes.status = { old: oldUserData.status, new: status };
+        }
 
-    if (!token || !newPassword || !tempPassword) {
-        return res.status(400).json({ message: "Token, temporary password, and new password are required" });
-    }
+        // If there are changes, send notification email
+        if (Object.keys(changes).length > 0) {
+            try {
+                let emailText = `Dear ${oldUserData.username},\n\n` +
+                               `Your account information has been updated by an administrator.\n\n`;
 
-    try {
-        db.query("SELECT * FROM users WHERE temp_token = ?", [token], async (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error", error: err });
-            if (result.length === 0) {
-                return res.status(400).json({ message: "Invalid or expired token" });
-            }
-
-            const user = result[0];
-            const now = new Date();
-            if (new Date(user.token_expires_at) < now) {
-                return res.status(400).json({ message: "Setup token has expired" });
-            }
-
-            const isTempPasswordValid = await bcrypt.compare(tempPassword, user.temp_password);
-            if (!isTempPasswordValid) {
-                return res.status(400).json({ message: "Invalid temporary password" });
-            }
-
-            const hashedPassword = await bcrypt.hash(newPassword, 10);
-            db.query(
-                "UPDATE users SET password = ?, temp_password = NULL, temp_token = NULL, token_expires_at = NULL, status = ? WHERE temp_token = ?",
-                [hashedPassword, "active", token],
-                (err) => {
-                    if (err) return res.status(500).json({ message: "Database error", error: err });
-                    res.status(200).json({ message: "Account setup successful. You can now log in." });
+                if (changes.username) {
+                    emailText += `Username changed from "${changes.username.old}" to "${changes.username.new}"\n`;
                 }
-            );
-        });
+                if (changes.email) {
+                    emailText += `Email changed from "${changes.email.old}" to "${changes.email.new}"\n`;
+                }
+                if (changes.status) {
+                    emailText += `Account status changed from "${changes.status.old}" to "${changes.status.new}"\n`;
+                }
+
+                emailText += `\nIf you did not request these changes, please contact support immediately.\n\n` +
+                             `Best regards,\nThe Support Team`;
+
+                const mailOptions = {
+                    from: "yacobedan@gmail.com",
+                    to: oldUserData.email,
+                    subject: "Your Account Has Been Updated",
+                    text: emailText
+                };
+
+                await transporter.sendMail(mailOptions);
+            } catch (emailError) {
+                console.error("Failed to send update email:", emailError);
+                // Continue with update even if email fails
+            }
+        }
+
+        await db.promise().query(
+            "UPDATE users SET username = ?, email = ?, status = ? WHERE id = ?",
+            [username, email, status || oldUserData.status, id]
+        );
+
+        res.status(200).json({ message: "User updated successfully" });
     } catch (error) {
-        console.error("Server error in /setup-account:", error);
+        console.error("User update error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
-// 🟢 Test Route for Debugging
-router.get("/test", (req, res) => {
+// 🟢 Delete User (Admin-Only Route)
+router.delete("/users/:id", authenticateAdminToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [users] = await db.promise().query("SELECT * FROM users WHERE id = ?", [id]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const user = users[0];
+
+        // Send deletion notification email first
+        try {
+            const mailOptions = {
+                from: "yacobedan@gmail.com",
+                to: user.email,
+                subject: "Your Account Has Been Deleted",
+                text: `Dear ${user.username},\n\n` +
+                      `Your account has been deleted from our system by an administrator.\n\n` +
+                      `You will no longer be able to access our services with this account.\n\n` +
+                      `If you believe this was done in error, please contact support immediately.\n\n` +
+                      `Best regards,\nThe Support Team`
+            };
+
+            await transporter.sendMail(mailOptions);
+        } catch (emailError) {
+            console.error("Failed to send deletion email:", emailError);
+            // Continue with deletion even if email fails
+        }
+
+        await db.promise().query("DELETE FROM users WHERE id = ?", [id]);
+        res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+        console.error("User deletion error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// 🟢 Test Route
+router.get("/test", authenticateAdminToken, (req, res) => {
     res.json({ message: "Admin router working" });
 });
 

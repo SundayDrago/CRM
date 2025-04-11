@@ -90,7 +90,6 @@
         </div>
 
         <!-- Registration Link -->
-       .‘‘‘
         <p class="signup-link">
           New to the platform? <router-link to="/register">Create an account</router-link>
         </p>
@@ -154,11 +153,9 @@ export default {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       this.emailError = emailRegex.test(this.email) ? '' : 'Please enter a valid email address';
     },
-
     togglePassword() {
       this.showPassword = !this.showPassword;
     },
-
     async handleLogin() {
       this.validateEmail();
       if (this.emailError || !this.email || !this.password) {
@@ -173,33 +170,48 @@ export default {
           password: this.password,
         });
 
+        // Store the authentication token
         localStorage.setItem('authToken', response.data.token);
+        this.$router.push('/users');
+
+        // Handle "Remember Me" functionality
         if (this.rememberMe) {
           localStorage.setItem('rememberedEmail', this.email);
         } else {
           localStorage.removeItem('rememberedEmail');
         }
+
+        // Redirect to admin dashboard
         this.$router.push('/admin');
       } catch (error) {
-        this.errorMessage = error.response?.data?.message || 'Invalid credentials';
+        this.errorMessage =
+          error.response?.data?.message ||
+          (error.response?.status === 401 ? 'Invalid admin credentials' : 'Login failed');
         this.showErrorModal = true;
-        this.password = '';
+        this.password = ''; // Clear password field on error
       } finally {
         this.isLoading = false;
       }
     },
-
     loginWithGoogle() {
-      console.log('Google login initiated');
+      // Placeholder for Google OAuth login
+      this.isLoading = true;
+      console.log('Initiating Google login...');
+      // Example: Redirect to Google OAuth endpoint (implement with your backend)
+      window.location.href = 'http://localhost:5000/api/auth/google';
+      // After redirection, your backend should handle the callback and set the token
     },
-
     loginWithMicrosoft() {
-      console.log('Microsoft login initiated');
+      // Placeholder for Microsoft OAuth login
+      this.isLoading = true;
+      console.log('Initiating Microsoft login...');
+      // Example: Redirect to Microsoft OAuth endpoint (implement with your backend)
+      window.location.href = 'http://localhost:5000/api/auth/microsoft';
+      // After redirection, your backend should handle the callback and set the token
     },
   },
 };
 </script>
-
 <style scoped lang="scss">
 $primary: #4a6cf7;
 $secondary: #2d3748;

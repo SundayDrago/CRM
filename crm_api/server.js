@@ -12,11 +12,13 @@ app.use(express.urlencoded({ extended: true })); // Parses form data
 
 // Routes
 const crm = require('./routes/crm');
+const user = require('./routes/user');
 const admin = require("./routes/admin");
 const analytics = require('./routes/analytics');
 
 // Use routes after middleware
 app.use("/api/admin", admin);
+app.use("/api/user", user);
 app.use('/api/customers', crm);
 app.use('/api', analytics);
 

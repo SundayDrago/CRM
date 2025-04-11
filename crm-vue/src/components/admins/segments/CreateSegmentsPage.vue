@@ -18,7 +18,7 @@
               type="text"
               id="segment-name"
               v-model="newSegment.name"
-              placeholder="e.g. Premium Customers"
+              placeholder="e.g. Young High Spenders"
               required
               maxlength="50"
             />
@@ -26,16 +26,15 @@
           </div>
 
           <div class="form-group">
-            <label for="segment-desc">Description</label>
-            <textarea
-              id="segment-desc"
-              v-model="newSegment.description"
-              placeholder="Describe this segment..."
+            <label for="segment-criteria">Criteria (comma-separated)</label>
+            <input
+              type="text"
+              id="segment-criteria"
+              v-model="newSegment.criteria"
+              placeholder="e.g. Age 18-24, Spends >200,000"
               required
-              rows="4"
-              maxlength="200"
-            ></textarea>
-            <span class="char-count">{{ newSegment.description.length }}/200</span>
+            />
+            <span class="hint">Use: Age, Gender, Average spending, Frequency of Shopping(Regular)</span>
           </div>
 
           <button
@@ -71,17 +70,21 @@
         </div>
 
         <div class="segment-list">
-          <div v-if="filteredSegments.length === 0" class="empty-state">
+          <div v-if="isLoading" class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading segments...</p>
+          </div>
+          <div v-else-if="filteredSegments.length === 0" class="empty-state">
             <i class="fas fa-inbox"></i>
             <p>No segments found</p>
           </div>
 
           <ul v-else>
-            <li v-for="segment in filteredSegments" :key="segment.id" class="segment-item">
+            <li v-for="segment in paginatedSegments" :key="segment.id" class="segment-item">
               <div class="segment-info">
                 <h3>{{ segment.name }}</h3>
-                <p>{{ segment.description }}</p>
-                <span class="segment-meta">Created: {{ formatDate(segment.createdAt) }}</span>
+                <p>{{ segment.criteria }}</p>
+                <span class="segment-meta">Customers: {{ segment.count }}</span>
               </div>
               <div class="segment-actions">
                 <button @click="editSegment(segment)" class="btn-icon" title="Edit">
@@ -137,7 +140,7 @@
                 <span v-else><i class="fas fa-spinner fa-spin"></i> Importing...</span>
               </button>
             </div>
-            <p class="file-hint">CSV format with Name,Description columns</p>
+            <p class="file-hint">CSV format: Name,Criteria</p>
           </div>
 
           <div class="export-section">
@@ -171,8 +174,8 @@
               <input type="text" v-model="editingSegment.name" required />
             </div>
             <div class="form-group">
-              <label>Description</label>
-              <textarea v-model="editingSegment.description" required></textarea>
+              <label>Criteria</label>
+              <input type="text" v-model="editingSegment.criteria" required />
             </div>
             <div class="modal-actions">
               <button type="button" @click="closeModal" class="btn btn-outline">
@@ -215,6 +218,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import { saveAs } from 'file-saver';
 
 export default {
@@ -223,7 +227,7 @@ export default {
     return {
       newSegment: {
         name: '',
-        description: ''
+        criteria: ''
       },
       segments: [],
       filteredSegments: [],
@@ -231,13 +235,15 @@ export default {
       currentPage: 1,
       itemsPerPage: 5,
       isCreating: false,
+      isLoading: false,
       isImporting: false,
       importFile: null,
       showEditModal: false,
       editingSegment: {
         id: null,
         name: '',
-        description: ''
+        criteria: '',
+        count: 0
       },
       isUpdating: false,
       showDeleteModal: false,
@@ -247,7 +253,7 @@ export default {
   },
   computed: {
     isFormValid() {
-      return this.newSegment.name.trim() && this.newSegment.description.trim();
+      return this.newSegment.name.trim() && this.newSegment.criteria.trim();
     },
     totalPages() {
       return Math.ceil(this.filteredSegments.length / this.itemsPerPage);
@@ -263,34 +269,21 @@ export default {
   },
   methods: {
     async loadSegments() {
+      this.isLoading = true;
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Mock data - replace with actual API call
-        this.segments = [
-          {
-            id: 1,
-            name: 'Premium Customers',
-            description: 'Customers with premium subscriptions',
-            createdAt: new Date('2023-01-15')
-          },
-          {
-            id: 2,
-            name: 'Inactive Users',
-            description: 'Users who have not logged in for 30+ days',
-            createdAt: new Date('2023-02-20')
-          },
-          {
-            id: 3,
-            name: 'New Signups',
-            description: 'Users who signed up in the last 7 days',
-            createdAt: new Date('2023-03-10')
-          }
-        ];
+        const response = await axios.get('http://127.0.0.1:5000/segments');
+        this.segments = response.data.map(segment => ({
+          id: segment.id,
+          name: segment.name,
+          criteria: segment.criteria,
+          count: segment.count
+        }));
         this.filteredSegments = [...this.segments];
       } catch (error) {
         console.error('Failed to load segments:', error);
         alert('Failed to load segments. Please try again.');
+      } finally {
+        this.isLoading = false;
       }
     },
     filterSegments() {
@@ -302,30 +295,30 @@ export default {
       this.filteredSegments = this.segments.filter(
         segment =>
           segment.name.toLowerCase().includes(query) ||
-          segment.description.toLowerCase().includes(query)
+          segment.criteria.toLowerCase().includes(query)
       );
       this.currentPage = 1;
     },
     async createSegment() {
       this.isCreating = true;
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-
+        const response = await axios.post('http://127.0.0.1:5000/segment', {
+          name: this.newSegment.name,
+          criteria: this.newSegment.criteria
+        });
         const newSegment = {
-          id: Date.now(),
-          name: this.newSegment.name.trim(),
-          description: this.newSegment.description.trim(),
-          createdAt: new Date()
+          id: response.data.id,
+          name: this.newSegment.name,
+          criteria: this.newSegment.criteria,
+          count: response.data.count || 0 // Backend should return count
         };
-
         this.segments.unshift(newSegment);
         this.filterSegments();
-        this.newSegment = { name: '', description: '' };
+        this.newSegment = { name: '', criteria: '' };
         alert('Segment created successfully!');
       } catch (error) {
         console.error('Failed to create segment:', error);
-        alert('Failed to create segment. Please try again.');
+        alert('Failed to create segment: ' + (error.response?.data?.error || error.message));
       } finally {
         this.isCreating = false;
       }
@@ -337,19 +330,24 @@ export default {
     async updateSegment() {
       this.isUpdating = true;
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-
+        const response = await axios.put(`http://127.0.0.1:5000/segments/${this.editingSegment.id}`, {
+          criteria: this.editingSegment.criteria
+        });
         const index = this.segments.findIndex(s => s.id === this.editingSegment.id);
         if (index !== -1) {
-          this.segments[index] = { ...this.editingSegment };
+          this.segments[index] = {
+            id: this.editingSegment.id,
+            name: this.editingSegment.name,
+            criteria: this.editingSegment.criteria,
+            count: response.data.count
+          };
           this.filterSegments();
           this.closeModal();
           alert('Segment updated successfully!');
         }
       } catch (error) {
         console.error('Failed to update segment:', error);
-        alert('Failed to update segment. Please try again.');
+        alert('Failed to update segment: ' + (error.response?.data?.error || error.message));
       } finally {
         this.isUpdating = false;
       }
@@ -361,21 +359,21 @@ export default {
     async deleteSegment() {
       this.isDeleting = true;
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-
+        // Simulate DELETE request (not implemented in backend yet)
+        await axios.delete(`http://127.0.0.1:5000/segments/${this.segmentToDelete.id}`);
         this.segments = this.segments.filter(s => s.id !== this.segmentToDelete.id);
         this.filterSegments();
         this.closeModal();
         alert('Segment deleted successfully!');
       } catch (error) {
         console.error('Failed to delete segment:', error);
-        alert('Failed to delete segment. Please try again.');
+        alert('Failed to delete segment: ' + (error.response?.data?.error || error.message));
       } finally {
         this.isDeleting = false;
       }
     },
     closeModal() {
+      this.showEditModal = false;
       this.showEditModal = false;
       this.showDeleteModal = false;
       this.segmentToDelete = null;
@@ -391,35 +389,30 @@ export default {
 
       this.isImporting = true;
       try {
-        // Simulate file processing
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const text = e.target.result;
+          const rows = text.split('\n').map(row => row.split(','));
+          const data = rows.slice(1).filter(row => row.length >= 2);
 
-        // In a real app, you would parse the CSV file here
-        // For demo, we'll add some mock segments
-        const newSegments = [
-          {
-            id: Date.now() + 1,
-            name: 'Imported Segment 1',
-            description: 'Imported from CSV file',
-            createdAt: new Date()
-          },
-          {
-            id: Date.now() + 2,
-            name: 'Imported Segment 2',
-            description: 'Imported from CSV file',
-            createdAt: new Date()
+          for (const row of data) {
+            const segment = {
+              name: row[0].trim(),
+              criteria: row[1].trim()
+            };
+            await axios.post('http://127.0.0.1:5000/segment', segment);
           }
-        ];
 
-        this.segments = [...newSegments, ...this.segments];
-        this.filterSegments();
-        this.importFile = null;
-        document.getElementById('file-upload').value = '';
-        alert('Segments imported successfully!');
+          await this.loadSegments();
+          this.importFile = null;
+          document.getElementById('file-upload').value = '';
+          alert('Segments imported successfully!');
+          this.isImporting = false;
+        };
+        reader.readAsText(this.importFile);
       } catch (error) {
         console.error('Failed to import segments:', error);
-        alert('Failed to import segments. Please check the file format and try again.');
-      } finally {
+        alert('Failed to import segments: ' + (error.response?.data?.error || error.message));
         this.isImporting = false;
       }
     },
@@ -428,19 +421,16 @@ export default {
         let content, mimeType, extension;
 
         if (format === 'csv') {
-          // Convert segments to CSV
-          const headers = ['Name', 'Description', 'Created At'];
+          const headers = ['Name', 'Criteria', 'Count'];
           const rows = this.segments.map(segment => [
             `"${segment.name.replace(/"/g, '""')}"`,
-            `"${segment.description.replace(/"/g, '""')}"`,
-            segment.createdAt.toISOString()
+            `"${segment.criteria.replace(/"/g, '""')}"`,
+            segment.count
           ]);
-
           content = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
           mimeType = 'text/csv;charset=utf-8';
           extension = 'csv';
         } else {
-          // JSON format
           content = JSON.stringify(this.segments, null, 2);
           mimeType = 'application/json';
           extension = 'json';
@@ -458,21 +448,10 @@ export default {
       this.searchQuery = '';
     },
     nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
+      if (this.currentPage < this.totalPages) this.currentPage++;
     },
     prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    formatDate(date) {
-      return new Date(date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      if (this.currentPage > 1) this.currentPage--;
     }
   }
 };

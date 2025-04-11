@@ -1,0 +1,16 @@
+[
+  {
+    "id": 5,
+    "name": "High ",
+    "criteria": "Age 0",
+    "source": "Custom",
+    "count": 1002
+  },
+  {
+    "id": 6,
+    "name": "Low income",
+    "criteria": "35",
+    "source": "Custom",
+    "count": 1002
+  }
+]

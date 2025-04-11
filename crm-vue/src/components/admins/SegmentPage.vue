@@ -18,50 +18,15 @@
       <p>Loading segments...</p>
     </div>
 
-    <!-- Segment List in Enhanced Table Format -->
-    <div v-else class="segment-content">
-      <div v-if="segments.length" class="segment-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Segment Name</th>
-              <th>Customer Count</th>
-              <th>Criteria</th>
-              <th>Source</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="segment in segments" :key="segment.id" class="segment-row">
-              <td>{{ segment.name }}</td>
-              <td>{{ segment.count.toLocaleString() }}</td>
-              <td class="criteria-cell">{{ segment.criteria || 'N/A' }}</td>
-              <td>
-                <span class="source-tag" :class="segment.source.toLowerCase()">
-                  {{ segment.source || 'Manual' }}
-                </span>
-              </td>
-              <td class="actions-cell">
-                <button @click="openEditModal(segment)" class="edit-button">
-                  <i class="icon-edit"></i>
-                </button>
-                <button @click="confirmDelete(segment.id)" class="delete-button">
-                  <i class="icon-delete"></i>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-else class="no-segments">
-        <div class="empty-state">
-          <i class="icon-segment"></i>
-          <h3>No segments available</h3>
-          <p>Create new segments or load model segments to get started</p>
-          <button @click="loadModelSegments" class="primary-button">
-            Load Model Segments
-          </button>
-        </div>
+    <!-- No Segments Message -->
+    <div v-else-if="!segments.length" class="no-segments">
+      <div class="empty-state">
+        <i class="icon-segment"></i>
+        <h3>No segments available</h3>
+        <p>Create new segments or load model segments to get started</p>
+        <button @click="loadModelSegments" class="primary-button">
+          Load Model Segments
+        </button>
       </div>
     </div>
 
@@ -81,7 +46,7 @@
             <label>Criteria</label>
             <textarea
               v-model="editSegmentData.criteria"
-              placeholder="Enter segment criteria (e.g., age > 30 AND income < 50000)"
+              placeholder="Enter segment criteria (e.g., Age 18-24, Gender Male)"
               rows="5"
             ></textarea>
           </div>
@@ -121,7 +86,6 @@ export default {
       } catch (error) {
         console.error("Error fetching segments:", error);
         this.segments = [];
-        // Handle both response errors and network errors
         const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch segments';
         this.$toast.error(errorMessage);
       } finally {
@@ -132,12 +96,11 @@ export default {
     async loadModelSegments() {
       this.isLoading = true;
       try {
-        const response = await axios.get('http://127.0.0.1:5000/segments/model');
-        this.segments = response.data;
+        const response = await axios.get('http://127.0.0.1:5000/segments'); // Adjusted to use existing endpoint
+        this.segments = response.data.filter(segment => segment.source === 'Model');
         this.$toast.success('Model segments loaded successfully');
       } catch (error) {
         console.error("Error loading model segments:", error);
-        // Handle both response errors and network errors
         const errorMessage = error.response?.data?.error || error.message || 'Failed to load model segments';
         this.$toast.error(errorMessage);
       } finally {
@@ -170,7 +133,6 @@ export default {
         await axios.put(`http://127.0.0.1:5000/segments/${this.editSegmentData.id}`, {
           criteria: this.editSegmentData.criteria
         });
-
         this.$toast.success('Segment updated successfully');
         this.closeEditModal();
         await this.fetchAllSegments();
@@ -294,110 +256,13 @@ export default {
   font-size: 0.95rem;
 }
 
-/* Segment Table */
-.segment-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.segment-table {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 800px;
-}
-
-thead {
-  background-color: #f9fafb;
-}
-
-th {
-  padding: 1rem;
-  text-align: left;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-td {
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  color: #1f2937;
-  font-size: 0.9rem;
-}
-
-.criteria-cell {
-  max-width: 300px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.source-tag {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.source-tag.model {
-  background-color: #e0f2fe;
-  color: #0369a1;
-}
-
-.source-tag.manual {
-  background-color: #ecfdf5;
-  color: #047857;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.edit-button, .delete-button {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-.edit-button {
-  background-color: #fef3c7;
-  color: #d97706;
-}
-
-.edit-button:hover {
-  background-color: #fde68a;
-}
-
-.delete-button {
-  background-color: #fee2e2;
-  color: #ef4444;
-}
-
-.delete-button:hover {
-  background-color: #fecaca;
-}
-
 /* Empty State */
 .no-segments {
   padding: 3rem;
   text-align: center;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .empty-state {
@@ -584,7 +449,5 @@ td {
 }
 
 /* Icons (using Unicode for simplicity - replace with actual icon components if available) */
-.icon-edit::before { content: "✏️"; }
-.icon-delete::before { content: "🗑️"; }
 .icon-segment::before { content: "👥"; }
 </style>
