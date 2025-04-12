@@ -21,6 +21,12 @@
     <div class="header">
       <h1>Users Management</h1>
       <div class="header-buttons">
+        <button class="stats-button" @click="viewAdminStats">
+          <span class="icon"><i class="fas fa-user-shield"></i></span> View Admins
+        </button>
+        <button class="stats-button" @click="viewUserStats">
+          <span class="icon"><i class="fas fa-users"></i></span> View Users
+        </button>
         <button class="invite-user" @click="showInviteUserModal">
           <span class="icon"><i class="fas fa-user-plus"></i></span> Invite Users
         </button>
@@ -149,6 +155,12 @@ export default {
     },
   },
   methods: {
+      viewAdminStats() {
+      this.$router.push('/dashboard/admin-stats');
+    },
+    viewUserStats() {
+      this.$router.push('/dashboard/user-stats');
+    },
     showToast(message, type = 'success') {
       this.toast = {
         show: true,

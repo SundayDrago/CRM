@@ -21,10 +21,14 @@ import UsersPage from './components/admins/UsersPage.vue';
 import AdvisoryPage from './components/admins/AdvisoryPage.vue';
 import ReportPage from './components/admins/ReportPage.vue';
 import ContactPage from './components/ContactPage.vue';
+import UsersSettingsPage from './components/users/UsersSettingsPage.vue';
+import SettingsPage from './components/admins/SettingsPage.vue';
 import SetupAccountPage from './components/users/SetupAccountPage.vue';
 import UsersDashboard from './components/users/UsersDashboard.vue';
 import CreateSegmentsPage from './components/admins/segments/CreateSegmentsPage.vue';
 import GetStartedPage from './components/GetStartedPage.vue';
+import AdminStats from './components/admins/AdminStats.vue';
+import UsersStats from './components/admins/UsersStats.vue';
 
 // Define routes
 const routes = [
@@ -40,6 +44,8 @@ const routes = [
     { path: '/activity-log', component: ActivityLogPage },
     { path: '/advisory', component: AdvisoryPage },
     { path: '/segments', component: SegmentPage },
+    { path: '/setting-users', component: UsersSettingsPage },
+    { path: '/setting', component: SettingsPage },
     { path: '/users', component: UsersPage },
     { path: '/report', component: ReportPage },
     { path: '/setup-account', component: SetupAccountPage },
@@ -47,6 +53,18 @@ const routes = [
     { path: '/create', component: CreateSegmentsPage },
     { path: '/:catchAll(.*)', component: NotFoundPage },
     { path: '/get-started', component: GetStartedPage },
+      {
+    path: '/dashboard/admin-stats',
+    name: 'AdminStats',
+    component: AdminStats,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/user-stats',
+    name: 'UsersStats',
+    component: UsersStats,
+    meta: { requiresAuth: true }
+  },
 ];
 
 // Create the router instance
@@ -55,20 +73,20 @@ const router = createRouter({
     routes
 });
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem("authToken");
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    if (to.path === '/users-dashboard') {
-      console.log('Redirecting to /user-login');
-      next('/user-login'); // Redirect to user login for users-dashboard
-    } else {
-      console.log('Redirecting to /login');
-      next('/login'); // Redirect to admin login for other protected routes
-    }
-  } else {
-    next();
-  }
-});
+//router.beforeEach((to, from, next) => {
+//  const isAuthenticated = !!localStorage.getItem("authToken");
+//  if (to.meta.requiresAuth && !isAuthenticated) {
+//    if (to.path === '/users-dashboard') {
+//      console.log('Redirecting to /user-login');
+//      next('/user-login'); // Redirect to user login for users-dashboard
+//    } else {
+//      console.log('Redirecting to /login');
+//      next('/login'); // Redirect to admin login for other protected routes
+//    }
+//  } else {
+//    next();
+//  }
+//});
 
 // Create the Vue app and mount it with the router and Toast
 const app = createApp(App);
