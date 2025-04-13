@@ -21,7 +21,6 @@ import UsersPage from './components/admins/UsersPage.vue';
 import AdvisoryPage from './components/admins/AdvisoryPage.vue';
 import ReportPage from './components/admins/ReportPage.vue';
 import ContactPage from './components/ContactPage.vue';
-import UsersSettingsPage from './components/users/UsersSettingsPage.vue';
 import SettingsPage from './components/admins/SettingsPage.vue';
 import SetupAccountPage from './components/users/SetupAccountPage.vue';
 import UsersDashboard from './components/users/UsersDashboard.vue';
@@ -29,6 +28,8 @@ import CreateSegmentsPage from './components/admins/segments/CreateSegmentsPage.
 import GetStartedPage from './components/GetStartedPage.vue';
 import AdminStats from './components/admins/AdminStats.vue';
 import UsersStats from './components/admins/UsersStats.vue';
+import ProfilePage from './components/users/ProfilePage.vue';
+
 
 // Define routes
 const routes = [
@@ -44,12 +45,12 @@ const routes = [
     { path: '/activity-log', component: ActivityLogPage },
     { path: '/advisory', component: AdvisoryPage },
     { path: '/segments', component: SegmentPage },
-    { path: '/setting-users', component: UsersSettingsPage },
     { path: '/setting', component: SettingsPage },
     { path: '/users', component: UsersPage },
     { path: '/report', component: ReportPage },
     { path: '/setup-account', component: SetupAccountPage },
     { path: '/contact-us', component: ContactPage },
+    { path: '/profile', component: ProfilePage },
     { path: '/create', component: CreateSegmentsPage },
     { path: '/:catchAll(.*)', component: NotFoundPage },
     { path: '/get-started', component: GetStartedPage },

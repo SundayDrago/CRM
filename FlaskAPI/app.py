@@ -462,29 +462,50 @@ def implement_recommendation():
 @app.route('/query', methods=['GET'])
 def query_data():
     try:
-        customers = read_customers()
-        filtered_customers = customers
+        # Check if dataset is loaded
+        if RAW_DATA is None:
+            return jsonify({'error': 'No dataset uploaded yet. Please upload System Data.csv.'}), 400
+
+        # Get filter parameters from the query string
         filters = {
             'Age': request.args.get('age'),
             'Gender': request.args.get('gender'),
             'Region': request.args.get('region'),
             'Average spending': request.args.get('spending')
         }
+
+        # Keep only filters with values
         active_filters = {k: v for k, v in filters.items() if v}
+
+        # Start with the full dataset
+        filtered_data = RAW_DATA.copy()
+
+        # Apply each filter to the dataset
         for key, value in active_filters.items():
-            filtered_customers = [c for c in filtered_customers if c.get(key) == value]
-        total = len(filtered_customers)
+            # Ensure the column exists in the dataset
+            if key not in filtered_data.columns:
+                return jsonify({'error': f"Column {key} not found in dataset"}), 400
+            # Filter rows where the column matches the provided value
+            filtered_data = filtered_data[filtered_data[key] == value]
+
+        # Calculate total number of matching records
+        total = len(filtered_data)
+
+        # Initialize counts dictionary
         counts = {}
+
+        # Handle output based on number of filters
         if len(active_filters) == 0:
+            # No filters: return total count
             counts = {"total": total}
         elif len(active_filters) == 1:
+            # Single filter: return counts grouped by the filtered column
             key = list(active_filters.keys())[0]
-            counts[key.lower()] = {}
-            for c in filtered_customers:
-                val = c.get(key, 'Unknown')
-                counts[key.lower()][val] = counts[key.lower()].get(val, 0) + 1
+            counts[key.lower()] = filtered_data[key].value_counts().to_dict()
         else:
+            # Multiple filters: return total count
             counts = {"total": total}
+
         return jsonify({
             "counts": counts,
             "total": total

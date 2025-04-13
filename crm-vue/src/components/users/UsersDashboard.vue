@@ -1,239 +1,266 @@
 <!-- UsersDashboard.vue -->
 <template>
   <div class="dashboard-wrapper">
-    <!-- Header -->
-    <header class="dashboard-header">
-      <div class="header-left">
-        <h1>Customer Insights</h1>
-        <p class="subtitle">Track and manage your customer data in real-time</p>
-      </div>
-      <div class="header-actions">
-        <select v-model="timeRange" @change="fetchData" aria-label="Select time range">
-          <option value="7d">Last 7 Days</option>
-          <option value="30d">Last 30 Days</option>
-          <option value="90d">Last 90 Days</option>
-        </select>
-        <button class="refresh-btn" @click="fetchData" :disabled="loading" aria-label="Refresh data">
-          <span class="material-icons">refresh</span>
-          Refresh
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" @click="toggleSidebar">
+          <span class="material-icons">menu</span>
         </button>
-        <!-- Navigation Buttons -->
-        <div class="nav-buttons">
-          <button class="nav-btn" @click="toggleNotifications" aria-label="Notifications">
-            <span class="material-icons">mail</span>
-            <span v-if="unreadNotifications > 0" class="badge">{{ unreadNotifications }}</span>
-          </button>
-          <div class="avatar-container" @click="toggleDropdown">
-            <div class="avatar" :title="user?.name || 'User'">
-              {{ user?.name ? user.name[0].toUpperCase() : 'U' }}
+        <h1 class="logo">Customer Insights</h1>
+      </div>
+
+      <div class="navbar-center">
+        <div class="time-range-selector">
+          <select v-model="timeRange" @change="fetchData">
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="90d">Last 90 Days</option>
+          </select>
+          <span class="material-icons">arrow_drop_down</span>
+        </div>
+        <button class="refresh-btn" @click="fetchData" :disabled="loading">
+          <span class="material-icons">refresh</span>
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      <div class="navbar-right">
+        <button class="icon-btn notification-btn" @click="toggleNotifications">
+          <span class="material-icons">notifications</span>
+          <span v-if="unreadNotifications > 0" class="badge">{{ unreadNotifications }}</span>
+        </button>
+
+        <div class="user-menu">
+          <div class="user-avatar" @click="toggleDropdown">
+            {{ userInitials }}
+          </div>
+          <div v-if="showDropdown" class="dropdown-menu">
+            <div class="user-info">
+              <div class="user-name">{{ user?.name || 'User' }}</div>
+              <div class="user-email">{{ user?.email || 'user@example.com' }}</div>
             </div>
-            <div v-if="showDropdown" class="dropdown">
-              <button @click="goToSettings">Settings</button>
-              <button @click="logout">Logout</button>
-            </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" @click="goToProfile">
+              <span class="material-icons">person</span>
+              Profile
+            </button>
+            <button class="dropdown-item" @click="goToSettings">
+              <span class="material-icons">settings</span>
+              Settings
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" @click="logout">
+              <span class="material-icons">logout</span>
+              Logout
+            </button>
           </div>
         </div>
       </div>
-    </header>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" :class="{ 'collapsed': !sidebarOpen }">
+      <div class="sidebar-header">
+        <h2>Navigation</h2>
+        <button class="close-sidebar" @click="toggleSidebar">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <router-link to="/users-dashboard" class="nav-item" @click="toggleSidebar">
+          <span class="material-icons">dashboard</span>
+          <span class="nav-text">Overview</span>
+        </router-link>
+
+        <router-link to="/clients" class="nav-item" @click="toggleSidebar">
+          <span class="material-icons">people</span>
+          <span class="nav-text">Clients</span>
+        </router-link>
+
+        <router-link to="/analytics" class="nav-item" @click="toggleSidebar">
+          <span class="material-icons">insights</span>
+          <span class="nav-text">Analytics</span>
+        </router-link>
+
+        <router-link to="/settings" class="nav-item" @click="toggleSidebar">
+          <span class="material-icons">settings</span>
+          <span class="nav-text">Settings</span>
+        </router-link>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" @click="logout">
+          <span class="material-icons">logout</span>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </aside>
 
     <!-- Main Content -->
-    <div class="dashboard-content">
-      <!-- Sidebar Filters -->
-      <aside class="sidebar">
-        <h2>Filters</h2>
-        <div class="filter-group">
-          <label for="churn-risk">Churn Risk (%)</label>
-          <input
-            id="churn-risk"
-            type="range"
-            v-model="churnRiskFilter"
-            min="0"
-            max="100"
-            step="10"
-            @input="filterCustomers"
-          />
-          <span>{{ churnRiskFilter }}%</span>
+    <div class="dashboard-content" :class="{ 'content-expanded': !sidebarOpen }">
+      <!-- Analytics Section -->
+      <section class="analytics-section">
+        <div class="analytics-card">
+          <h3>Total Customers</h3>
+          <p class="value">{{ stats ? formatNumber(stats.totalCustomers) : '0' }}</p>
+          <p class="trend">+{{ stats?.customerTrend || 0 }}% from last period</p>
         </div>
-        <div class="filter-group">
-          <label for="value-range">Lifetime Value ($)</label>
-          <input
-            id="value-range"
-            type="range"
-            v-model="valueFilter"
-            min="0"
-            max="10000"
-            step="100"
-            @input="filterCustomers"
-          />
-          <span>${{ formatNumber(valueFilter) }}</span>
+        <div class="analytics-card">
+          <h3>Total Revenue</h3>
+          <p class="value">{{ stats ? formatCurrency(stats.totalRevenue) : '$0' }}</p>
+          <p class="trend">+{{ stats?.revenueTrend || 0 }}% from last period</p>
         </div>
-        <button class="clear-btn" @click="clearFilters">Clear Filters</button>
-      </aside>
+        <div class="analytics-card">
+          <h3>Active Customers</h3>
+          <p class="value">{{ stats ? formatNumber(stats.activeCustomers) : '0' }}</p>
+          <p class="trend">+{{ stats?.activeTrend || 0 }}% from last period</p>
+        </div>
+        <div class="analytics-card">
+          <h3>Churn Risk</h3>
+          <p class="value">{{ stats ? stats.churnRiskPercentage : '0' }}%</p>
+          <p class="trend">{{ stats?.churnTrend || 0 }}% from last period</p>
+        </div>
+      </section>
 
-      <!-- Main Panel -->
-      <main class="main-panel">
-        <!-- Analytics Section -->
-        <section class="analytics-section">
-          <div class="analytics-card">
-            <h3>Total Customers</h3>
-            <p class="value">{{ stats ? formatNumber(stats.totalCustomers) : '0' }}</p>
-            <p class="trend">+{{ stats?.customerTrend || 0 }}% from last period</p>
-          </div>
-          <div class="analytics-card">
-            <h3>Total Revenue</h3>
-            <p class="value">{{ stats ? formatCurrency(stats.totalRevenue) : '$0' }}</p>
-            <p class="trend">+{{ stats?.revenueTrend || 0 }}% from last period</p>
-          </div>
-          <div class="analytics-card">
-            <h3>Active Customers</h3>
-            <p class="value">{{ stats ? formatNumber(stats.activeCustomers) : '0' }}</p>
-            <p class="trend">+{{ stats?.activeTrend || 0 }}% from last period</p>
-          </div>
-          <div class="analytics-card">
-            <h3>Churn Risk</h3>
-            <p class="value">{{ stats ? stats.churnRiskPercentage : '0' }}%</p>
-            <p class="trend">{{ stats?.churnTrend || 0 }}% from last period</p>
-          </div>
-        </section>
+      <!-- Chart Section -->
+      <section class="chart-section">
+        <h2>Revenue Trends</h2>
+        <div class="chart-container">
+          <canvas ref="revenueChart"></canvas>
+        </div>
+      </section>
 
-        <!-- Chart Section -->
-        <section class="chart-section">
-          <h2>Revenue Trends</h2>
-          <div class="chart-container">
-            <canvas ref="revenueChart"></canvas>
-          </div>
-        </section>
+      <!-- Top Customers -->
+      <section class="top-customers-section">
+        <h2>Top Clients by Value</h2>
+        <table v-if="topCustomers.length">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Lifetime Value</th>
+              <th>Last Purchase</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="customer in topCustomers" :key="customer.id">
+              <td>{{ customer.name }}</td>
+              <td>{{ formatCurrency(customer.lifetimeValue) }}</td>
+              <td>{{ formatDate(customer.lastPurchase) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="placeholder">No top clients found.</div>
+      </section>
 
-        <!-- Top Customers -->
-        <section class="top-customers-section">
-          <h2>Top Customers by Value</h2>
-          <table v-if="topCustomers.length">
+      <!-- Customer List -->
+      <section class="customer-section">
+        <div class="table-header">
+          <h2>All Clients</h2>
+          <div class="table-actions">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by name or ID..."
+              @input="debouncedFilter"
+              aria-label="Search clients"
+            />
+            <button
+              class="export-btn"
+              @click="exportData"
+              :disabled="loading || exportLoading"
+              aria-label="Export client data"
+            >
+              <span class="material-icons">download</span>
+              {{ exportLoading ? 'Exporting...' : 'Export' }}
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table v-if="paginatedCustomers.length">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Lifetime Value</th>
-                <th>Last Purchase</th>
+                <th
+                  @click="sortCustomers('name')"
+                  :aria-sort="sortBy === 'name' ? sortOrder : 'none'"
+                  role="columnheader"
+                >
+                  Name
+                </th>
+                <th
+                  @click="sortCustomers('lifetimeValue')"
+                  :aria-sort="sortBy === 'lifetimeValue' ? sortOrder : 'none'"
+                  role="columnheader"
+                >
+                  Lifetime Value
+                </th>
+                <th
+                  @click="sortCustomers('lastPurchase')"
+                  :aria-sort="sortBy === 'lastPurchase' ? sortOrder : 'none'"
+                  role="columnheader"
+                >
+                  Last Purchase
+                </th>
+                <th
+                  @click="sortCustomers('churnRisk')"
+                  :aria-sort="sortBy === 'churnRisk' ? sortOrder : 'none'"
+                  role="columnheader"
+                >
+                  Churn Risk
+                </th>
+                <th aria-hidden="true">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="customer in topCustomers" :key="customer.id">
-                <td>{{ customer.name }}</td>
+              <tr v-for="customer in paginatedCustomers" :key="customer.id">
+                <td>
+                  <div class="customer-info">
+                    <span class="customer-name">{{ customer.name }}</span>
+                    <span class="customer-id">ID: {{ customer.id }}</span>
+                  </div>
+                </td>
                 <td>{{ formatCurrency(customer.lifetimeValue) }}</td>
                 <td>{{ formatDate(customer.lastPurchase) }}</td>
+                <td>{{ customer.churnRisk }}%</td>
+                <td>
+                  <button
+                    class="action-btn"
+                    @click="viewCustomer(customer.id)"
+                    aria-label="View client details"
+                  >
+                    <span class="material-icons">visibility</span>
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="placeholder">No top customers found.</div>
-        </section>
-
-        <!-- Customer List -->
-        <section class="customer-section">
-          <div class="table-header">
-            <h2>All Customers</h2>
-            <div class="table-actions">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search by name or ID..."
-                @input="debouncedFilter"
-                aria-label="Search customers"
-              />
-              <button
-                class="export-btn"
-                @click="exportData"
-                :disabled="loading || exportLoading"
-                aria-label="Export customer data"
-              >
-                <span class="material-icons">download</span>
-                {{ exportLoading ? 'Exporting...' : 'Export' }}
-              </button>
-            </div>
-          </div>
-          <div class="table-container">
-            <table v-if="paginatedCustomers.length">
-              <thead>
-                <tr>
-                  <th
-                    @click="sortCustomers('name')"
-                    :aria-sort="sortBy === 'name' ? sortOrder : 'none'"
-                    role="columnheader"
-                  >
-                    Name
-                  </th>
-                  <th
-                    @click="sortCustomers('lifetimeValue')"
-                    :aria-sort="sortBy === 'lifetimeValue' ? sortOrder : 'none'"
-                    role="columnheader"
-                  >
-                    Lifetime Value
-                  </th>
-                  <th
-                    @click="sortCustomers('lastPurchase')"
-                    :aria-sort="sortBy === 'lastPurchase' ? sortOrder : 'none'"
-                    role="columnheader"
-                  >
-                    Last Purchase
-                  </th>
-                  <th
-                    @click="sortCustomers('churnRisk')"
-                    :aria-sort="sortBy === 'churnRisk' ? sortOrder : 'none'"
-                    role="columnheader"
-                  >
-                    Churn Risk
-                  </th>
-                  <th aria-hidden="true">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="customer in paginatedCustomers" :key="customer.id">
-                  <td>
-                    <div class="customer-info">
-                      <span class="customer-name">{{ customer.name }}</span>
-                      <span class="customer-id">ID: {{ customer.id }}</span>
-                    </div>
-                  </td>
-                  <td>{{ formatCurrency(customer.lifetimeValue) }}</td>
-                  <td>{{ formatDate(customer.lastPurchase) }}</td>
-                  <td>{{ customer.churnRisk }}%</td>
-                  <td>
-                    <button
-                      class="action-btn"
-                      @click="viewCustomer(customer.id)"
-                      aria-label="View customer details"
-                    >
-                      <span class="material-icons">visibility</span>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="placeholder">No customers found.</div>
-          </div>
-          <div class="table-footer" v-if="filteredCustomers.length">
-            <span
-              >Showing {{ pagination.start }} to {{ pagination.end }} of
-              {{ filteredCustomers.length }}</span
+          <div v-else class="placeholder">No clients found.</div>
+        </div>
+        <div class="table-footer" v-if="filteredCustomers.length">
+          <span
+            >Showing {{ pagination.start }} to {{ pagination.end }} of
+            {{ filteredCustomers.length }}</span
+          >
+          <div class="pagination">
+            <button
+              @click="prevPage"
+              :disabled="pagination.currentPage === 1"
+              aria-label="Previous page"
             >
-            <div class="pagination">
-              <button
-                @click="prevPage"
-                :disabled="pagination.currentPage === 1"
-                aria-label="Previous page"
-              >
-                Previous
-              </button>
-              <span>Page {{ pagination.currentPage }} of {{ pagination.totalPages }}</span>
-              <button
-                @click="nextPage"
-                :disabled="pagination.currentPage === pagination.totalPages"
-                aria-label="Next page"
-              >
-                Next
-              </button>
-            </div>
+              Previous
+            </button>
+            <span>Page {{ pagination.currentPage }} of {{ pagination.totalPages }}</span>
+            <button
+              @click="nextPage"
+              :disabled="pagination.currentPage === pagination.totalPages"
+              aria-label="Next page"
+            >
+              Next
+            </button>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
     </div>
 
     <!-- Loading Overlay -->
@@ -271,8 +298,6 @@ export default {
     const error = ref('');
     const timeRange = ref('30d');
     const searchQuery = ref('');
-    const churnRiskFilter = ref(100);
-    const valueFilter = ref(10000);
     const sortBy = ref('lastPurchase');
     const sortOrder = ref('desc');
     const stats = ref(null);
@@ -288,6 +313,7 @@ export default {
     const user = ref(null);
     const unreadNotifications = ref(3); // Mocked; replace with API data
     const showDropdown = ref(false);
+    const sidebarOpen = ref(true);
     let chartInstance = null;
 
     // Computed
@@ -300,12 +326,6 @@ export default {
             c.name.toLowerCase().includes(query) ||
             c.id.toString().includes(query)
         );
-      }
-      if (churnRiskFilter.value < 100) {
-        result = result.filter((c) => c.churnRisk <= churnRiskFilter.value);
-      }
-      if (valueFilter.value < 10000) {
-        result = result.filter((c) => c.lifetimeValue <= valueFilter.value);
       }
       return result.sort((a, b) => {
         const valA = a[sortBy.value];
@@ -338,8 +358,19 @@ export default {
         .slice(0, 5);
     });
 
+    // Authentication Check
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/user-login');
+        return false;
+      }
+      return true;
+    };
+
     // Methods
     const fetchData = async () => {
+      if (!checkAuth()) return;
       loading.value = true;
       error.value = '';
       try {
@@ -405,18 +436,6 @@ export default {
       pagination.value.currentPage = 1;
       updatePagination();
     }, 300);
-
-    const filterCustomers = () => {
-      debouncedFilter();
-    };
-
-    const clearFilters = () => {
-      searchQuery.value = '';
-      churnRiskFilter.value = 100;
-      valueFilter.value = 10000;
-      pagination.value.currentPage = 1;
-      updatePagination();
-    };
 
     const updatePagination = () => {
       const totalPages = Math.ceil(filteredCustomers.value.length / pagination.value.rowsPerPage);
@@ -508,7 +527,6 @@ export default {
       });
     };
 
-    // New Methods
     const logout = async () => {
       try {
         await axios.post(
@@ -526,16 +544,24 @@ export default {
 
     const toggleNotifications = () => {
       console.log('Show notifications'); // Replace with modal or route
-      // Optionally: router.push('/notifications');
     };
 
     const toggleDropdown = () => {
       showDropdown.value = !showDropdown.value;
     };
 
+    const goToProfile = () => {
+      showDropdown.value = false;
+      router.push('/profile');
+    };
+
     const goToSettings = () => {
       showDropdown.value = false;
-      router.push('/setting-users');
+      router.push('/settings');
+    };
+
+    const toggleSidebar = () => {
+      sidebarOpen.value = !sidebarOpen.value;
     };
 
     watch(timeRange, () => {
@@ -543,6 +569,7 @@ export default {
     });
 
     onMounted(() => {
+      checkAuth();
       fetchData();
       document.addEventListener('click', closeDropdownOutside);
     });
@@ -564,8 +591,6 @@ export default {
       error,
       timeRange,
       searchQuery,
-      churnRiskFilter,
-      valueFilter,
       sortBy,
       sortOrder,
       stats,
@@ -578,250 +603,414 @@ export default {
       user,
       unreadNotifications,
       showDropdown,
+      sidebarOpen,
       fetchData,
       formatNumber,
       formatCurrency,
       formatDate,
       sortCustomers,
-      filterCustomers,
-      clearFilters,
+      debouncedFilter,
       nextPage,
       prevPage,
       viewCustomer,
       exportData,
-      debouncedFilter,
       logout,
       toggleNotifications,
       toggleDropdown,
+      goToProfile,
       goToSettings,
+      toggleSidebar,
     };
   },
 };
 </script>
 
 <style scoped>
-/* Existing styles remain unchanged, only adding new ones below */
-.nav-buttons {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-left: 1rem;
-}
+/* Material Icons */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
-.nav-btn {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #718096;
-  font-size: 1.5rem;
-  transition: color 0.2s;
-}
-
-.nav-btn:hover {
-  color: #2196f3;
-}
-
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #f56565;
-  color: #ffffff;
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  font-size: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-container {
-  position: relative;
-  cursor: pointer;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  background: #2196f3;
-  color: #ffffff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.dropdown {
-  position: absolute;
-  top: 45px;
-  right: 0;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 0.5rem 0;
-  z-index: 1000;
-}
-
-.dropdown button {
-  width: 100%;
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  text-align: left;
-  font-size: 0.9rem;
-  color: #4a5568;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.dropdown button:hover {
-  background: #edf2f7;
-}
-
+/* Base Styles */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-.dashboard-wrapper {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  padding: 2rem;
+body {
+  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
 }
 
-/* Header */
-.dashboard-header {
+.dashboard-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* Navbar Styles */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #ffffff;
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
+  padding: 0 24px;
+  z-index: 100;
 }
 
-.header-left h1 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: #1a202c;
-}
-
-.header-left .subtitle {
-  font-size: 0.9rem;
-  color: #718096;
-  margin-top: 0.25rem;
-}
-
-.header-actions {
+.navbar-left, .navbar-center, .navbar-right {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 16px;
 }
 
-.header-actions select {
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: #f7fafc;
+.logo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a237e;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
   cursor: pointer;
+  color: #5f6368;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.sidebar-toggle:hover {
+  background-color: #f1f3f4;
+}
+
+.time-range-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.time-range-selector select {
+  appearance: none;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.time-range-selector .material-icons {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: #5f6368;
 }
 
 .refresh-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #2196f3;
-  color: #ffffff;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #1a73e8;
+  color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 4px;
+  font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.3s;
 }
 
-.refresh-btn:hover:not(:disabled) {
-  background: #1e88e5;
+.refresh-btn:hover {
+  background-color: #1765cc;
 }
 
 .refresh-btn:disabled {
-  background: #b0bec5;
+  background-color: #9aa0a6;
   cursor: not-allowed;
 }
 
-/* Content Layout */
-.dashboard-content {
-  display: flex;
-  gap: 2rem;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 250px;
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  height: fit-content;
-}
-
-.sidebar h2 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 1rem;
-}
-
-.filter-group {
-  margin-bottom: 1.5rem;
-}
-
-.filter-group label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #4a5568;
-  margin-bottom: 0.5rem;
-}
-
-.filter-group input[type='range'] {
-  width: 100%;
-  accent-color: #2196f3;
-}
-
-.filter-group span {
-  display: block;
-  font-size: 0.85rem;
-  color: #718096;
-  margin-top: 0.25rem;
-}
-
-.clear-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background: #edf2f7;
-  color: #4a5568;
+.icon-btn {
+  background: none;
   border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 0.2s;
+  color: #5f6368;
+  position: relative;
+  transition: background-color 0.3s;
 }
 
-.clear-btn:hover {
-  background: #e2e8f0;
+.icon-btn:hover {
+  background-color: #f1f3f4;
 }
 
-/* Main Panel */
-.main-panel {
+.notification-btn .badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: #d93025;
+  color: white;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #1a73e8;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 56px;
+  width: 280px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  padding: 8px 0;
+  z-index: 110;
+}
+
+.user-info {
+  padding: 12px 16px;
+}
+
+.user-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.user-email {
+  font-size: 14px;
+  color: #5f6368;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 8px 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  color: #202124;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.dropdown-item:hover {
+  background-color: #f1f3f4;
+}
+
+.dropdown-item .material-icons {
+  font-size: 20px;
+  color: #5f6368;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background-color: white;
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  z-index: 90;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.sidebar-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sidebar-header h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #202124;
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  color: #5f6368;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: none;
+}
+
+.close-sidebar:hover {
+  background-color: #f1f3f4;
+}
+
+.sidebar-nav {
   flex: 1;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  text-decoration: none;
+  color: #202124;
+  transition: background-color 0.3s;
+}
+
+.nav-item:hover {
+  background-color: #f1f3f4;
+}
+
+.nav-item.router-link-active {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+}
+
+.nav-item.router-link-active .material-icons {
+  color: #1a73e8;
+}
+
+.nav-item .material-icons {
+  font-size: 24px;
+  color: #5f6368;
+}
+
+.nav-text {
+  font-size: 14px;
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #5f6368;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: #f1f3f4;
+}
+
+/* Main Content Styles */
+.main-content {
+  flex: 1;
+  margin-top: 64px;
+  margin-left: 280px;
+  padding: 24px;
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.expanded {
+  margin-left: 0;
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 100;
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .close-sidebar {
+    display: block;
+  }
+
+  .navbar-center {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 16px;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+}
+/* Dashboard Content */
+.dashboard-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 250px;
+  transition: margin-left 0.3s ease;
+}
+
+.content-expanded {
+  margin-left: 0;
 }
 
 /* Analytics Section */
@@ -1151,5 +1340,38 @@ td {
 
 .error-message button:hover {
   background: #c53030;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+  }
+
+  .dashboard-content {
+    margin-left: 0;
+  }
+
+  .content-expanded {
+    margin-left: 0;
+  }
+
+  .navbar-brand h1 {
+    font-size: 1.2rem;
+  }
+
+  .navbar-actions {
+    gap: 0.5rem;
+  }
+
+  .navbar-actions select,
+  .refresh-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .analytics-section {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

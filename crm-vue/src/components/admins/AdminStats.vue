@@ -2,7 +2,7 @@
   <div class="stats-page">
     <div class="stats-header">
       <h1>Admin User Statistics</h1>
-      <button class="back-button" @click="$router.push('/users')">
+      <button class="back-button" @click="$router.go(-1)">
         <i class="fas fa-arrow-left"></i> Back to Home
       </button>
     </div>
@@ -118,7 +118,7 @@ export default {
         }
 
         // Fetch admin ID from token or user profile endpoint
-        const response = await axios.get('http://localhost:5000/api/auth/me', {
+        const response = await axios.get('http://localhost:5000/api/admin/user/stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
 

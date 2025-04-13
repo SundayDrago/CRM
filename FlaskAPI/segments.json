@@ -1,15 +1,8 @@
 [
   {
-    "id": 5,
-    "name": "High ",
-    "criteria": "Age 0",
-    "source": "Custom",
-    "count": 1002
-  },
-  {
-    "id": 6,
-    "name": "Low income",
-    "criteria": "35",
+    "id": 9,
+    "name": "High Spenders",
+    "criteria": "Device to shop = Phone",
     "source": "Custom",
     "count": 1002
   }

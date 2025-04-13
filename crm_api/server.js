@@ -5,8 +5,15 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware should come **before** defining routes
-app.use(cors());
+// Configure CORS
+app.use(cors({
+  origin: 'http://localhost:8080',
+  credentials: true, // Allow cookies or Authorization headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Middleware
 app.use(express.json()); // Parses JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Parses form data
 
@@ -16,12 +23,11 @@ const user = require('./routes/user');
 const admin = require("./routes/admin");
 const analytics = require('./routes/analytics');
 
-// Use routes after middleware
+// Use routes
 app.use("/api/admin", admin);
 app.use("/api/user", user);
 app.use('/api/customers', crm);
 app.use('/api', analytics);
-
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Customer Segmentation API' });

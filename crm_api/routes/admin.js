@@ -609,51 +609,48 @@ router.post("/reset-password", async (req, res) => {
     }
 });
 
-// New Endpoint: Admin User Statistics
-router.get("/admin/user/stats", authenticateAdminToken, async (req, res) => {
-    const createdBy = req.user.id; // Get admin ID from JWT
+// Updated Admin User Statistics Endpoint (MySQL compatible)
+router.get("/stats", authenticateAdminToken, async (req, res) => {
+console.log("Stats endpoint reached!");
+    const createdBy = req.user.id;
 
     try {
-        // Query for stat cards
+        // MySQL-compatible queries
         const [stats] = await db.promise().query(
             `SELECT
                 COUNT(*) AS totalUsersCreated,
-                COUNT(*) FILTER (WHERE status = 'pending') AS pendingUsers,
-                COUNT(*) FILTER (WHERE status = 'inactive') AS inactiveUsers,
-                COUNT(*) FILTER (WHERE status = 'active') AS activeUsers
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingUsers,
+                SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) AS inactiveUsers,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS activeUsers
             FROM users
             WHERE created_by = ?`,
             [createdBy]
         );
 
-        // Query for growth data (monthly user creation trend)
         const [growthData] = await db.promise().query(
             `SELECT
                 DATE_FORMAT(created_at, '%Y-%m') AS month,
                 COUNT(*) AS count
             FROM users
             WHERE created_by = ?
-            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-            ORDER BY month`,
+            GROUP BY month
+            ORDER BY month ASC`,
             [createdBy]
         );
 
-        // Format response
-        const response = {
+        res.status(200).json({
             totalUsersCreated: stats[0].totalUsersCreated || 0,
             pendingUsers: stats[0].pendingUsers || 0,
             inactiveUsers: stats[0].inactiveUsers || 0,
             activeUsers: stats[0].activeUsers || 0,
-            growthData: growthData.map(row => ({
-                month: row.month,
-                count: row.count
-            }))
-        };
-
-        res.status(200).json(response);
+            growthData: growthData
+        });
     } catch (error) {
-        console.error("Error fetching admin user stats:", error);
-        res.status(500).json({ message: "Failed to fetch user statistics" });
+        console.error("Stats error:", error);
+        res.status(500).json({
+            message: "Failed to fetch statistics",
+            error: error.message
+        });
     }
 });
 

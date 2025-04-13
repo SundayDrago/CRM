@@ -242,6 +242,60 @@ router.post("/reset-password", async (req, res) => {
     }
 });
 
+
+// User Statistics Endpoint
+router.get('/stats', async (req, res) => {
+  try {
+    // 1. Get total users count
+    const [totalUsersResult] = await db.query('SELECT COUNT(*) as count FROM users');
+    const totalUsers = totalUsersResult[0].count;
+
+    // 2. Get active users (last 30 days)
+    const thirtyDaysAgo = moment().subtract(30, 'days').format('YYYY-MM-DD HH:mm:ss');
+    const [activeUsersResult] = await db.query(
+      'SELECT COUNT(*) as count FROM users WHERE last_active_at >= ?',
+      [thirtyDaysAgo]
+    );
+    const activeUsers = activeUsersResult[0].count;
+
+    // 3. Get new users (last 30 days)
+    const [newUsersResult] = await db.query(
+      'SELECT COUNT(*) as count FROM users WHERE created_at >= ?',
+      [thirtyDaysAgo]
+    );
+    const newUsers = newUsersResult[0].count;
+
+    // 4. Get growth data (monthly registrations for the last 12 months)
+    const twelveMonthsAgo = moment().subtract(12, 'months').format('YYYY-MM-DD HH:mm:ss');
+    const [growthData] = await db.query(`
+      SELECT
+        DATE_FORMAT(created_at, '%Y-%m-01') as month,
+        COUNT(*) as count
+      FROM users
+      WHERE created_at >= ?
+      GROUP BY month
+      ORDER BY month ASC
+    `, [twelveMonthsAgo]);
+
+    // Format the growth data for the chart
+    const formattedGrowthData = growthData.map(item => ({
+      month: moment(item.month).format('MMM YYYY'),
+      count: item.count
+    }));
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      newUsers,
+      growthData: formattedGrowthData
+    });
+
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({ message: 'Failed to fetch user statistics' });
+  }
+});
+
 // Test route
 router.get("/test", (req, res) => res.json({ message: "Users router working" }));
 

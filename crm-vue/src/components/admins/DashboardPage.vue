@@ -73,23 +73,22 @@
               <strong>Confidence:</strong> {{ rec.confidence }}%
             </span>
           </div>
-          <button class="rec-action">Implement</button>
+          <button @click="implementRecommendation(rec.id)" class="rec-action">Implement</button>
         </div>
       </div>
     </section>
 
-
-<!-- Model Insights Section -->
-<section class="insights-section">
-  <h2 class="section-title">Model Insights</h2>
-  <div class="insights-grid">
-    <div class="insight-card" v-for="graph in insightGraphs" :key="graph.id">
-      <h3>{{ graph.title }}</h3>
-      <img :src="graph.src" :alt="graph.title" class="insight-image" />
-      <p class="insight-description">{{ graph.description }}</p>
-    </div>
-  </div>
-</section>
+    <!-- Model Insights Section -->
+    <section class="insights-section">
+      <h2 class="section-title">Model Insights</h2>
+      <div class="insights-grid">
+        <div class="insight-card" v-for="graph in insightGraphs" :key="graph.id">
+          <h3>{{ graph.title }}</h3>
+          <img :src="graph.src" :alt="graph.title" class="insight-image" />
+          <p class="insight-description">{{ graph.description }}</p>
+        </div>
+      </div>
+    </section>
 
     <!-- Customer Predictions Section with Form -->
     <section class="predictions-section">
@@ -123,21 +122,21 @@
             </div>
             <div class="form-group">
               <label>Monthly Income:</label>
-                <select v-model="newCustomer['Monthly Income']" required>
-                  <option value="&lt;450,000">&lt;450,000</option>
-                  <option value="450,000-1,000,000">450,000-1,000,000</option>
-                  <option value="1,000,000-2,000,000">1,000,000-2,000,000</option>
-                  <option value="&gt;2,000,000">&gt;2,000,000</option>
-                </select>
+              <select v-model="newCustomer['Monthly Income']" required>
+                <option value="<450,000">&lt;450,000</option>
+                <option value="450,000-1,000,000">450,000-1,000,000</option>
+                <option value="1,000,000-2,000,000">1,000,000-2,000,000</option>
+                <option value=">2,000,000">&gt;2,000,000</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Average Spending:</label>
-                <select v-model="newCustomer['Average spending']" required>
-                  <option value="&lt;50,000">&lt;50,000</option>
-                  <option value="50,000-100,000">50,000-100,000</option>
-                  <option value="100,000-200,000">100,000-200,000</option>
-                  <option value="&gt;200,000">&gt;200,000</option>
-                </select>
+              <select v-model="newCustomer['Average spending']" required>
+                <option value="<50,000">&lt;50,000</option>
+                <option value="50,000-100,000">50,000-100,000</option>
+                <option value="100,000-200,000">100,000-200,000</option>
+                <option value=">200,000">&gt;200,000</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Frequency (Regular):</label>
@@ -207,20 +206,20 @@
       </div>
     </section>
 
-    <!-- Updated Query Section -->
+    <!-- Customer Query Section -->
     <section class="query-section">
       <h2 class="section-title">Customer Query</h2>
       <div class="query-filters">
         <div class="form-group">
           <label for="ageFilter">Age:</label>
-<select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
-  <option value="">All Ages</option>
-  <option value="18-24">18-24</option>
-  <option value="25-34">25-34</option>
-  <option value="35-44">35-44</option> <!-- Fixed: Was </div> -->
-  <option value="45-54">45-54</option>
-  <option value="55+">55+</option>
-</select>
+          <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
+            <option value="">All Ages</option>
+            <option value="18-24">18-24</option>
+            <option value="25-34">25-34</option>
+            <option value="35-44">35-44</option>
+            <option value="45-54">45-54</option>
+            <option value="55+">55+</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="genderFilter">Gender:</label>
@@ -242,14 +241,14 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="spendingFilter">Spending:</label>
-<select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
-  <option value="">All Spending</option>
-  <option value="&lt;50,000">&lt;50,000</option>
-  <option value="50,000-100,000">50,000-100,000</option>
-  <option value="100,000-200,000">100,000-200,000</option>
-  <option value="&gt;200,000">&gt;200,000</option>
-</select>
+          <label for="spendingFilter">Average Spending:</label>
+          <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
+            <option value="">All Spending</option>
+            <option value="<50,000">&lt;50,000</option>
+            <option value="50,000-100,000">50,000-100,000</option>
+            <option value="100,000-200,000">100,000-200,000</option>
+            <option value=">200,000">&gt;200,000</option>
+          </select>
         </div>
         <button @click="resetFilters" class="reset-button">Reset Filters</button>
       </div>
@@ -263,11 +262,11 @@
         <canvas id="queryChart"></canvas>
         <div v-if="queryData" class="query-summary">
           <p>Showing: <strong>{{ queryData.total }}</strong> customers matching your filters</p>
-          <div v-if="activeFilterCount === 1" class="breakdown">
+          <div v-if="activeFilterCount === 1 && queryData.counts[activeFilterName.toLowerCase()]" class="breakdown">
             <h4>Breakdown by {{ activeFilterName }}:</h4>
             <ul>
-              <li v-for="(count, value) in queryData.counts[activeFilterName]" :key="value">
-                {{ value }}: {{ count }} ({{ Math.round((count / queryData.total) * 100) }}%)
+              <li v-for="(count, value) in queryData.counts[activeFilterName.toLowerCase()]" :key="value">
+                {{ value }}: {{ count }} ({{ queryData.total > 0 ? Math.round((count / queryData.total) * 100) : 0 }}%)
               </li>
             </ul>
           </div>
@@ -337,7 +336,6 @@ export default {
   data() {
     return {
       keyMetrics: [],
-      featureImportance: [],
       recommendations: [],
       customerPredictions: [],
       timeRange: "30d",
@@ -370,12 +368,12 @@ export default {
         "Rate of availability of products": 3,
       },
       insightGraphs: [
-        { id: 1, title: "Age Distribution", src: "http://127.0.0.1:5000//static/img/age_distribution.png", description: "Distribution of customers by age group" },
-        { id: 2, title: "Average Spending Distribution", src: "http://127.0.0.1:5000//static/img/avg_spending_distribution.png", description: "Spending patterns across customer segments" },
-        { id: 3, title: "Cluster Characteristics", src: "http://127.0.0.1:5000//static/img/cluster_characteristics.png", description: "Key traits defining each cluster" },
-        { id: 4, title: "Region Distribution", src: "http://127.0.0.1:5000//static/img/region_distribution.png", description: "Geographical spread of customers" },
-        { id: 5, title: "Shopping Frequency", src: "http://127.0.0.1:5000//static/img/shopping_frequency.png", description: "How often customers shop" },
-        { id: 6, title: "Silhouette Analysis", src: "http://127.0.0.1:5000//static/img/silhouette_analysis.png", description: "Cluster quality assessment" },
+        { id: 1, title: "Age Distribution", src: "http://127.0.0.1:5000/static/img/age_distribution.png", description: "Distribution of customers by age group" },
+        { id: 2, title: "Average Spending Distribution", src: "http://127.0.0.1:5000/static/img/avg_spending_distribution.png", description: "Spending patterns across customer segments" },
+        { id: 3, title: "Cluster Characteristics", src: "http://127.0.0.1:5000/static/img/cluster_characteristics.png", description: "Key traits defining each cluster" },
+        { id: 4, title: "Region Distribution", src: "http://127.0.0.1:5000/static/img/region_distribution.png", description: "Geographical spread of customers" },
+        { id: 5, title: "Shopping Frequency", src: "http://127.0.0.1:5000/static/img/shopping_frequency.png", description: "How often customers shop" },
+        { id: 6, title: "Silhouette Analysis", src: "http://127.0.0.1:5000/static/img/silhouette_analysis.png", description: "Cluster quality assessment" },
       ],
       queryFilters: {
         age: "",
@@ -418,23 +416,39 @@ export default {
     this.createCharts();
   },
   async mounted() {
-    await Promise.all([this.fetchModelData(), this.fetchQueryData()]);
+    await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData()]);
   },
   methods: {
     async fetchModelData() {
       this.isLoading = true;
       try {
         const response = await axios.get("http://127.0.0.1:5000/dashboard");
-        console.log("API Response:", response.data);
         this.keyMetrics = response.data.keyMetrics || [];
-        this.featureImportance = response.data.featureImportance || [];
-        this.recommendations = response.data.recommendations || [];
         this.customerPredictions = response.data.customerPredictions || [];
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         this.showError("Failed to load dashboard data: " + error.message);
       } finally {
         this.isLoading = false;
+      }
+    },
+    async fetchRecommendations() {
+      try {
+        const response = await axios.get("http://127.0.0.1:5000/recommendations");
+        this.recommendations = response.data || [];
+      } catch (error) {
+        console.error("Error fetching recommendations:", error);
+        this.showError("Failed to load recommendations: " + error.message);
+      }
+    },
+    async implementRecommendation(id) {
+      try {
+        await axios.post("http://127.0.0.1:5000/implement-recommendation", { id });
+        this.recommendations = this.recommendations.filter(rec => rec.id !== id);
+        this.showSuccess("Recommendation implemented successfully!");
+      } catch (error) {
+        console.error("Error implementing recommendation:", error);
+        this.showError("Failed to implement recommendation: " + error.message);
       }
     },
     createCharts() {
@@ -444,10 +458,22 @@ export default {
           type: "bar",
           options: {
             responsive: true,
-            scales: { y: { beginAtZero: true, title: { display: true, text: "Customer Count" } } },
-            plugins: { legend: { display: false } },
-          },
-        },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: "Customer Count" }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.raw} customers`
+                }
+              }
+            }
+          }
+        }
       ];
 
       chartConfigs.forEach(({ id, type, options }) => {
@@ -463,11 +489,9 @@ export default {
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { position: "bottom" } },
-              ...options,
-            },
+              ...options
+            }
           });
-          console.log(`Chart ${id} initialized`);
         }
       });
     },
@@ -481,11 +505,12 @@ export default {
         if (this.queryFilters.spending) params.spending = this.queryFilters.spending;
 
         const response = await axios.get("http://127.0.0.1:5000/query", { params });
-        this.queryData = response.data;
+        this.queryData = response.data || { total: 0, counts: {} };
         this.updateQueryChart();
       } catch (error) {
-        console.error("fetchQueryData Error:", error.message);
+        console.error("fetchQueryData Error:", error);
         this.showError("Failed to fetch query data: " + error.message);
+        this.queryData = null;
       } finally {
         this.queryLoading = false;
       }
@@ -494,12 +519,11 @@ export default {
       if (!this.queryData || !this.charts["queryChart"]) return;
 
       let labels, data;
-      const activeFilters = Object.keys(this.queryFilters).filter((key) => this.queryFilters[key]);
-      if (activeFilters.length === 0) {
+      if (this.activeFilterCount === 0) {
         labels = ["All Customers"];
         data = [this.queryData.total || 0];
-      } else if (activeFilters.length === 1) {
-        const key = activeFilters[0];
+      } else if (this.activeFilterCount === 1) {
+        const key = this.activeFilterName.toLowerCase();
         labels = Object.keys(this.queryData.counts[key] || {});
         data = Object.values(this.queryData.counts[key] || {});
       } else {
@@ -511,13 +535,13 @@ export default {
       this.charts["queryChart"].data.datasets = [
         {
           label: "Customer Count",
-          data: data,
+          data,
           backgroundColor: "#4e79a7",
-          borderWidth: 1,
-        },
+          borderColor: "#2b5b8e",
+          borderWidth: 1
+        }
       ];
       this.charts["queryChart"].update();
-      console.log("Query chart updated:", this.charts["queryChart"].data);
     },
     resetFilters() {
       this.queryFilters.age = "";
@@ -529,20 +553,19 @@ export default {
     async segmentCustomer() {
       try {
         const customerData = { ...this.newCustomer };
-        const response = await axios.post("http://127.0.0.1:5000/segment", customerData, {
-          headers: { "Content-Type": "application/json" },
-        });
+        const response = await axios.post("http://127.0.0.1:5000/segment", customerData);
         if (response.data.status === "success") {
           const newPrediction = {
-            id: this.customerPredictions.length + 1000,
+            id: response.data.id,
             name: this.newCustomer.name,
             segment: response.data.description,
             churnRisk: response.data.cluster === 3 ? 50 : response.data.cluster === 0 ? 20 : 10,
             predictedValue: this.estimatePredictedValue(this.newCustomer["Average spending"]),
-            nextPurchase: response.data.nextPurchase || new Date(Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+            nextPurchase: response.data.nextPurchase
           };
           this.customerPredictions.unshift(newPrediction);
           this.newCustomer.name = "";
+          this.showSuccess("Customer segmented successfully!");
         } else {
           this.showError("Segmentation failed: " + response.data.error);
         }
@@ -556,7 +579,7 @@ export default {
         "<50,000": 500,
         "50,000-100,000": 1500,
         "100,000-200,000": 3000,
-        ">200,000": 5000,
+        ">200,000": 5000
       };
       return ranges[spendingRange] || 1000;
     },
@@ -571,6 +594,8 @@ export default {
     },
     refreshData() {
       this.fetchModelData();
+      this.fetchRecommendations();
+      this.fetchQueryData();
     },
     formatDate(dateString) {
       const options = { month: "short", day: "numeric" };
@@ -607,6 +632,9 @@ export default {
     showError(message) {
       alert(message);
     },
+    showSuccess(message) {
+      alert(message);
+    },
     hexToRgba(hex, alpha) {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
@@ -639,7 +667,7 @@ export default {
               borderColor: "#4e79a7",
               backgroundColor: this.hexToRgba("#4e79a7", 0.1),
               borderWidth: 2,
-              tension: 0.3,
+              tension: 0.3
             },
             {
               label: "Model Prediction",
@@ -649,9 +677,9 @@ export default {
               borderWidth: 2,
               borderDash: [5, 5],
               pointBackgroundColor: "#e15759",
-              pointRadius: 5,
-            },
-          ],
+              pointRadius: 5
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -663,39 +691,39 @@ export default {
                   if (label) label += ": ";
                   if (context.raw !== null) label += `UGX ${context.raw.toLocaleString()}`;
                   return label;
-                },
-              },
-            },
+                }
+              }
+            }
           },
           scales: {
             y: {
               beginAtZero: false,
-              ticks: { callback: (value) => `UGX ${(value / 1000).toLocaleString()}K` },
-            },
-          },
-        },
+              ticks: { callback: (value) => `UGX ${(value / 1000).toLocaleString()}K` }
+            }
+          }
+        }
       });
     },
     viewCustomerDetails(customer) {
       alert(`Details for ${customer.name} (ID: ${customer.id})\nSegment: ${customer.segment}\nChurn Risk: ${customer.churnRisk}%\nPredicted Value: ${this.formatCurrency(customer.predictedValue)}\nNext Purchase: ${this.formatDate(customer.nextPurchase)}`);
-    },
-  },
+    }
+  }
 };
 </script>
 
 <style scoped>
-/* Base Styles: Foundation for the dashboard layout */
+/* Base Styles */
 .dashboard {
-  padding: 2vw; /* Fluid padding based on viewport width */
+  padding: 2vw;
   font-family: "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   color: #333;
   max-width: 1800px;
   margin: 0 auto;
   background-color: #f8fafc;
-  min-height: 100vh; /* Ensures dashboard fills screen height */
+  min-height: 100vh;
 }
 
-/* Header: Title and subtitle with responsive typography */
+/* Header */
 .dashboard-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -704,7 +732,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  font-size: clamp(1.8rem, 5vw, 2.2rem); /* Scales between 1.8rem and 2.2rem */
+  font-size: clamp(1.8rem, 5vw, 2.2rem);
   font-weight: 600;
   color: #1a365d;
   margin-bottom: 0.5rem;
@@ -716,7 +744,7 @@ export default {
   font-weight: 500;
 }
 
-/* Section Title: Consistent heading style across sections */
+/* Section Title */
 .section-title {
   font-size: clamp(1.2rem, 3.5vw, 1.5rem);
   font-weight: 600;
@@ -726,7 +754,7 @@ export default {
   border-bottom: 1px solid #e2e8f0;
 }
 
-/* Controls Section: Interactive controls for refreshing and filtering */
+/* Controls Section */
 .controls-section {
   margin-bottom: 2rem;
 }
@@ -760,11 +788,11 @@ export default {
 .refresh-button:hover,
 .refresh-button:focus {
   background-color: #3182ce;
-  outline: none; /* Accessibility: Remove default focus outline */
+  outline: none;
 }
 
 .refresh-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* Accessibility: Focus ring */
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
 .icon {
@@ -798,81 +826,6 @@ export default {
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
 }
 
-/* Model Insights Section: Static image graphs */
-.insights-section {
-  margin-bottom: 2rem;
-}
-
-.insights-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-  gap: 1.5rem;
-}
-
-.insight-card {
-  background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.insight-card h3 {
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
-  font-weight: 600;
-  color: #2d3748;
-  margin-top: 0;
-  margin-bottom: 1rem;
-}
-
-.insight-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.insight-description {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
-  color: #718096;
-  line-height: 1.5;
-}
-
-/* Responsive Adjustments for Insights */
-@media (max-width: 1024px) {
-  .insights-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .insights-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .insight-card {
-    padding: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .insight-card h3 {
-    font-size: clamp(0.9rem, 2vw, 1rem);
-  }
-
-  .insight-image {
-    max-width: 90%;
-  }
-
-  .insight-description {
-    font-size: clamp(0.75rem, 1.8vw, 0.8rem);
-  }
-}
-
 .model-info {
   display: flex;
   gap: 1rem;
@@ -893,7 +846,7 @@ export default {
   color: #3182ce;
 }
 
-/* Metrics Grid: Key predictive KPIs in a responsive grid */
+/* Metrics Grid */
 .metrics-section {
   margin-bottom: 2rem;
 }
@@ -1018,85 +971,7 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-/* Chart Grid: Visualizations for insights */
-.visualization-section {
-  margin-bottom: 2rem;
-}
-
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
-  gap: 1.5rem;
-}
-
-.chart-card {
-  background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.chart-card h3 {
-  font-size: clamp(1.1rem, 2.5vw, 1.2rem);
-  font-weight: 600;
-  color: #2d3748;
-  margin-top: 0;
-  margin-bottom: 0.3rem;
-}
-
-.chart-subtitle {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
-  color: #718096;
-  margin-bottom: 1rem;
-}
-
-.chart-container canvas {
-  width: 100% !important;
-  height: clamp(200px, 50vw, 300px) !important;
-}
-
-.importance-card {
-  grid-column: 1 / -1;
-}
-
-.feature-list {
-  display: grid;
-  gap: 1rem;
-}
-
-.feature-item {
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) 2fr minmax(50px, auto);
-  align-items: center;
-  gap: 1rem;
-}
-
-.feature-name {
-  font-weight: 500;
-  color: #4a5568;
-}
-
-.feature-bar-container {
-  height: 1.25rem;
-  background-color: #edf2f7;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.feature-bar {
-  height: 100%;
-  background-color: #4299e1;
-  border-radius: 4px;
-  transition: width 0.5s ease;
-}
-
-.feature-value {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
-  color: #718096;
-  text-align: right;
-}
-
-/* Recommendations: Actionable AI suggestions */
+/* Recommendations */
 .recommendations-section {
   margin-bottom: 2rem;
 }
@@ -1199,7 +1074,48 @@ export default {
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
-/* Predictions Section: Form and table for customer predictions */
+/* Insights Section */
+.insights-section {
+  margin-bottom: 2rem;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 1.5rem;
+}
+
+.insight-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.insight-card h3 {
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.insight-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.insight-description {
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  color: #718096;
+}
+
+/* Predictions Section */
 .predictions-section {
   margin-bottom: 2rem;
 }
@@ -1291,7 +1207,6 @@ export default {
   font-weight: 600;
   color: #4a5568;
   cursor: pointer;
-  user-select: none;
 }
 
 .predictions-table th:hover {
@@ -1440,7 +1355,7 @@ export default {
   cursor: not-allowed;
 }
 
-/* Query Section: Filters and chart for customer queries */
+/* Query Section */
 .query-section {
   margin-top: 2.5rem;
   background: white;
@@ -1524,7 +1439,12 @@ export default {
   border-bottom: none;
 }
 
-/* Modal: Detailed view for metric cards */
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1699,22 +1619,21 @@ export default {
 
 /* Responsive Adjustments */
 @media (max-width: 1024px) {
-  /* Tablet adjustments */
   .controls {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .chart-grid {
-    grid-template-columns: 1fr;
   }
 
   .metrics-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   }
 
-  .feature-item {
-    grid-template-columns: 1fr 1fr auto;
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .insights-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   }
 
   .metric-summary {
@@ -1723,7 +1642,6 @@ export default {
 }
 
 @media (max-width: 768px) {
-  /* Larger phone/tablet adjustments */
   .dashboard {
     padding: 1rem;
   }
@@ -1733,10 +1651,6 @@ export default {
   }
 
   .metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .recommendations-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1754,18 +1668,12 @@ export default {
     white-space: nowrap;
   }
 
-  .feature-item {
+  .insights-grid {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-
-  .feature-name {
-    margin-bottom: 0.25rem;
   }
 }
 
 @media (max-width: 480px) {
-  /* Small phone adjustments */
   .dashboard-header h1 {
     font-size: clamp(1.5rem, 4vw, 1.8rem);
   }
@@ -1787,8 +1695,8 @@ export default {
     font-size: clamp(1.2rem, 3vw, 1.5rem);
   }
 
-  .chart-container canvas {
-    height: 200px !important;
+  .chart-container {
+    height: 200px;
   }
 
   .modal-header h2 {
@@ -1800,17 +1708,12 @@ export default {
   }
 
   .metric-card,
-  .chart-card,
   .recommendation-card,
+  .insight-card,
   .form-container,
   .table-container,
   .query-section {
     padding: 1rem;
-  }
-
-  .spinner {
-    width: 2rem;
-    height: 2rem;
   }
 }
 
@@ -1821,8 +1724,7 @@ export default {
   .submit-button,
   .rec-action,
   .modal-close-btn,
-  .action-button,
-  .feature-bar {
+  .action-button {
     transition: none;
   }
 
