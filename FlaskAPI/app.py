@@ -12,7 +12,15 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
 app = Flask(__name__)
-CORS(app)
+
+
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:8080", "http://127.0.0.1:8080"],
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 logging.basicConfig(level=logging.INFO)
 
 # Configuration
@@ -23,10 +31,14 @@ MODEL_FILES = {
 }
 
 CLUSTER_PROFILES = {
-    0: {"description": "Young, Low-Income Occasional Shoppers", "traits": "Age 18-24, Income <450,000, Spends <50,000, Shops Rarely"},
-    1: {"description": "Young, Moderate-Income Shoppers", "traits": "Age 18-24, Income 450,000-1,000,000, Spends 50,000-100,000, Shops Often"},
-    2: {"description": "Middle-Aged High Spenders", "traits": "Age 25-34, Income >2,000,000, Spends 50,000-100,000, Convenience-Focused"},
-    3: {"description": "Older Value-Seeking Shoppers", "traits": "Age 45-54, Income <450,000, Spends <50,000, Price-Driven"}
+    0: {"description": "Young, Low-Income Occasional Shoppers",
+        "traits": "Age 18-24, Income <450,000, Spends <50,000, Shops Rarely"},
+    1: {"description": "Young, Moderate-Income Shoppers",
+        "traits": "Age 18-24, Income 450,000-1,000,000, Spends 50,000-100,000, Shops Often"},
+    2: {"description": "Middle-Aged High Spenders",
+        "traits": "Age 25-34, Income >2,000,000, Spends 50,000-100,000, Convenience-Focused"},
+    3: {"description": "Older Value-Seeking Shoppers",
+        "traits": "Age 45-54, Income <450,000, Spends <50,000, Price-Driven"}
 }
 
 CATEGORICAL_COLS = [
@@ -105,11 +117,6 @@ def preprocess_dataset(df):
     df_encoded['Cluster'] = clusters
     return df_encoded
 
-try:
-    RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data('System Data.csv')
-except FileNotFoundError:
-    logging.warning("No initial System Data.csv found. Waiting for upload.")
-
 def validate_input(data):
     for col in NUMERICAL_COLS:
         if col in data and (not isinstance(data[col], (int, float)) or data[col] < 0 or data[col] > 5):
@@ -145,7 +152,8 @@ IMPLEMENTED_RECOMMENDATIONS = set()
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({'message': 'Customer Segmentation API',
-                    'endpoints': ['/upload', '/segments', '/segments/model', '/segment', '/dashboard', '/query', '/recommendations', '/implement-recommendation', '/reports', '/reports/generate']})
+                    'endpoints': ['/upload', '/segments', '/segments/import', '/segments/model', '/segment', '/dashboard', '/query',
+                                  '/recommendations', '/implement-recommendation', '/reports', '/reports/generate']})
 
 @app.route('/upload', methods=['POST'])
 def upload_dataset():
@@ -156,22 +164,75 @@ def upload_dataset():
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
+        file_ext = file.filename.rsplit('.', 1)[-1].lower()
+        if file_ext != 'csv':
+            return jsonify({'error': 'Only CSV files are supported for dataset upload'}), 400
         file.save(UPLOADED_DATA_PATH)
         RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data(UPLOADED_DATA_PATH)
         if RAW_DATA is None or PREPROCESSED_DATA is None:
             return jsonify({'error': 'Failed to process uploaded dataset'}), 500
-        return jsonify({'message': 'Dataset uploaded and processed successfully', 'path': UPLOADED_DATA_PATH}), 200
+        return jsonify({'success': True, 'message': 'Dataset uploaded and processed successfully', 'path': UPLOADED_DATA_PATH}), 200
     except Exception as e:
+        logging.error(f"Error in upload_dataset: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/segments/import', methods=['POST'])
+def import_segments():
+    global RAW_DATA, PREPROCESSED_DATA
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part in request'}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        file_ext = file.filename.rsplit('.', 1)[-1].lower()
+        if file_ext not in ['csv', 'json']:
+            return jsonify({'error': 'Invalid file type. Only CSV and JSON are supported'}), 400
+
+        if file_ext == 'csv':
+            file.save(UPLOADED_DATA_PATH)
+            RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data(UPLOADED_DATA_PATH)
+            if RAW_DATA is None or PREPROCESSED_DATA is None:
+                return jsonify({'error': 'Failed to process uploaded CSV dataset'}), 500
+        else:
+            json_data = json.load(file)
+            if not isinstance(json_data, list):
+                return jsonify({'error': 'JSON file must contain an array of segment objects'}), 400
+            required_fields = ['name', 'criteria']
+            for segment in json_data:
+                if not all(field in segment for field in required_fields):
+                    return jsonify({'error': f'Missing required fields: {required_fields}'}), 400
+            segments = read_segments()
+            max_id = max([s['id'] for s in segments], default=4)
+            for segment in json_data:
+                max_id += 1
+                new_segment = {
+                    'id': max_id,
+                    'name': segment['name'],
+                    'criteria': segment['criteria'],
+                    'source': 'Custom',
+                    'createdAt': datetime.now().isoformat()
+                }
+                filtered_data = filter_data_by_criteria(RAW_DATA.copy(), segment['criteria'], None) if RAW_DATA is not None else pd.DataFrame()
+                new_segment['count'] = len(filtered_data)
+                segments.append(new_segment)
+            write_segments(segments)
+
+        return jsonify({'success': True, 'message': f'{file_ext.upper()} file processed successfully'}), 200
+    except Exception as e:
+        logging.error(f"Error in import_segments: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/segments', methods=['GET'])
 def get_segments():
     try:
         if PREPROCESSED_DATA is None:
-            return jsonify({'error': 'No dataset uploaded yet. Please upload a dataset first.'}), 400
+            return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
         cluster_counts = PREPROCESSED_DATA['Cluster'].value_counts().to_dict()
         model_segments = [
-            {"id": i+1, "name": f"Cluster {i}", "count": cluster_counts.get(i, 0), "criteria": CLUSTER_PROFILES[i]["traits"], "source": "Model"}
+            {"id": i + 1, "name": f"Cluster {i}", "count": cluster_counts.get(i, 0),
+             "criteria": CLUSTER_PROFILES[i]["traits"], "source": "Model", "createdAt": datetime.now().isoformat()}
             for i in range(4)
         ]
         custom_segments = read_segments()
@@ -181,20 +242,23 @@ def get_segments():
             segment['source'] = "Custom"
         return jsonify(model_segments + custom_segments)
     except Exception as e:
+        logging.error(f"Error in get_segments: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/segments/model', methods=['GET'])
 def get_model_segments():
     try:
         if PREPROCESSED_DATA is None:
-            return jsonify({'error': 'No dataset uploaded yet. Please upload a dataset first.'}), 400
+            return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
         cluster_counts = PREPROCESSED_DATA['Cluster'].value_counts().to_dict()
         model_segments = [
-            {"id": i+1, "name": f"Cluster {i}", "count": cluster_counts.get(i, 0), "criteria": CLUSTER_PROFILES[i]["traits"], "source": "Model"}
+            {"id": i + 1, "name": f"Cluster {i}", "count": cluster_counts.get(i, 0),
+             "criteria": CLUSTER_PROFILES[i]["traits"], "source": "Model", "createdAt": datetime.now().isoformat()}
             for i in range(4)
         ]
         return jsonify(model_segments)
     except Exception as e:
+        logging.error(f"Error in get_model_segments: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/segments/<int:segment_id>', methods=['PUT'])
@@ -202,13 +266,12 @@ def update_segment(segment_id):
     global PREPROCESSED_DATA, RAW_DATA
     try:
         if PREPROCESSED_DATA is None or RAW_DATA is None:
-            return jsonify({'error': 'No dataset uploaded yet.'}), 400
+            return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
         data = request.get_json()
         if not data or 'criteria' not in data:
             return jsonify({'error': 'Criteria field is required'}), 400
         new_criteria = data['criteria']
-
-        if segment_id <= 4:  # Model segment
+        if segment_id <= 4:
             cluster_id = segment_id - 1
             if cluster_id not in CLUSTER_PROFILES:
                 return jsonify({'error': f"Invalid segment ID: {segment_id}"}), 404
@@ -221,9 +284,10 @@ def update_segment(segment_id):
                 "name": f"Cluster {cluster_id}",
                 "count": cluster_counts.get(cluster_id, 0),
                 "criteria": new_criteria,
-                "source": "Model"
+                "source": "Model",
+                "createdAt": datetime.now().isoformat()
             }
-        else:  # Custom segment
+        else:
             segments = read_segments()
             segment = next((s for s in segments if s['id'] == segment_id), None)
             if not segment:
@@ -233,7 +297,6 @@ def update_segment(segment_id):
             segment['count'] = len(filtered_data)
             write_segments(segments)
             updated_segment = segment
-
         return jsonify(updated_segment), 200
     except Exception as e:
         logging.error(f"Error updating segment: {str(e)}")
@@ -252,6 +315,7 @@ def delete_segment(segment_id):
         write_segments(segments)
         return jsonify({'message': f"Segment {segment_id} deleted"}), 200
     except Exception as e:
+        logging.error(f"Error in delete_segment: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 def filter_data_by_criteria(data, criteria, cluster_id=None):
@@ -302,22 +366,23 @@ def segment_customer():
         data = request.get_json()
         if not data:
             return jsonify({'error': 'No JSON data provided'}), 400
-        if 'name' in data and 'criteria' in data:  # Custom segment creation
+        if 'name' in data and 'criteria' in data:
             if PREPROCESSED_DATA is None:
-                return jsonify({'error': 'No dataset uploaded yet.'}), 400
+                return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
             segments = read_segments()
             new_segment = {
                 'id': max([s['id'] for s in segments], default=4) + 1,
                 'name': data['name'],
                 'criteria': data['criteria'],
-                'source': 'Custom'
+                'source': 'Custom',
+                'createdAt': datetime.now().isoformat()
             }
             filtered_data = filter_data_by_criteria(RAW_DATA.copy(), data['criteria'], None)
             new_segment['count'] = len(filtered_data)
             segments.append(new_segment)
             write_segments(segments)
             return jsonify(new_segment), 201
-        else:  # Individual customer segmentation
+        else:
             valid, error = validate_input(data if not isinstance(data, list) else data[0])
             if not valid:
                 return jsonify({'error': error}), 400
@@ -384,7 +449,8 @@ def get_dashboard_data():
                 "confidence": 94,
                 "shortDescription": "Expected revenue based on customer segments",
                 "modelExplanation": "Based on historical spending patterns",
-                "influencers": [{"name": "Average Spending", "impact": 15}, {"name": "Shopping Frequency", "impact": 10}]
+                "influencers": [{"name": "Average Spending", "impact": 15},
+                                {"name": "Shopping Frequency", "impact": 10}]
             },
             {
                 "id": 2,
@@ -394,7 +460,8 @@ def get_dashboard_data():
                 "confidence": 89,
                 "shortDescription": "Percentage of customers at high risk of leaving",
                 "modelExplanation": "Calculated from cluster characteristics",
-                "influencers": [{"name": "Satisfaction Rate", "impact": -20}, {"name": "Product Availability", "impact": -15}]
+                "influencers": [{"name": "Satisfaction Rate", "impact": -20},
+                                {"name": "Product Availability", "impact": -15}]
             },
             {
                 "id": 3,
@@ -442,6 +509,7 @@ def get_recommendations():
         available_recommendations = [r for r in recommendations if r['id'] not in IMPLEMENTED_RECOMMENDATIONS]
         return jsonify(available_recommendations)
     except Exception as e:
+        logging.error(f"Error in get_recommendations: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/implement-recommendation', methods=['POST'])
@@ -457,42 +525,28 @@ def implement_recommendation():
             "message": f"Recommendation {recommendation_id} implemented"
         })
     except Exception as e:
+        logging.error(f"Error in implement_recommendation: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/query', methods=['GET'])
 def query_data():
     try:
-        # Check if dataset is loaded
         if RAW_DATA is None:
-            return jsonify({'error': 'No dataset uploaded yet. Please upload System Data.csv.'}), 400
-
-        # Get filter parameters from the query string
+            return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
         filters = {
             'Age': request.args.get('age'),
             'Gender': request.args.get('gender'),
             'Region': request.args.get('region'),
             'Average spending': request.args.get('spending')
         }
-
-        # Keep only filters with values
         active_filters = {k: v for k, v in filters.items() if v}
-
-        # Start with the full dataset
         filtered_data = RAW_DATA.copy()
-
-        # Apply each filter to the dataset
         for key, value in active_filters.items():
             if key not in filtered_data.columns:
                 return jsonify({'error': f"Column {key} not found in dataset"}), 400
             filtered_data = filtered_data[filtered_data[key] == value]
-
-        # Calculate total number of matching records
         total = len(filtered_data)
-
-        # Initialize counts dictionary
         counts = {}
-
-        # Helper function to convert spending range to numeric value
         def spending_to_numeric(spending):
             try:
                 if pd.isna(spending):
@@ -508,16 +562,11 @@ def query_data():
                 return float(spending.replace(',', ''))
             except (ValueError, AttributeError):
                 return 0
-
-        # Initialize response dictionary
         response = {
             "counts": counts,
             "total": total
         }
-
-        # Compute metrics based on number of filters
         if len(active_filters) == 0:
-            # No filters: return total customers and basic counts
             counts = {"total": total}
             most_frequent_category = "Unknown"
             if 'Categories' in filtered_data.columns and not filtered_data['Categories'].empty:
@@ -533,33 +582,21 @@ def query_data():
                 "average_spending": avg_spending,
                 "most_purchased_category": most_frequent_category
             })
-
         elif len(active_filters) == 1:
-            # Single filter: return detailed breakdown
             filter_key = list(active_filters.keys())[0]
             filter_value = active_filters[filter_key]
             counts[filter_key.lower()] = {filter_value: total}
-
-            # Most frequent category
             most_frequent_category = "Unknown"
             if 'Categories' in filtered_data.columns and not filtered_data['Categories'].empty:
                 most_frequent_category = filtered_data['Categories'].mode().iloc[0] if filtered_data['Categories'].notna().any() else "Unknown"
-
-            # Average spending
             avg_spending = 0
             if 'Average spending' in filtered_data.columns and not filtered_data['Average spending'].empty:
                 filtered_data['spending_numeric'] = filtered_data['Average spending'].apply(spending_to_numeric)
                 avg_spending = filtered_data['spending_numeric'].mean()
                 if pd.isna(avg_spending):
                     avg_spending = 0
-
-            # Most purchased category (same as most frequent)
             most_purchased_category = most_frequent_category
-
-            # Highest spender by group (Region, Age, Gender)
             highest_spender = {}
-            
-            # Region
             if 'Region' in RAW_DATA.columns and 'Average spending' in RAW_DATA.columns:
                 region_data = RAW_DATA.copy()
                 region_data['spending_numeric'] = region_data['Average spending'].apply(spending_to_numeric)
@@ -573,8 +610,6 @@ def query_data():
                     }
                 else:
                     highest_spender['Region'] = {"name": "Unknown", "spending": 0}
-
-            # Age
             if 'Age' in RAW_DATA.columns and 'Average spending' in RAW_DATA.columns:
                 age_data = RAW_DATA.copy()
                 age_data['spending_numeric'] = age_data['Average spending'].apply(spending_to_numeric)
@@ -588,8 +623,6 @@ def query_data():
                     }
                 else:
                     highest_spender['Age'] = {"name": "Unknown", "spending": 0}
-
-            # Gender
             if 'Gender' in RAW_DATA.columns and 'Average spending' in RAW_DATA.columns:
                 gender_data = RAW_DATA.copy()
                 gender_data['spending_numeric'] = gender_data['Average spending'].apply(spending_to_numeric)
@@ -603,8 +636,6 @@ def query_data():
                     }
                 else:
                     highest_spender['Gender'] = {"name": "Unknown", "spending": 0}
-
-            # Add to response
             response.update({
                 "filter_key": filter_key,
                 "filter_value": filter_value,
@@ -614,9 +645,7 @@ def query_data():
                 "most_purchased_category": most_purchased_category,
                 "percentage": f"{(total / len(RAW_DATA) * 100):.1f}%" if len(RAW_DATA) > 0 else "0.0%"
             })
-
         else:
-            # Multiple filters: return total only
             counts = {"total": total}
             most_frequent_category = "Unknown"
             if 'Categories' in filtered_data.columns and not filtered_data['Categories'].empty:
@@ -632,7 +661,6 @@ def query_data():
                 "average_spending": avg_spending,
                 "most_purchased_category": most_frequent_category
             })
-
         return jsonify(response)
     except Exception as e:
         logging.error(f"Error in query_data: {str(e)}")
@@ -657,7 +685,8 @@ def generate_report():
         total_customers = len(customers)
         churn_risk_count = sum(1 for c in customers if c['churnRisk'] >= 50)
         high_spenders = sum(1 for c in customers if c['predictedValue'] > 3000)
-        avg_predicted_value = sum(c['predictedValue'] for c in customers) / total_customers if total_customers > 0 else 0
+        avg_predicted_value = sum(
+            c['predictedValue'] for c in customers) / total_customers if total_customers > 0 else 0
         report = {
             'id': len(REPORTS) + 1,
             'title': f"Customer Segmentation Report {datetime.now().strftime('%Y-%m-%d %H:%M')}",
@@ -693,6 +722,7 @@ def serve_img(filename):
     try:
         return send_file(os.path.join(STATIC_IMG_DIR, filename))
     except Exception as e:
+        logging.error(f"Error serving image: {str(e)}")
         return jsonify({'error': str(e)}), 404
 
 def generate_pdf_report(filepath, report, customers):
@@ -712,11 +742,14 @@ def generate_pdf_report(filepath, report, customers):
     elements.append(Paragraph("Customer Sample (Top 10)", styles['Heading2']))
     customer_data = [['ID', 'Name', 'Segment', 'Churn Risk', 'Predicted Value', 'Next Purchase']]
     for c in customers:
-        customer_data.append([c['id'], c['name'], c['segment'], f"{c['churnRisk']}%", f"UGX {c['predictedValue']:,}", c['nextPurchase']])
+        customer_data.append(
+            [c['id'], c['name'], c['segment'], f"{c['churnRisk']}%", f"UGX {c['predictedValue']:,}", c['nextPurchase']])
     customer_table = Table(customer_data, colWidths=[50, 100, 150, 70, 80, 100])
-    customer_table.setStyle([('GRID', (0, 0), (-1, -1), 1, 'black'), ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('BACKGROUND', (0, 0), (-1, 0), '#d3d3d3')])
+    customer_table.setStyle([('GRID', (0, 0), (-1, -1), 1, 'black'), ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                             ('BACKGROUND', (0, 0), (-1, 0), '#d3d3d3')])
     elements.append(customer_table)
     doc.build(elements)
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

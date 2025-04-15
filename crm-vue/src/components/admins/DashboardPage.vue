@@ -5,8 +5,15 @@
       <p class="subtitle">Powered by predictive analytics and machine learning models</p>
     </header>
 
+    <!-- Dataset Status and Upload Prompt -->
+    <section v-if="!isDatasetUploaded" class="upload-prompt">
+      <h2 class="section-title">No Dataset Available</h2>
+      <p>Please upload a CSV or JSON dataset to enable predictions and insights.</p>
+      <p class="upload-instruction">Navigate to the <strong>Segments</strong> page to upload a dataset.</p>
+    </section>
+
     <!-- Controls Section -->
-    <section class="controls-section">
+    <section v-else class="controls-section">
       <div class="controls">
         <button @click="refreshData" class="refresh-button">
           <span class="icon">⟳</span> Refresh Predictions
@@ -27,7 +34,7 @@
     </section>
 
     <!-- Key Predictive Metrics -->
-    <section class="metrics-section">
+    <section v-if="isDatasetUploaded" class="metrics-section">
       <h2 class="section-title">Predictive KPIs</h2>
       <div class="metrics-grid" v-if="!isLoading">
         <div class="metric-card" v-for="metric in keyMetrics" :key="metric.title" @click="showMetricDetails(metric)">
@@ -56,7 +63,7 @@
     </section>
 
     <!-- Actionable Recommendations -->
-    <section class="recommendations-section">
+    <section v-if="isDatasetUploaded" class="recommendations-section">
       <h2 class="section-title">AI Recommendations</h2>
       <div class="recommendations-grid">
         <div class="recommendation-card" v-for="(rec, index) in recommendations" :key="index">
@@ -79,7 +86,7 @@
     </section>
 
     <!-- Model Insights Section -->
-    <section class="insights-section">
+    <section v-if="isDatasetUploaded" class="insights-section">
       <h2 class="section-title">Model Insights</h2>
       <div class="insights-grid">
         <div class="insight-card" v-for="graph in insightGraphs" :key="graph.id">
@@ -91,7 +98,7 @@
     </section>
 
     <!-- Customer Predictions Section with Form -->
-    <section class="predictions-section">
+    <section v-if="isDatasetUploaded" class="predictions-section">
       <h2 class="section-title">Individual Customer Predictions</h2>
 
       <!-- Customer Input Form -->
@@ -206,126 +213,128 @@
       </div>
     </section>
 
-<section class="query-section">
-    <h2 class="section-title">Customer Query</h2>
-    <div class="query-filters">
-      <div class="form-group">
-        <label for="ageFilter">Age:</label>
-        <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
-          <option value="">All Ages</option>
-          <option value="18-24">18-24</option>
-          <option value="25-34">25-34</option>
-          <option value="35-44">35-44</option>
-          <option value="45-54">45-54</option>
-          <option value="55+">55+</option>
-        </select>
+    <!-- Query Section -->
+    <section v-if="isDatasetUploaded" class="query-section">
+      <h2 class="section-title">Customer Query</h2>
+      <div class="query-filters">
+        <div class="form-group">
+          <label for="ageFilter">Age:</label>
+          <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
+            <option value="">All Ages</option>
+            <option value="18-24">18-24</option>
+            <option value="25-34">25-34</option>
+            <option value="35-44">35-44</option>
+            <option value="45-54">45-54</option>
+            <option value="55+">55+</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="genderFilter">Gender:</label>
+          <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="regionFilter">Region:</label>
+          <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
+            <option value="">All Regions</option>
+            <option value="Central">Central</option>
+            <option value="Eastern">Eastern</option>
+            <option value="Western">Western</option>
+            <option value="Northern">Northern</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="spendingFilter">Average Spending:</label>
+          <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
+            <option value="">All Spending</option>
+            <option value="<50,000">&gt;50,000</option>
+            <option value="50,000-100,000">50,000-100,000</option>
+            <option value="100,000-200,000">100,000-200,000</option>
+            <option value=">200,000">&lt;S200,000</option>
+          </select>
+        </div>
+        <button @click="resetFilters" class="reset-button">Reset Filters</button>
       </div>
-      <div class="form-group">
-        <label for="genderFilter">Gender:</label>
-        <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
-          <option value="">All Genders</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="regionFilter">Region:</label>
-        <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
-        <option value="">All Regions</option>
-        <option value="Central">Central</option>
-        <option value="Eastern">Eastern</option>
-        <option value="Western">Western</option>
-        <option value="Northern">Northern</option>
-      </select>
-      </div>
-      <div class="form-group">
-        <label for="spendingFilter">Average Spending:</label>
-        <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
-          <option value="">All Spending</option>
-          <option value="<50,000">&gt;50,000</option>
-          <option value="50,000-100,000">50,000-100,000</option>
-          <option value="100,000-200,000">100,000-200,000</option>
-          <option value=">200,000">&lt;200,000</option>
-        </select>
-      </div>
-      <button @click="resetFilters" class="reset-button">Reset Filters</button>
-    </div>
 
-    <div v-if="queryLoading" class="query-loading">
-      <div class="spinner"></div>
-      <p>Loading customer data...</p>
-    </div>
-
-    <div v-else class="query-results">
-      <div class="chart-container">
-        <canvas id="queryChart"></canvas>
+      <div v-if="queryLoading" class="query-loading">
+        <div class="spinner"></div>
+        <p>Loading customer data...</p>
       </div>
-      <div class="query-summary-card">
-        <h3 class="query-total">
-          <strong>Total Customers:</strong> {{ queryData?.total || 0 }}
-        </h3>
-        <div v-if="activeFilterCount === 1 && queryData" class="query-details">
-          <h4 class="query-filter-title">
-            Details for {{ queryData.filter_key }}: {{ queryData.filter_value }}
-          </h4>
-          <p class="query-filter-breakdown">
-            {{ queryData.filter_value }}: {{ queryData.total }} ({{ queryData.percentage }})
-          </p>
-          <div class="query-metrics">
-            <div class="metric-item">
-              <span class="metric-label">Most Frequent Category:</span>
-              <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
+
+      <div v-else-if="queryData" class="query-results">
+        <div class="chart-container">
+          <canvas id="queryChart"></canvas>
+        </div>
+        <div class="query-summary-card">
+          <h3 class="query-total">
+            <strong>Total Customers:</strong> {{ queryData?.total || 0 }}
+          </h3>
+          <div v-if="activeFilterCount === 1 && queryData" class="query-details">
+            <h4 class="query-filter-title">
+              Details for {{ queryData.filter_key }}: {{ queryData.filter_value }}
+            </h4>
+            <p class="query-filter-breakdown">
+              {{ queryData.filter_value }}: {{ queryData.total }} ({{ queryData.percentage }})
+            </p>
+            <div class="query-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Most Frequent Category:</span>
+                <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Average Spending:</span>
+                <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Highest Spender:</span>
+                <ul class="highest-spender-list">
+                  <li>
+                    Region: {{ queryData.highest_spender?.Region?.name || 'Unknown' }}
+                    ({{ queryData.highest_spender?.Region?.spending ? formatCurrency(queryData.highest_spender.Region.spending) : 'UGX 0' }})
+                  </li>
+                  <li>
+                    Age Group: {{ queryData.highest_spender?.Age?.name || 'Unknown' }}
+                    ({{ queryData.highest_spender?.Age?.spending ? formatCurrency(queryData.highest_spender.Age.spending) : 'UGX 0' }})
+                  </li>
+                  <li>
+                    Gender: {{ queryData.highest_spender?.Gender?.name || 'Unknown' }}
+                    ({{ queryData.highest_spender?.Gender?.spending ? formatCurrency(queryData.highest_spender.Gender.spending) : 'UGX 0' }})
+                  </li>
+                </ul>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Most Purchased Category:</span>
+                <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
+              </div>
             </div>
-            <div class="metric-item">
-              <span class="metric-label">Average Spending:</span>
-              <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">Highest Spender:</span>
-              <ul class="highest-spender-list">
-                <li>
-                  Region: {{ queryData.highest_spender?.Region?.name || 'Unknown' }}
-                  ({{ queryData.highest_spender?.Region?.spending ? formatCurrency(queryData.highest_spender.Region.spending) : 'UGX 0' }})
-                </li>
-                <li>
-                  Age Group: {{ queryData.highest_spender?.Age?.name || 'Unknown' }}
-                  ({{ queryData.highest_spender?.Age?.spending ? formatCurrency(queryData.highest_spender.Age.spending) : 'UGX 0' }})
-                </li>
-                <li>
-                  Gender: {{ queryData.highest_spender?.Gender?.name || 'Unknown' }}
-                  ({{ queryData.highest_spender?.Gender?.spending ? formatCurrency(queryData.highest_spender.Gender.spending) : 'UGX 0' }})
-                </li>
-              </ul>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">Most Purchased Category:</span>
-              <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
+          </div>
+          <div v-else-if="queryData" class="query-details">
+            <h4 class="query-filter-title">Query Insights</h4>
+            <div class="query-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Most Frequent Category:</span>
+                <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Average Spending:</span>
+                <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Most Purchased Category:</span>
+                <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div v-else-if="queryData" class="query-details">
-          <h4 class="query-filter-title">Query Insights</h4>
-          <div class="query-metrics">
-            <div class="metric-item">
-              <span class="metric-label">Most Frequent Category:</span>
-              <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">Average Spending:</span>
-              <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">Most Purchased Category:</span>
-              <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
     <!-- Modal for Metric Details -->
-    <div v-if="selectedMetric" class="modal-overlay" @click.self="selectedMetric = null">
+    <div v-if="selectedMetric && isDatasetUploaded" class="modal-overlay" @click.self="selectedMetric = null">
       <div class="metric-modal">
         <div class="modal-header">
           <h2>{{ selectedMetric.title }} Details</h2>
@@ -385,6 +394,7 @@ export default {
   name: "AICustomerDashboard",
   data() {
     return {
+      isDatasetUploaded: false,
       keyMetrics: [],
       recommendations: [],
       customerPredictions: [],
@@ -466,9 +476,39 @@ export default {
     this.createCharts();
   },
   async mounted() {
-    await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData()]);
+    await this.checkDatasetStatus();
+    if (this.isDatasetUploaded) {
+      await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData()]);
+    }
   },
   methods: {
+async checkDatasetStatus() {
+  try {
+    console.log("Making request to /segments...");
+    const response = await axios.get("http://127.0.0.1:5000/segments", {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log("Response:", response.data);
+    this.isDatasetUploaded = !response.data.error || 
+      response.data.error !== "No dataset uploaded yet. Please upload a CSV dataset first.";
+  } catch (error) {
+    console.error("Full error:", {
+      message: error.message,
+      response: error.response,
+      request: error.request
+    });
+    
+    if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
+      this.isDatasetUploaded = false;
+    } else {
+      this.showError("Failed to verify dataset status: " + error.message);
+    }
+  }
+},
     async fetchModelData() {
       this.isLoading = true;
       try {
@@ -478,6 +518,7 @@ export default {
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         this.showError("Failed to load dashboard data: " + error.message);
+        this.isDatasetUploaded = false; // Reset if dataset is not available
       } finally {
         this.isLoading = false;
       }
@@ -568,6 +609,9 @@ export default {
         console.error("fetchQueryData Error:", error);
         this.showError("Failed to fetch query data: " + error.message);
         this.queryData = null;
+        if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
+          this.isDatasetUploaded = false;
+        }
       } finally {
         this.queryLoading = false;
       }
@@ -629,6 +673,9 @@ export default {
       } catch (error) {
         console.error("Error segmenting customer:", error);
         this.showError("Failed to segment customer: " + error.message);
+        if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
+          this.isDatasetUploaded = false;
+        }
       }
     },
     estimatePredictedValue(spendingRange) {
@@ -649,10 +696,17 @@ export default {
       }
       return value;
     },
-    refreshData() {
-      this.fetchModelData();
-      this.fetchRecommendations();
-      this.fetchQueryData();
+    async refreshData() {
+      await this.checkDatasetStatus();
+      if (this.isDatasetUploaded) {
+        await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData()]);
+      } else {
+        this.keyMetrics = [];
+        this.recommendations = [];
+        this.customerPredictions = [];
+        this.queryData = null;
+        this.showError("No dataset available. Please upload a dataset.");
+      }
     },
     formatDate(dateString) {
       const options = { month: "short", day: "numeric" };
@@ -799,6 +853,31 @@ export default {
   font-size: clamp(0.85rem, 2.2vw, 0.95rem);
   color: #718096;
   font-weight: 500;
+}
+
+/* Upload Prompt */
+.upload-prompt {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.upload-prompt p {
+  font-size: clamp(0.9rem, 2.2vw, 1rem);
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.upload-instruction {
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  color: #718096;
+}
+
+.upload-instruction strong {
+  color: #2d3748;
 }
 
 /* Section Title */
@@ -1839,6 +1918,15 @@ export default {
 
   .section-title {
     font-size: clamp(0.95rem, 2.5vw, 1rem);
+  }
+
+  .upload-prompt {
+    padding: 1rem;
+  }
+
+  .upload-prompt p,
+  .upload-instruction {
+    font-size: clamp(0.8rem, 2vw, 0.85rem);
   }
 
   .controls {

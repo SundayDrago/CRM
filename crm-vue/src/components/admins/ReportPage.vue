@@ -77,7 +77,7 @@ export default {
         const response = await axios.get('http://127.0.0.1:5000/reports');
         this.reports = response.data.reports || [];
       } catch (error) {
-        console.error('Error fetching reports:', error);
+        console.error('Error fetching reports:', error, { response: error.response });
         this.reports = [];
         const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch reports';
         this.$toast.error(errorMessage);
@@ -93,9 +93,9 @@ export default {
           type: 'Segmentation',
         });
         this.$toast.success('Report generated successfully');
-        this.reports.push(response.data); // Use the response directly
+        this.reports.push(response.data);
       } catch (error) {
-        console.error('Error generating report:', error);
+        console.error('Error generating report:', error, { response: error.response });
         const errorMessage = error.response?.data?.error || error.message || 'Failed to generate report';
         this.$toast.error(errorMessage);
       } finally {
@@ -135,7 +135,6 @@ export default {
 </script>
 
 <style scoped>
-/* [Same CSS as provided previously, no changes needed] */
 .reports-page {
   padding: 30px;
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
