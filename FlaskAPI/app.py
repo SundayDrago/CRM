@@ -145,7 +145,7 @@ IMPLEMENTED_RECOMMENDATIONS = set()
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({'message': 'Customer Segmentation API',
-                    'endpoints': ['/upload', '/segments', '/segments/model', '/segment', '/dashboard', '/query', '/reports', '/reports/generate', '/implement-recommendation']})
+                    'endpoints': ['/upload', '/segments', '/segments/model', '/segment', '/dashboard', '/query', '/recommendations', '/implement-recommendation', '/reports', '/reports/generate']})
 
 @app.route('/upload', methods=['POST'])
 def upload_dataset():
@@ -482,10 +482,8 @@ def query_data():
 
         # Apply each filter to the dataset
         for key, value in active_filters.items():
-            # Ensure the column exists in the dataset
             if key not in filtered_data.columns:
                 return jsonify({'error': f"Column {key} not found in dataset"}), 400
-            # Filter rows where the column matches the provided value
             filtered_data = filtered_data[filtered_data[key] == value]
 
         # Calculate total number of matching records
@@ -494,22 +492,148 @@ def query_data():
         # Initialize counts dictionary
         counts = {}
 
-        # Handle output based on number of filters
-        if len(active_filters) == 0:
-            # No filters: return total count
-            counts = {"total": total}
-        elif len(active_filters) == 1:
-            # Single filter: return counts grouped by the filtered column
-            key = list(active_filters.keys())[0]
-            counts[key.lower()] = filtered_data[key].value_counts().to_dict()
-        else:
-            # Multiple filters: return total count
-            counts = {"total": total}
+        # Helper function to convert spending range to numeric value
+        def spending_to_numeric(spending):
+            try:
+                if pd.isna(spending):
+                    return 0
+                spending = str(spending).strip()
+                if '<' in spending:
+                    return float(spending.replace('<', '').replace(',', ''))
+                elif '>' in spending:
+                    return float(spending.replace('>', '').replace(',', ''))
+                elif '-' in spending:
+                    low, high = spending.split('-')
+                    return (float(low.replace(',', '')) + float(high.replace(',', ''))) / 2
+                return float(spending.replace(',', ''))
+            except (ValueError, AttributeError):
+                return 0
 
-        return jsonify({
+        # Initialize response dictionary
+        response = {
             "counts": counts,
             "total": total
-        })
+        }
+
+        # Compute metrics based on number of filters
+        if len(active_filters) == 0:
+            # No filters: return total customers and basic counts
+            counts = {"total": total}
+            most_frequent_category = "Unknown"
+            if 'Categories' in filtered_data.columns and not filtered_data['Categories'].empty:
+                most_frequent_category = filtered_data['Categories'].mode().iloc[0] if filtered_data['Categories'].notna().any() else "Unknown"
+            avg_spending = 0
+            if 'Average spending' in filtered_data.columns and not filtered_data['Average spending'].empty:
+                filtered_data['spending_numeric'] = filtered_data['Average spending'].apply(spending_to_numeric)
+                avg_spending = filtered_data['spending_numeric'].mean()
+                if pd.isna(avg_spending):
+                    avg_spending = 0
+            response.update({
+                "most_frequent_category": most_frequent_category,
+                "average_spending": avg_spending,
+                "most_purchased_category": most_frequent_category
+            })
+
+        elif len(active_filters) == 1:
+            # Single filter: return detailed breakdown
+            filter_key = list(active_filters.keys())[0]
+            filter_value = active_filters[filter_key]
+            counts[filter_key.lower()] = {filter_value: total}
+
+            # Most frequent category
+            most_frequent_category = "Unknown"
+            if 'Categories' in filtered_data.columns and not filtered_data['Categories'].empty:
+                most_frequent_category = filtered_data['Categories'].mode().iloc[0] if filtered_data['Categories'].notna().any() else "Unknown"
+
+            # Average spending
+            avg_spending = 0
+            if 'Average spending' in filtered_data.columns and not filtered_data['Average spending'].empty:
+                filtered_data['spending_numeric'] = filtered_data['Average spending'].apply(spending_to_numeric)
+                avg_spending = filtered_data['spending_numeric'].mean()
+                if pd.isna(avg_spending):
+                    avg_spending = 0
+
+            # Most purchased category (same as most frequent)
+            most_purchased_category = most_frequent_category
+
+            # Highest spender by group (Region, Age, Gender)
+            highest_spender = {}
+            
+            # Region
+            if 'Region' in RAW_DATA.columns and 'Average spending' in RAW_DATA.columns:
+                region_data = RAW_DATA.copy()
+                region_data['spending_numeric'] = region_data['Average spending'].apply(spending_to_numeric)
+                region_avg = region_data.groupby('Region')['spending_numeric'].mean()
+                if not region_avg.empty:
+                    highest_region = region_avg.idxmax()
+                    highest_region_spending = region_avg.max()
+                    highest_spender['Region'] = {
+                        "name": highest_region,
+                        "spending": int(highest_region_spending) if pd.notna(highest_region_spending) else 0
+                    }
+                else:
+                    highest_spender['Region'] = {"name": "Unknown", "spending": 0}
+
+            # Age
+            if 'Age' in RAW_DATA.columns and 'Average spending' in RAW_DATA.columns:
+                age_data = RAW_DATA.copy()
+                age_data['spending_numeric'] = age_data['Average spending'].apply(spending_to_numeric)
+                age_avg = age_data.groupby('Age')['spending_numeric'].mean()
+                if not age_avg.empty:
+                    highest_age = age_avg.idxmax()
+                    highest_age_spending = age_avg.max()
+                    highest_spender['Age'] = {
+                        "name": highest_age,
+                        "spending": int(highest_age_spending) if pd.notna(highest_age_spending) else 0
+                    }
+                else:
+                    highest_spender['Age'] = {"name": "Unknown", "spending": 0}
+
+            # Gender
+            if 'Gender' in RAW_DATA.columns and 'Average spending' in RAW_DATA.columns:
+                gender_data = RAW_DATA.copy()
+                gender_data['spending_numeric'] = gender_data['Average spending'].apply(spending_to_numeric)
+                gender_avg = gender_data.groupby('Gender')['spending_numeric'].mean()
+                if not gender_avg.empty:
+                    highest_gender = gender_avg.idxmax()
+                    highest_gender_spending = gender_avg.max()
+                    highest_spender['Gender'] = {
+                        "name": highest_gender,
+                        "spending": int(highest_gender_spending) if pd.notna(highest_gender_spending) else 0
+                    }
+                else:
+                    highest_spender['Gender'] = {"name": "Unknown", "spending": 0}
+
+            # Add to response
+            response.update({
+                "filter_key": filter_key,
+                "filter_value": filter_value,
+                "most_frequent_category": most_frequent_category,
+                "average_spending": avg_spending,
+                "highest_spender": highest_spender,
+                "most_purchased_category": most_purchased_category,
+                "percentage": f"{(total / len(RAW_DATA) * 100):.1f}%" if len(RAW_DATA) > 0 else "0.0%"
+            })
+
+        else:
+            # Multiple filters: return total only
+            counts = {"total": total}
+            most_frequent_category = "Unknown"
+            if 'Categories' in filtered_data.columns and not filtered_data['Categories'].empty:
+                most_frequent_category = filtered_data['Categories'].mode().iloc[0] if filtered_data['Categories'].notna().any() else "Unknown"
+            avg_spending = 0
+            if 'Average spending' in filtered_data.columns and not filtered_data['Average spending'].empty:
+                filtered_data['spending_numeric'] = filtered_data['Average spending'].apply(spending_to_numeric)
+                avg_spending = filtered_data['spending_numeric'].mean()
+                if pd.isna(avg_spending):
+                    avg_spending = 0
+            response.update({
+                "most_frequent_category": most_frequent_category,
+                "average_spending": avg_spending,
+                "most_purchased_category": most_frequent_category
+            })
+
+        return jsonify(response)
     except Exception as e:
         logging.error(f"Error in query_data: {str(e)}")
         return jsonify({'error': str(e)}), 500

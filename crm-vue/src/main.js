@@ -22,6 +22,7 @@ import AdvisoryPage from './components/admins/AdvisoryPage.vue';
 import ReportPage from './components/admins/ReportPage.vue';
 import ContactPage from './components/ContactPage.vue';
 import SettingsPage from './components/admins/SettingsPage.vue';
+import UsersSettingsPage from './components/users/UsersSettingsPage.vue';
 import SetupAccountPage from './components/users/SetupAccountPage.vue';
 import UsersDashboard from './components/users/UsersDashboard.vue';
 import CreateSegmentsPage from './components/admins/segments/CreateSegmentsPage.vue';
@@ -45,7 +46,8 @@ const routes = [
     { path: '/activity-log', component: ActivityLogPage },
     { path: '/advisory', component: AdvisoryPage },
     { path: '/segments', component: SegmentPage },
-    { path: '/setting', component: SettingsPage },
+    { path: '/settings', component: SettingsPage },
+    { path: '/setting', component: UsersSettingsPage },
     { path: '/users', component: UsersPage },
     { path: '/report', component: ReportPage },
     { path: '/setup-account', component: SetupAccountPage },

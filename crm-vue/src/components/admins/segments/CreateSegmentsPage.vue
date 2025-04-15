@@ -730,32 +730,33 @@ export default {
 };
 </script>
 
-<style scoped>
+
+<style>
 /* Base Styles */
 .segment-management-container {
   width: 100%;
-  max-width: 1200px; /* Reduced from 1400px to better fit standard screens */
+  max-width: min(98vw, 1200px); /* Tighter fit for phones */
   margin: 0 auto;
-  padding: 15px; /* Reduced padding for tighter fit */
+  padding: clamp(8px, 2vw, 12px);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: #333;
   box-sizing: border-box;
 }
 
 .header {
-  margin-bottom: 25px;
+  margin-bottom: clamp(16px, 3vw, 20px);
   text-align: center;
 }
 
 .page-title {
-  font-size: 2rem; /* Slightly smaller for better fit */
+  font-size: clamp(1.6rem, 5vw, 1.8rem); /* Smaller for phones */
   color: #2c3e50;
   margin-bottom: 6px;
   font-weight: 600;
 }
 
 .page-subtitle {
-  font-size: 1rem;
+  font-size: clamp(0.85rem, 2.5vw, 0.95rem);
   color: #7f8c8d;
   margin-top: 0;
   font-weight: 400;
@@ -764,55 +765,41 @@ export default {
 /* Grid Layout */
 .management-grid {
   display: grid;
-  grid-template-columns: minmax(250px, 1fr) minmax(350px, 2fr) minmax(250px, 1fr); /* More flexible column sizing */
-  gap: 15px; /* Reduced gap for tighter layout */
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); /* Reduced min-width */
+  gap: clamp(8px, 2vw, 12px);
   width: 100%;
-  box-sizing: border-box;
-}
-
-@media (max-width: 1024px) {
-  .management-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .management-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Card Styles */
 .management-card {
   background: white;
-  border-radius: 8px; /* Slightly smaller radius */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  padding: 15px; /* Reduced padding */
+  border-radius: 6px; /* Slightly smaller radius */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: clamp(10px, 2vw, 12px);
   transition: transform 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
 }
 
 .management-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
   border-bottom: 1px solid #eee;
 }
 
 .card-header h2 {
-  font-size: 1.2rem; /* Smaller header */
+  font-size: clamp(1rem, 3vw, 1.1rem);
   color: #2c3e50;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 600;
 }
 
@@ -822,15 +809,14 @@ export default {
 
 .card-actions {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 6px;
 }
 
 /* Form Styles */
 .segment-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .form-group {
@@ -839,20 +825,20 @@ export default {
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   font-weight: 500;
   color: #2c3e50;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.2vw, 0.85rem);
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
   width: 100%;
-  padding: 10px;
+  padding: clamp(6px, 1.8vw, 8px);
   border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 0.95rem;
+  border-radius: 4px;
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
   transition: all 0.3s;
   background-color: #f9fafb;
   box-sizing: border-box;
@@ -869,95 +855,93 @@ export default {
 
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 60px; /* Smaller for phones */
 }
 
 .char-count {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  font-size: 0.75rem;
+  right: 8px;
+  bottom: 8px;
+  font-size: clamp(0.65rem, 2vw, 0.7rem);
   color: #95a5a6;
 }
 
 .criteria-selector {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .criteria-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  flex-wrap: wrap; /* Allow wrapping for better fit */
+  flex-wrap: wrap;
 }
 
-.field-select {
-  flex: 2;
-  min-width: 120px;
-}
-
-.operator-select {
-  flex: 1;
-  min-width: 100px;
-}
-
+.field-select,
+.operator-select,
 .value-input {
-  flex: 2;
+  flex: 1;
+  min-width: min(100px, 100%); /* Full width on tiny screens */
 }
 
 .range-inputs {
-  flex: 2;
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
 .range-input {
   flex: 1;
+  min-width: min(90px, 100%);
 }
 
 .range-separator {
   color: #7f8c8d;
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2.2vw, 0.8rem);
 }
 
 .criteria-display {
   background-color: #f8f9fa;
-  border-radius: 5px;
-  padding: 10px;
+  border-radius: 4px;
+  padding: 8px;
 }
 
 .criterion-display {
-  padding: 6px 10px;
+  padding: 5px 8px;
   background-color: white;
   border-radius: 3px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   border-left: 2px solid #3498db;
   font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.2vw, 0.85rem);
 }
 
 /* Button Styles */
 .btn {
-  padding: 10px 15px;
+  padding: clamp(6px, 1.8vw, 8px) clamp(10px, 2.2vw, 12px);
   border: none;
-  border-radius: 5px;
-  font-size: 0.95rem;
+  border-radius: 4px;
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  touch-action: manipulation;
+  min-height: 44px; /* WCAG touch target */
 }
 
 .btn-sm {
-  padding: 6px 10px;
-  font-size: 0.85rem;
+  padding: clamp(4px, 1.2vw, 5px) clamp(6px, 1.8vw, 8px);
+  font-size: clamp(0.75rem, 2.2vw, 0.8rem);
+  min-height: 36px;
 }
 
 .btn-primary {
@@ -1009,10 +993,12 @@ export default {
   border: none;
   color: #7f8c8d;
   cursor: pointer;
-  font-size: 0.95rem;
-  padding: 5px;
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
+  padding: clamp(5px, 1.2vw, 6px);
   border-radius: 3px;
   transition: all 0.3s;
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .btn-icon:hover {
@@ -1031,15 +1017,15 @@ export default {
 /* Search Box */
 .search-box {
   position: relative;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .search-box input {
   width: 100%;
-  padding: 10px 35px 10px 12px;
+  padding: clamp(6px, 1.8vw, 8px) clamp(6px, 1.8vw, 8px) clamp(6px, 1.8vw, 8px) 30px;
   border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 0.95rem;
+  border-radius: 4px;
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
   transition: all 0.3s;
 }
 
@@ -1051,15 +1037,16 @@ export default {
 
 .search-box i {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: #95a5a6;
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
 }
 
 /* Segment List Styles */
 .segment-list {
-  min-height: 250px;
+  min-height: 180px;
   position: relative;
 }
 
@@ -1067,7 +1054,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
+  padding: clamp(8px, 1.8vw, 10px) 0;
   border-bottom: 1px solid #eee;
   transition: background-color 0.2s;
 }
@@ -1084,24 +1071,23 @@ export default {
 .segment-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 5px;
 }
 
 .segment-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 2.8vw, 0.95rem);
   font-weight: 600;
   color: #2c3e50;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .segment-badge {
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 10px;
+  font-size: clamp(0.55rem, 2vw, 0.6rem);
+  padding: 2px 5px;
+  border-radius: 8px;
   font-weight: 600;
   text-transform: uppercase;
   background-color: #e8f5e9;
@@ -1109,17 +1095,15 @@ export default {
 }
 
 .segment-criteria {
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: #7f8c8d;
-  font-size: 0.85rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: clamp(0.75rem, 2.2vw, 0.8rem);
+  word-break: break-word;
 }
 
 .segment-stats {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -1127,17 +1111,18 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.8rem;
+  font-size: clamp(0.7rem, 2vw, 0.75rem);
   color: #7f8c8d;
 }
 
 .stat i {
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2.2vw, 0.8rem);
 }
 
 .segment-actions {
   display: flex;
-  gap: 6px;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
 /* Loading & Empty States */
@@ -1147,22 +1132,22 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 30px 15px;
+  padding: clamp(16px, 5vw, 20px) 8px;
   text-align: center;
   color: #95a5a6;
 }
 
 .loading-state i,
 .empty-state i {
-  font-size: 2rem;
-  margin-bottom: 10px;
+  font-size: clamp(1.2rem, 5vw, 1.5rem);
+  margin-bottom: 8px;
   color: #bdc3c7;
 }
 
 .loading-state p,
 .empty-state p {
-  margin: 0 0 10px 0;
-  font-size: 0.95rem;
+  margin: 0 0 8px 0;
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
 }
 
 /* Pagination */
@@ -1170,9 +1155,9 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 15px;
-  padding-top: 15px;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid #eee;
 }
 
@@ -1180,7 +1165,7 @@ export default {
   background: none;
   border: 1px solid #ddd;
   border-radius: 3px;
-  padding: 6px 10px;
+  padding: clamp(4px, 1.2vw, 5px) clamp(6px, 1.8vw, 8px);
   cursor: pointer;
   transition: all 0.3s;
 }
@@ -1196,13 +1181,13 @@ export default {
 }
 
 .pagination span {
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2.2vw, 0.8rem);
   color: #7f8c8d;
 }
 
 /* Analytics Styles */
 .analytics-content {
-  min-height: 250px;
+  min-height: 160px;
 }
 
 .analytics-placeholder {
@@ -1210,18 +1195,18 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 250px;
+  height: 160px;
   color: #bdc3c7;
   text-align: center;
 }
 
 .analytics-placeholder i {
-  font-size: 2.5rem;
-  margin-bottom: 10px;
+  font-size: clamp(1.8rem, 5vw, 2rem);
+  margin-bottom: 8px;
 }
 
 .analytics-placeholder p {
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 2.8vw, 0.95rem);
   margin: 0;
 }
 
@@ -1229,64 +1214,63 @@ export default {
   margin-top: 0;
   color: #2c3e50;
   border-bottom: 1px solid #eee;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
+  font-size: clamp(1rem, 3vw, 1.1rem);
 }
 
 .analytics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin: 15px 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100px, 100%), 1fr));
+  gap: 8px;
+  margin: 10px 0;
 }
 
 .metric-card {
   background: white;
-  border-radius: 6px;
-  padding: 10px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
+  padding: 8px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
   text-align: center;
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 3.8vw, 1.2rem);
   font-weight: 600;
   color: #3498db;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .metric-label {
-  font-size: 0.8rem;
+  font-size: clamp(0.7rem, 2.2vw, 0.75rem);
   color: #7f8c8d;
 }
 
 .action-buttons {
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 8px;
 }
 
 .modal-content {
   background: white;
-  border-radius: 8px;
-  max-width: 500px; /* Slightly smaller modal */
-  width: 90%;
-  max-height: 85vh;
+  border-radius: 6px;
+  width: min(92vw, 320px); /* Tighter for phones */
+  max-height: min(92vh, 700px);
   overflow-y: auto;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
   animation: fadeIn 0.3s ease;
 }
 
@@ -1294,20 +1278,20 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
+  padding: clamp(10px, 2vw, 12px);
   border-bottom: 1px solid #eee;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: clamp(1.1rem, 3.2vw, 1.2rem);
   color: #2c3e50;
 }
 
 .modal-close {
   background: none;
   border: none;
-  font-size: 1.1rem;
+  font-size: clamp(0.95rem, 2.8vw, 1rem);
   cursor: pointer;
   color: #7f8c8d;
 }
@@ -1317,36 +1301,39 @@ export default {
 }
 
 .modal-body {
-  padding: 15px;
+  padding: clamp(10px, 2vw, 12px);
 }
 
 .segment-details .detail-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .detail-label {
   font-weight: 500;
   color: #2c3e50;
-  flex: 0 0 100px;
+  flex: 0 0 clamp(80px, 30vw, 90px);
 }
 
 .detail-value {
   color: #34495e;
   flex: 1;
+  word-break: break-word;
 }
 
 .criteria-details {
   background: #f8f9fa;
-  padding: 8px;
-  border-radius: 5px;
+  padding: 6px;
+  border-radius: 4px;
 }
 
 .criterion-item {
-  padding: 6px 0;
+  padding: 5px 0;
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .criterion-field {
@@ -1364,17 +1351,18 @@ export default {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 10px 15px;
+  gap: 6px;
+  padding: clamp(6px, 1.8vw, 8px) clamp(10px, 2.2vw, 12px);
   border-top: 1px solid #eee;
+  flex-wrap: wrap;
 }
 
 .confirm-modal .warning-text {
   color: #e74c3c;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 12px 0;
+  gap: 5px;
+  margin: 8px 0;
 }
 
 @keyframes fadeIn {
@@ -1382,44 +1370,86 @@ export default {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive Adjustments */
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+  .management-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  }
+}
+
 @media (max-width: 768px) {
+  .management-grid {
+    grid-template-columns: 1fr;
+  }
   .criteria-row {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
   .field-select,
   .operator-select,
   .value-input,
   .range-inputs {
-    flex: none;
-    width: 100%;
+    min-width: 100%;
   }
   .segment-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 6px;
   }
   .segment-actions {
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+@media (max-width: 360px) {
+  .segment-management-container {
+    padding: 6px;
+  }
+  .management-card {
+    padding: 8px;
+  }
   .modal-content {
-    width: 95%;
-    max-width: 400px;
+    width: min(94vw, 300px);
+  }
+  .btn {
+    padding: clamp(5px, 2vw, 6px) clamp(8px, 2.5vw, 10px);
+    font-size: clamp(0.8rem, 3vw, 0.85rem);
+    min-height: 40px;
+  }
+  .segment-header h3 {
+    font-size: clamp(0.85rem, 3vw, 0.9rem);
   }
 }
 
-@media (max-width: 480px) {
+@media (min-width: 1440px) {
   .segment-management-container {
-    padding: 10px;
+    max-width: min(90vw, 1400px);
   }
-  .management-card {
-    padding: 10px;
+  .management-grid {
+    grid-template-columns: repeat(3, minmax(300px, 1fr));
+  }
+}
+
+/* High-DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .management-card,
+  .modal-content {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Touch Devices */
+@media (hover: none) {
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px;
   }
   .btn {
-    padding: 8px 12px;
-    font-size: 0.9rem;
+    padding: clamp(8px, 2.2vw, 10px) clamp(12px, 2.8vw, 14px);
+    min-height: 48px;
   }
 }
 </style>

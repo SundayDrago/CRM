@@ -123,19 +123,19 @@
             <div class="form-group">
               <label>Monthly Income:</label>
               <select v-model="newCustomer['Monthly Income']" required>
-                <option value="<450,000">&lt;450,000</option>
+                <option value="<450,000">&gt;450,000</option>
                 <option value="450,000-1,000,000">450,000-1,000,000</option>
                 <option value="1,000,000-2,000,000">1,000,000-2,000,000</option>
-                <option value=">2,000,000">&gt;2,000,000</option>
+                <option value=">2,000,000">&lt;2,000,000</option>
               </select>
             </div>
             <div class="form-group">
               <label>Average Spending:</label>
               <select v-model="newCustomer['Average spending']" required>
-                <option value="<50,000">&lt;50,000</option>
+                <option value="<50,000">&gt;50,000</option>
                 <option value="50,000-100,000">50,000-100,000</option>
                 <option value="100,000-200,000">100,000-200,000</option>
-                <option value=">200,000">&gt;200,000</option>
+                <option value=">200,000">&lt;200,000</option>
               </select>
             </div>
             <div class="form-group">
@@ -206,74 +206,124 @@
       </div>
     </section>
 
-    <!-- Customer Query Section -->
-    <section class="query-section">
-      <h2 class="section-title">Customer Query</h2>
-      <div class="query-filters">
-        <div class="form-group">
-          <label for="ageFilter">Age:</label>
-          <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
-            <option value="">All Ages</option>
-            <option value="18-24">18-24</option>
-            <option value="25-34">25-34</option>
-            <option value="35-44">35-44</option>
-            <option value="45-54">45-54</option>
-            <option value="55+">55+</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="genderFilter">Gender:</label>
-          <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
-            <option value="">All Genders</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="regionFilter">Region:</label>
-          <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
-            <option value="">All Regions</option>
-            <option value="Central">Central</option>
-            <option value="Eastern">Eastern</option>
-            <option value="Western">Western</option>
-            <option value="Northern">Northern</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="spendingFilter">Average Spending:</label>
-          <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
-            <option value="">All Spending</option>
-            <option value="<50,000">&lt;50,000</option>
-            <option value="50,000-100,000">50,000-100,000</option>
-            <option value="100,000-200,000">100,000-200,000</option>
-            <option value=">200,000">&gt;200,000</option>
-          </select>
-        </div>
-        <button @click="resetFilters" class="reset-button">Reset Filters</button>
+<section class="query-section">
+    <h2 class="section-title">Customer Query</h2>
+    <div class="query-filters">
+      <div class="form-group">
+        <label for="ageFilter">Age:</label>
+        <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
+          <option value="">All Ages</option>
+          <option value="18-24">18-24</option>
+          <option value="25-34">25-34</option>
+          <option value="35-44">35-44</option>
+          <option value="45-54">45-54</option>
+          <option value="55+">55+</option>
+        </select>
       </div>
-
-      <div v-if="queryLoading" class="query-loading">
-        <div class="spinner"></div>
-        <p>Loading customer data...</p>
+      <div class="form-group">
+        <label for="genderFilter">Gender:</label>
+        <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
+          <option value="">All Genders</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
+      <div class="form-group">
+        <label for="regionFilter">Region:</label>
+        <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
+        <option value="">All Regions</option>
+        <option value="Central">Central</option>
+        <option value="Eastern">Eastern</option>
+        <option value="Western">Western</option>
+        <option value="Northern">Northern</option>
+      </select>
+      </div>
+      <div class="form-group">
+        <label for="spendingFilter">Average Spending:</label>
+        <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
+          <option value="">All Spending</option>
+          <option value="<50,000">&gt;50,000</option>
+          <option value="50,000-100,000">50,000-100,000</option>
+          <option value="100,000-200,000">100,000-200,000</option>
+          <option value=">200,000">&lt;200,000</option>
+        </select>
+      </div>
+      <button @click="resetFilters" class="reset-button">Reset Filters</button>
+    </div>
 
-      <div v-else class="chart-container">
+    <div v-if="queryLoading" class="query-loading">
+      <div class="spinner"></div>
+      <p>Loading customer data...</p>
+    </div>
+
+    <div v-else class="query-results">
+      <div class="chart-container">
         <canvas id="queryChart"></canvas>
-        <div v-if="queryData" class="query-summary">
-          <p>Showing: <strong>{{ queryData.total }}</strong> customers matching your filters</p>
-          <div v-if="activeFilterCount === 1 && queryData.counts[activeFilterName.toLowerCase()]" class="breakdown">
-            <h4>Breakdown by {{ activeFilterName }}:</h4>
-            <ul>
-              <li v-for="(count, value) in queryData.counts[activeFilterName.toLowerCase()]" :key="value">
-                {{ value }}: {{ count }} ({{ queryData.total > 0 ? Math.round((count / queryData.total) * 100) : 0 }}%)
-              </li>
-            </ul>
+      </div>
+      <div class="query-summary-card">
+        <h3 class="query-total">
+          <strong>Total Customers:</strong> {{ queryData?.total || 0 }}
+        </h3>
+        <div v-if="activeFilterCount === 1 && queryData" class="query-details">
+          <h4 class="query-filter-title">
+            Details for {{ queryData.filter_key }}: {{ queryData.filter_value }}
+          </h4>
+          <p class="query-filter-breakdown">
+            {{ queryData.filter_value }}: {{ queryData.total }} ({{ queryData.percentage }})
+          </p>
+          <div class="query-metrics">
+            <div class="metric-item">
+              <span class="metric-label">Most Frequent Category:</span>
+              <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Average Spending:</span>
+              <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Highest Spender:</span>
+              <ul class="highest-spender-list">
+                <li>
+                  Region: {{ queryData.highest_spender?.Region?.name || 'Unknown' }}
+                  ({{ queryData.highest_spender?.Region?.spending ? formatCurrency(queryData.highest_spender.Region.spending) : 'UGX 0' }})
+                </li>
+                <li>
+                  Age Group: {{ queryData.highest_spender?.Age?.name || 'Unknown' }}
+                  ({{ queryData.highest_spender?.Age?.spending ? formatCurrency(queryData.highest_spender.Age.spending) : 'UGX 0' }})
+                </li>
+                <li>
+                  Gender: {{ queryData.highest_spender?.Gender?.name || 'Unknown' }}
+                  ({{ queryData.highest_spender?.Gender?.spending ? formatCurrency(queryData.highest_spender.Gender.spending) : 'UGX 0' }})
+                </li>
+              </ul>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Most Purchased Category:</span>
+              <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="queryData" class="query-details">
+          <h4 class="query-filter-title">Query Insights</h4>
+          <div class="query-metrics">
+            <div class="metric-item">
+              <span class="metric-label">Most Frequent Category:</span>
+              <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Average Spending:</span>
+              <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Most Purchased Category:</span>
+              <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </section>
-
+    </div>
+  </section>
     <!-- Modal for Metric Details -->
     <div v-if="selectedMetric" class="modal-overlay" @click.self="selectedMetric = null">
       <div class="metric-modal">
@@ -505,7 +555,14 @@ export default {
         if (this.queryFilters.spending) params.spending = this.queryFilters.spending;
 
         const response = await axios.get("http://127.0.0.1:5000/query", { params });
-        this.queryData = response.data || { total: 0, counts: {} };
+        this.queryData = response.data || {
+          total: 0,
+          counts: {},
+          most_frequent_category: null,
+          average_spending: 0,
+          highest_spender: null,
+          most_purchased_category: null
+        };
         this.updateQueryChart();
       } catch (error) {
         console.error("fetchQueryData Error:", error);
@@ -732,55 +789,55 @@ export default {
 }
 
 .dashboard-header h1 {
-  font-size: clamp(1.8rem, 5vw, 2.2rem);
+  font-size: clamp(1.6rem, 4.5vw, 2rem);
   font-weight: 600;
   color: #1a365d;
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-size: clamp(0.85rem, 2.2vw, 0.95rem);
   color: #718096;
   font-weight: 500;
 }
 
 /* Section Title */
 .section-title {
-  font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
   font-weight: 600;
   color: #2d3748;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
 /* Controls Section */
 .controls-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
-  justify-content: space-between;
   background: white;
-  padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
 }
 
 .refresh-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
   background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   font-weight: 500;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -792,30 +849,31 @@ export default {
 }
 
 .refresh-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 .icon {
-  font-size: clamp(1rem, 2vw, 1.1rem);
+  font-size: clamp(0.9rem, 1.8vw, 1rem);
 }
 
 .time-selector {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .time-selector label {
   font-weight: 500;
   color: #4a5568;
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
 }
 
 .time-range {
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid #cbd5e0;
-  border-radius: 6px;
+  border-radius: 5px;
   background-color: white;
-  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
@@ -823,73 +881,76 @@ export default {
 .time-range:focus {
   border-color: #4299e1;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
 }
 
 .model-info {
   display: flex;
-  gap: 1rem;
-  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+}
+
+.model-version,
+.accuracy {
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
 }
 
 .model-version {
   background-color: #edf2f7;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
   color: #4a5568;
 }
 
 .accuracy {
   background-color: #ebf8ff;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
   color: #3182ce;
 }
 
 /* Metrics Grid */
 .metrics-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 1rem;
 }
 
 .metric-card {
   background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 
 .metric-card:hover,
 .metric-card:focus-within {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.1);
 }
 
 .metric-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .metric-header h3 {
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-size: clamp(0.95rem, 2.2vw, 1rem);
   font-weight: 600;
   color: #2d3748;
   margin: 0;
 }
 
 .confidence {
-  font-size: clamp(0.7rem, 1.5vw, 0.75rem);
-  padding: 0.2rem 0.5rem;
-  border-radius: 10px;
+  font-size: clamp(0.65rem, 1.4vw, 0.7rem);
+  padding: 0.15rem 0.4rem;
+  border-radius: 8px;
   font-weight: 500;
 }
 
@@ -909,22 +970,22 @@ export default {
 }
 
 .metric-value {
-  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1.3rem, 3.5vw, 1.8rem);
   font-weight: 700;
   color: #1a365d;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .metric-trend {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
 }
 
 .trend-indicator {
   font-weight: 600;
-  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
 }
 
 .trend-indicator.up {
@@ -936,14 +997,14 @@ export default {
 }
 
 .trend-period {
-  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  font-size: clamp(0.7rem, 1.6vw, 0.75rem);
   color: #718096;
 }
 
 .metric-description {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   color: #718096;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .loading-predictions {
@@ -951,20 +1012,20 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2.5rem;
+  padding: 2rem;
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
 }
 
 .spinner {
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 4px solid #e2e8f0;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e2e8f0;
   border-top-color: #4299e1;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 @keyframes spin {
@@ -973,20 +1034,20 @@ export default {
 
 /* Recommendations */
 .recommendations-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .recommendations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 1rem;
 }
 
 .recommendation-card {
   background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
 }
@@ -994,16 +1055,16 @@ export default {
 .rec-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .rec-priority {
-  font-size: clamp(0.65rem, 1.5vw, 0.7rem);
+  font-size: clamp(0.6rem, 1.4vw, 0.65rem);
   font-weight: 700;
   text-transform: uppercase;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
 }
 
 .priority-high {
@@ -1022,31 +1083,32 @@ export default {
 }
 
 .rec-header h3 {
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-size: clamp(0.95rem, 2.2vw, 1rem);
   font-weight: 600;
   color: #2d3748;
   margin: 0;
 }
 
 .rec-description {
-  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
   color: #4a5568;
-  line-height: 1.5;
-  margin-bottom: 1rem;
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
   flex-grow: 1;
 }
 
 .rec-metrics {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
 }
 
 .rec-metric {
   background-color: #f7fafc;
-  padding: 0.4rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 3px;
 }
 
 .rec-metric strong {
@@ -1055,12 +1117,13 @@ export default {
 
 .rec-action {
   align-self: flex-start;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -1071,25 +1134,25 @@ export default {
 }
 
 .rec-action:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 /* Insights Section */
 .insights-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .insights-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 1rem;
 }
 
 .insight-card {
   background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1097,47 +1160,47 @@ export default {
 }
 
 .insight-card h3 {
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-size: clamp(0.95rem, 2.2vw, 1rem);
   font-weight: 600;
   color: #2d3748;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .insight-image {
   max-width: 100%;
   height: auto;
-  border-radius: 6px;
-  margin-bottom: 1rem;
+  border-radius: 5px;
+  margin-bottom: 0.75rem;
 }
 
 .insight-description {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   color: #718096;
 }
 
 /* Predictions Section */
 .predictions-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-container {
   background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
 }
 
 .segment-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 0.75rem;
 }
 
 .form-group {
@@ -1146,18 +1209,18 @@ export default {
 }
 
 .form-group label {
-  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
   font-weight: 500;
   color: #4a5568;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.25rem;
 }
 
 .form-group input,
 .form-group select {
-  padding: 0.5rem;
+  padding: 0.4rem;
   border: 1px solid #cbd5e0;
   border-radius: 4px;
-  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
   transition: border-color 0.2s ease;
 }
 
@@ -1165,16 +1228,17 @@ export default {
 .form-group select:focus {
   border-color: #4299e1;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
 }
 
 .submit-button {
-  padding: 0.75rem;
+  padding: 0.6rem;
   background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   font-weight: 500;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -1185,41 +1249,43 @@ export default {
 }
 
 .submit-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 .table-container {
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
 }
 
-.predictions-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+/* Table Styles for Larger Screens */
+@media (min-width: 769px) {
+  .predictions-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
 
-.predictions-table th {
-  text-align: left;
-  padding: clamp(0.75rem, 2vw, 1rem);
-  background-color: #f7fafc;
-  font-weight: 600;
-  color: #4a5568;
-  cursor: pointer;
-}
+  .predictions-table th {
+    text-align: left;
+    padding: clamp(0.6rem, 1.5vw, 0.8rem);
+    background-color: #f7fafc;
+    font-weight: 600;
+    color: #4a5568;
+    cursor: pointer;
+  }
 
-.predictions-table th:hover {
-  background-color: #edf2f7;
-}
+  .predictions-table th:hover {
+    background-color: #edf2f7;
+  }
 
-.sort-icon {
-  margin-left: 0.3rem;
-}
+  .sort-icon {
+    margin-left: 0.25rem;
+  }
 
-.predictions-table td {
-  padding: clamp(0.75rem, 2vw, 1rem);
-  border-bottom: 1px solid #e2e8f0;
+  .predictions-table td {
+    padding: clamp(0.6rem, 1.5vw, 0.8rem);
+    border-bottom: 1px solid #e2e8f0;
+  }
 }
 
 .customer-name {
@@ -1233,15 +1299,15 @@ export default {
 }
 
 .customer-id {
-  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  font-size: clamp(0.7rem, 1.6vw, 0.75rem);
   color: #718096;
 }
 
 .segment-tag {
   display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-size: clamp(0.7rem, 1.6vw, 0.75rem);
   font-weight: 500;
 }
 
@@ -1268,12 +1334,12 @@ export default {
 .risk-meter {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .risk-bar {
-  height: 0.5rem;
-  border-radius: 4px;
+  height: 0.4rem;
+  border-radius: 3px;
   flex-grow: 1;
   background-color: #e2e8f0;
   overflow: hidden;
@@ -1294,9 +1360,9 @@ export default {
 .risk-bar.high { color: #e53e3e; }
 
 .risk-value {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
   font-weight: 500;
-  min-width: 2.5rem;
+  min-width: 2rem;
   text-align: right;
 }
 
@@ -1306,10 +1372,10 @@ export default {
 }
 
 .action-button {
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.6rem;
   border: none;
-  border-radius: 4px;
-  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  border-radius: 3px;
+  font-size: clamp(0.7rem, 1.6vw, 0.75rem);
   font-weight: 500;
   cursor: pointer;
   background-color: #ebf8ff;
@@ -1323,25 +1389,26 @@ export default {
 }
 
 .action-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem;
   background-color: #f7fafc;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .pagination button {
-  padding: 0.4rem 0.75rem;
+  padding: 0.3rem 0.6rem;
   background-color: #edf2f7;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   font-weight: 500;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
   transition: background-color 0.2s ease;
 }
 
@@ -1357,27 +1424,28 @@ export default {
 
 /* Query Section */
 .query-section {
-  margin-top: 2.5rem;
+  margin-top: 2rem;
   background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.05);
 }
 
 .query-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
   align-items: end;
 }
 
 .reset-button {
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.8rem;
   background-color: #f8f9fa;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 5px;
   font-weight: 500;
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
   cursor: pointer;
   transition: all 0.2s ease;
   height: fit-content;
@@ -1389,7 +1457,7 @@ export default {
 }
 
 .reset-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 .query-loading {
@@ -1397,51 +1465,109 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2.5rem;
+  padding: 2rem;
 }
 
-.query-summary {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-}
-
-.query-summary p {
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
-  margin-bottom: 1rem;
-}
-
-.breakdown {
-  margin-top: 1rem;
-}
-
-.breakdown h4 {
-  margin-bottom: 0.75rem;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  color: #495057;
-}
-
-.breakdown ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.breakdown li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #e9ecef;
+.query-results {
   display: flex;
-  justify-content: space-between;
-}
-
-.breakdown li:last-child {
-  border-bottom: none;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: stretch;
 }
 
 .chart-container {
+  flex: 1 1 100%;
+  min-width: 260px;
   position: relative;
-  height: 300px;
+  height: 280px;
+}
+
+.query-summary-card {
+  flex: 1 1 100%;
+  min-width: 260px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.query-total {
+  font-size: clamp(1.1rem, 2.8vw, 1.2rem);
+  font-weight: 600;
+  color: #1a365d;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.query-total strong {
+  color: #2d3748;
+}
+
+.query-filter-title {
+  font-size: clamp(0.95rem, 2.2vw, 1rem);
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.query-filter-breakdown {
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+  font-weight: 500;
+  color: #4a5568;
+  background-color: #ebf8ff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 5px;
+  margin-bottom: 0.75rem;
+}
+
+.query-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+
+.metric-item {
+  padding: 0.6rem;
+  background: white;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  transition: box-shadow 0.2s ease;
+}
+
+.metric-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.metric-label {
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
+  font-weight: 500;
+  color: #718096;
+  margin-bottom: 0.2rem;
+}
+
+.metric-value {
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  font-weight: 600;
+  color: #1a365d;
+}
+
+.highest-spender-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.highest-spender-list li {
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+  color: #4a5568;
+  padding: 0.2rem 0;
 }
 
 /* Modal */
@@ -1451,32 +1577,34 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .metric-modal {
   background: white;
-  border-radius: 10px;
-  width: clamp(300px, 90vw, 900px);
-  max-height: 90vh;
+  border-radius: 8px;
+  width: 100%;
+  max-width: clamp(280px, 95vw, 800px);
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-header h2 {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-size: clamp(1.1rem, 2.8vw, 1.2rem);
   font-weight: 600;
   color: #1a365d;
   margin: 0;
@@ -1485,10 +1613,10 @@ export default {
 .close-modal {
   background: none;
   border: none;
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-size: clamp(1.1rem, 2.5vw, 1.2rem);
   cursor: pointer;
   color: #718096;
-  padding: 0.3rem;
+  padding: 0.2rem;
   transition: color 0.2s ease;
 }
 
@@ -1499,19 +1627,19 @@ export default {
 
 .close-modal:focus-visible {
   outline: 2px solid #4299e1;
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .metric-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -1521,13 +1649,13 @@ export default {
 }
 
 .summary-label {
-  font-size: clamp(0.8rem, 2vw, 0.85rem);
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
   color: #718096;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
 }
 
 .summary-value {
-  font-size: clamp(1.1rem, 3vw, 1.3rem);
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
   color: #1a365d;
 }
@@ -1541,9 +1669,9 @@ export default {
 
 .summary-confidence {
   font-weight: 600;
-  padding: 0.2rem 0.5rem;
-  border-radius: 10px;
-  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  padding: 0.15rem 0.4rem;
+  border-radius: 8px;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
   display: inline-block;
 }
 
@@ -1552,22 +1680,22 @@ export default {
 .summary-confidence.low { background-color: #fed7d7; color: #e53e3e; }
 
 .metric-chart {
-  height: clamp(200px, 50vw, 300px);
-  margin-bottom: 2rem;
+  height: clamp(180px, 45vw, 260px);
+  margin-bottom: 1.5rem;
 }
 
 .metric-details h3 {
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-size: clamp(0.95rem, 2.2vw, 1rem);
   font-weight: 600;
   color: #2d3748;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .metric-details p {
-  line-height: 1.6;
+  line-height: 1.5;
   color: #4a5568;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .influencers-list {
@@ -1578,7 +1706,7 @@ export default {
 .influencers-list li {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -1592,18 +1720,19 @@ export default {
 .factor-impact.negative { color: #e53e3e; }
 
 .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid #e2e8f0;
   text-align: right;
 }
 
 .modal-close-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
+  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -1614,96 +1743,42 @@ export default {
 }
 
 .modal-close-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 /* Responsive Adjustments */
-@media (max-width: 1024px) {
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .metrics-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-  }
-
-  .recommendations-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .insights-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-  }
-
-  .metric-summary {
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  }
-}
-
+/* Tablets (481px - 768px) */
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
   }
 
+  .dashboard-header {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+  }
+
   .controls {
-    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem;
   }
 
-  .metrics-grid {
-    grid-template-columns: 1fr;
+  .controls-section,
+  .metrics-section,
+  .recommendations-section,
+  .insights-section,
+  .predictions-section,
+  .query-section {
+    margin-bottom: 1rem;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .metrics-grid,
+  .recommendations-grid,
+  .insights-grid,
+  .form-grid,
   .query-filters {
-    grid-template-columns: 1fr;
-  }
-
-  .predictions-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  .insights-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-header h1 {
-    font-size: clamp(1.5rem, 4vw, 1.8rem);
-  }
-
-  .section-title {
-    font-size: clamp(1rem, 3vw, 1.2rem);
-  }
-
-  .refresh-button,
-  .submit-button,
-  .rec-action,
-  .reset-button,
-  .modal-close-btn {
-    padding: 0.5rem 1rem;
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
-  }
-
-  .metric-value {
-    font-size: clamp(1.2rem, 3vw, 1.5rem);
-  }
-
-  .chart-container {
-    height: 200px;
-  }
-
-  .modal-header h2 {
-    font-size: clamp(1rem, 2.5vw, 1.2rem);
-  }
-
-  .metric-summary {
     grid-template-columns: 1fr;
   }
 
@@ -1711,9 +1786,273 @@ export default {
   .recommendation-card,
   .insight-card,
   .form-container,
-  .table-container,
   .query-section {
     padding: 1rem;
+  }
+
+  .chart-container {
+    height: 240px;
+  }
+
+  .query-results {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chart-container,
+  .query-summary-card {
+    flex: 1 1 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .metric-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-header {
+    padding: 0.75rem;
+  }
+
+  .modal-body {
+    padding: 0.75rem;
+  }
+
+  .metric-chart {
+    height: 200px;
+  }
+}
+
+/* Phones (≤480px) */
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 0.75rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: clamp(1.4rem, 3.5vw, 1.6rem);
+  }
+
+  .subtitle {
+    font-size: clamp(0.75rem, 2vw, 0.8rem);
+  }
+
+  .section-title {
+    font-size: clamp(0.95rem, 2.5vw, 1rem);
+  }
+
+  .controls {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .refresh-button,
+  .submit-button,
+  .rec-action,
+  .reset-button,
+  .modal-close-btn,
+  .action-button {
+    padding: 0.4rem 0.75rem;
+    font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  }
+
+  .time-selector {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .time-range {
+    width: 100%;
+  }
+
+  .model-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metrics-grid {
+    gap: 0.75rem;
+  }
+
+  .metric-card {
+    padding: 0.75rem;
+  }
+
+  .metric-value {
+    font-size: clamp(1.1rem, 3vw, 1.3rem);
+  }
+
+  .metric-description {
+    font-size: clamp(0.7rem, 1.6vw, 0.75rem);
+  }
+
+  .recommendation-card {
+    padding: 0.75rem;
+  }
+
+  .rec-description {
+    font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+  }
+
+  .insight-card {
+    padding: 0.75rem;
+  }
+
+  .form-container {
+    padding: 0.75rem;
+  }
+
+  .form-grid {
+    gap: 0.5rem;
+  }
+
+  .form-group label,
+  .form-group input,
+  .form-group select {
+    font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+  }
+
+  .query-filters {
+    gap: 0.5rem;
+  }
+
+  .query-section {
+    padding: 0.75rem;
+  }
+
+  .query-summary-card {
+    padding: 0.75rem;
+  }
+
+  .query-total {
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
+  }
+
+  .query-filter-title {
+    font-size: clamp(0.9rem, 2vw, 0.95rem);
+  }
+
+  .metric-item {
+    padding: 0.5rem;
+  }
+
+  .metric-label,
+  .metric-value,
+  .highest-spender-list li {
+    font-size: clamp(0.7rem, 1.6vw, 0.75rem);
+  }
+
+  .query-filter-breakdown {
+    font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+    padding: 0.3rem 0.5rem;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .metric-modal {
+    max-width: 90vw;
+    max-height: 80vh;
+  }
+
+  .modal-header h2 {
+    font-size: clamp(0.95rem, 2.5vw, 1rem);
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 0.5rem;
+  }
+
+  .metric-summary {
+    gap: 0.75rem;
+  }
+
+  .summary-value {
+    font-size: clamp(0.9rem, 2.2vw, 1rem);
+  }
+
+  .metric-details h3 {
+    font-size: clamp(0.9rem, 2vw, 0.95rem);
+  }
+
+  /* Mobile Table as Cards */
+  .predictions-table {
+    display: block;
+    border: none;
+  }
+
+  .predictions-table thead {
+    display: none;
+  }
+
+  .predictions-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .predictions-table tr {
+    display: block;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 0.75rem;
+  }
+
+  .predictions-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border: none;
+    font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+  }
+
+  .predictions-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #4a5568;
+    flex: 1;
+    text-align: left;
+  }
+
+  .predictions-table td:not(.customer-name)::before {
+    margin-right: 0.5rem;
+  }
+
+  .predictions-table td.customer-name {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .predictions-table td.customer-name::before {
+    display: none;
+  }
+
+  .predictions-table td.risk-meter {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .predictions-table td.action-button {
+    justify-content: flex-end;
+  }
+
+  .predictions-table td[data-label="Actions"]::before {
+    display: none;
+  }
+
+  .pagination {
+    padding: 0.5rem;
+    gap: 0.5rem;
   }
 }
 
@@ -1724,13 +2063,14 @@ export default {
   .submit-button,
   .rec-action,
   .modal-close-btn,
-  .action-button {
+  .action-button,
+  .metric-item {
     transition: none;
   }
 
   .spinner {
     animation: none;
-    border: 4px solid #4299e1;
+    border: 3px solid #4299e1;
   }
 }
 </style>
