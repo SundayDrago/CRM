@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "id": 5,
+    "name": "Youn Age",
+    "criteria": "Age 18-24",
+    "source": "Custom",
+    "createdAt": "2025-04-16T11:45:10.780571",
+    "count": 210
+  },
+  {
+    "id": 7,
+    "name": "Age",
+    "criteria": "Age 35-44",
+    "source": "Custom",
+    "createdAt": "2025-04-16T11:49:10.065397",
+    "count": 167
+  },
+  {
+    "id": 8,
+    "name": "Age brackets",
+    "criteria": "Age 25-34",
+    "source": "Custom",
+    "createdAt": "2025-04-16T11:52:13.063732",
+    "count": 221
+  },
+  {
+    "id": 9,
+    "name": "Greater Age",
+    "criteria": "Age > 55+",
+    "source": "Custom",
+    "createdAt": "2025-04-16T13:43:42.711092",
+    "count": 1002
+  }
+]
