@@ -443,7 +443,7 @@ export default {
     logout() {
       localStorage.removeItem('userAvatar');
       localStorage.removeItem('token');
-      this.$router.push('/login');
+      this.$router.push('/');
     },
     updateOnlineStatus() {
       this.adminProfile.isOnline = navigator.onLine;

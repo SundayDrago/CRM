@@ -567,7 +567,7 @@ export default {
         console.error('Logout error:', err);
       } finally {
         localStorage.removeItem('token');
-        router.push('/user-login');
+        router.push('/');
       }
     };
 
