@@ -823,6 +823,130 @@ async checkDatasetStatus() {
 </script>
 
 <style scoped>
+
+/* Base Transition Timing */
+:root {
+  --transition-fast: 150ms;
+  --transition-medium: 250ms;
+  --transition-slow: 400ms;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Element-Specific Transitions */
+.dashboard {
+  /* Fade-in for entire dashboard */
+  animation: fadeIn var(--transition-slow) var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Card Hover Effects */
+.metric-card,
+.recommendation-card,
+.insight-card {
+  transition:
+    transform var(--transition-fast) var(--ease-out),
+    box-shadow var(--transition-fast) var(--ease-out);
+  will-change: transform;
+}
+
+.metric-card:hover,
+.recommendation-card:hover,
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Button States */
+.refresh-button,
+.submit-button,
+.rec-action,
+.modal-close-btn,
+.action-button {
+  transition:
+    background-color var(--transition-fast) var(--ease-out),
+    transform 100ms var(--ease-out);
+}
+
+.refresh-button:active,
+.submit-button:active,
+.rec-action:active,
+.modal-close-btn:active,
+.action-button:active {
+  transform: scale(0.98);
+}
+
+/* Form Elements */
+.form-group input,
+.form-group select,
+.time-range {
+  transition:
+    border-color var(--transition-fast) var(--ease-out),
+    box-shadow var(--transition-fast) var(--ease-out);
+}
+
+/* Loading Spinner */
+.spinner {
+  transition: opacity var(--transition-medium) var(--ease-out);
+  animation: spin 1s linear infinite;
+}
+
+/* Table Row Hover */
+@media (min-width: 769px) {
+  .predictions-table tr {
+    transition: background-color var(--transition-fast) linear;
+  }
+
+  .predictions-table tr:hover {
+    background-color: #f8fafc;
+  }
+}
+
+/* Modal Animation */
+.modal-overlay {
+  animation: fadeIn var(--transition-medium) var(--ease-out);
+}
+
+.metric-modal {
+  animation:
+    fadeIn var(--transition-medium) var(--ease-out),
+    slideUp var(--transition-medium) var(--ease-out);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); }
+  to { transform: translateY(0); }
+}
+
+/* Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 1ms;
+    --transition-medium: 1ms;
+    --transition-slow: 1ms;
+  }
+
+  .dashboard,
+  .modal-overlay,
+  .metric-modal {
+    animation: none;
+  }
+
+  .metric-card:hover,
+  .recommendation-card:hover,
+  .insight-card:hover {
+    transform: none;
+  }
+
+  .spinner {
+    animation: none;
+    border: 3px solid #4299e1;
+  }
+}
+
 /* Base Styles */
 .dashboard {
   padding: 2vw;

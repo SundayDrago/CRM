@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file #Done
 import pandas as pd
 import joblib
 import logging
@@ -11,7 +11,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-app = Flask(__name__)
+app = Flask(__name__) #Done
 
 
 CORS(app, resources={

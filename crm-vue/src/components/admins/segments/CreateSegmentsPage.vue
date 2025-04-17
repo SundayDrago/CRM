@@ -385,6 +385,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Notification Container -->
+    <div class="notification-container">
+      <transition-group name="notification" tag="div">
+        <div
+          v-for="notification in notifications"
+          :key="notification.id"
+          class="notification"
+          :class="notification.type"
+          role="alert"
+          @click="removeNotification(notification.id)"
+        >
+          <i :class="getNotificationIcon(notification.type)"></i>
+          <span>{{ notification.message }}</span>
+          <button
+            class="notification-close"
+            @click.stop="removeNotification(notification.id)"
+            aria-label="Close notification"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </transition-group>
+    </div>
   </div>
 </template>
 
@@ -442,7 +466,8 @@ export default {
       showDetailsModal: false,
       isDragOver: false,
       uploadProgress: 0,
-      uploadError: null
+      uploadError: null,
+      notifications: []
     };
   },
   computed: {
@@ -571,7 +596,7 @@ export default {
         return [];
       }
     },
-    
+
     formatCriteria(criteriaString) {
       return criteriaString.replace(/,/g, ', ');
     },
@@ -648,7 +673,7 @@ export default {
 
     editSegment(segment) {
       this.closeModal();
-      this.editingSegment = { ...segment };
+      this.editingSegment = { ...segment};
       this.showEditModal = true;
     },
 
@@ -724,7 +749,7 @@ export default {
           blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
           filename = `segment_${segment.id}_export.json`;
         }
-        
+
         saveAs(blob, filename);
         this.showSuccess(`Segment data exported as ${format.toUpperCase()} successfully!`);
       } catch (error) {
@@ -799,21 +824,16 @@ export default {
     },
 
     calculateGrowthRate(segment) {
-      // If historical data is available, calculate actual growth
-      // For now, we'll return a mock growth rate based on segment count
-      // In a real application, you would fetch historical data from the backend
       if (!segment.count || !segment.createdAt) return 0;
 
-      // Mock growth calculation: assume linear growth based on time since creation
       const createdDate = new Date(segment.createdAt);
       const daysSinceCreation = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-      
-      // Arbitrary formula for demonstration: growth rate based on count and time
-      const baseGrowth = Math.min(segment.count / 100, 20); // Cap at 20%
-      const timeFactor = Math.min(daysSinceCreation / 30, 2); // Cap at 2 months influence
+
+      const baseGrowth = Math.min(segment.count / 100, 20);
+      const timeFactor = Math.min(daysSinceCreation / 30, 2);
       const growthRate = baseGrowth * timeFactor;
 
-      return Math.round(growthRate * 10) / 10; // Round to 1 decimal place
+      return Math.round(growthRate * 10) / 10;
     },
 
     triggerFileInput() {
@@ -840,16 +860,16 @@ export default {
       const file = event.target.files[0];
       if (!file) return;
 
-      // Validate file type and size
       const validTypes = ['text/csv', 'application/json'];
       const fileType = file.type;
       const fileExtension = file.name.split('.').pop().toLowerCase();
 
       if (
         (!validTypes.includes(fileType) && !['csv', 'json'].includes(fileExtension)) ||
-        file.size > 5 * 1024 * 1024 // 5MB
+        file.size > 5 * 1024 * 1024
       ) {
         this.uploadError = 'Please upload a CSV or JSON file under 5MB';
+        this.showError('Invalid file: Please upload a CSV or JSON file under 5MB');
         return;
       }
 
@@ -878,7 +898,7 @@ export default {
         );
 
         if (response.data.success) {
-          this.showSuccess('Segments imported successfully!');
+          this.showSuccess('CSV dataset uploaded successfully!');
           this.loadSegments();
         } else {
           throw new Error(response.data.message || 'Failed to import segments');
@@ -886,18 +906,47 @@ export default {
       } catch (error) {
         console.error('Import failed:', error);
         this.uploadError = error.response?.data?.error || error.message || 'Import failed';
+        this.showError(this.uploadError);
       } finally {
         this.uploadProgress = 0;
         this.$refs.fileInput.value = '';
       }
     },
 
+    addNotification(message, type = 'success', persistent = false) {
+      if (this.notifications.length >= 3) {
+        this.notifications.shift();
+      }
+      const id = Date.now() + Math.random();
+      this.notifications.push({ id, message, type });
+      if (!persistent) {
+        setTimeout(() => {
+          this.removeNotification(id);
+        }, 5000);
+      }
+    },
+
+    removeNotification(id) {
+      this.notifications = this.notifications.filter(n => n.id !== id);
+    },
+
+    getNotificationIcon(type) {
+      switch (type) {
+        case 'success':
+          return 'fas fa-check-circle';
+        case 'error':
+          return 'fas fa-exclamation-circle';
+        default:
+          return 'fas fa-info-circle';
+      }
+    },
+
     showSuccess(message) {
-      alert(message); // Replace with toast notification in production
+      this.addNotification(message, 'success');
     },
 
     showError(message) {
-      alert(message); // Replace with toast notification in production
+      this.addNotification(message, 'error', true);
     }
   }
 };
@@ -1683,6 +1732,85 @@ export default {
   font-size: clamp(0.85rem, 2.2vw, 0.9rem);
 }
 
+/* Notification Styles */
+.notification-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(90vw, 320px);
+}
+
+.notification {
+  background: white;
+  border-radius: 6px;
+  padding: clamp(10px, 1.8vw, 12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(0.85rem, 2.2vw, 0.9rem);
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-left: 4px solid;
+}
+
+.notification.success {
+  border-left-color: #2ecc71;
+}
+
+.notification.success i {
+  color: #2ecc71;
+}
+
+.notification.error {
+  border-left-color: #e74c3c;
+}
+
+.notification.error i {
+  color: #e74c3c;
+}
+
+.notification span {
+  flex: 1;
+  word-break: break-word;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #95a5a6;
+  cursor: pointer;
+  padding: 4px;
+  font-size: clamp(0.8rem, 2.2vw, 0.85rem);
+  transition: color 0.3s;
+}
+
+.notification-close:hover {
+  color: #e74c3c;
+}
+
+/* Notification Animations */
+.notification-enter-active,
+.notification-leave-active {
+  transition: all 0.3s ease;
+}
+
+.notification-enter-from,
+.notification-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.notification-leave-active {
+  position: absolute;
+}
+
+/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1749,6 +1877,14 @@ export default {
   .modal-actions .btn {
     width: 100%;
   }
+  .notification-container {
+    top: 8px;
+    right: 8px;
+    width: min(92vw, 280px);
+  }
+  .notification {
+    font-size: clamp(0.8rem, 2vw, 0.85rem);
+  }
 }
 
 @media (min-width: 1440px) {
@@ -1763,8 +1899,9 @@ export default {
 /* High-DPI Displays */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .management-card,
-  .modal-content {
-    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.12);
+  .modal-content,
+  .notification {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -1782,6 +1919,14 @@ export default {
   .segment-actions .btn-icon {
     min-width: 40px;
     min-height: 40px;
+  }
+  .notification {
+    padding: clamp(12px, 2.2vw, 14px);
+  }
+  .notification-close {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px;
   }
 }
 </style>
