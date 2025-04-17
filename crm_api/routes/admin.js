@@ -654,4 +654,92 @@ console.log("Stats endpoint reached!");
     }
 });
 
+
+// Add this route to your existing backend router
+router.post('/reports/send-email', authenticateAdminToken, async (req, res) => {
+    try {
+        const { report_id, recipients, subject, message, include_pdf, include_excel } = req.body;
+
+        // Validate input
+        if (!report_id || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
+            return res.status(400).json({ error: 'Invalid recipients list' });
+        }
+
+        // Get report details from database
+        const [reports] = await db.promise().query(
+            'SELECT * FROM reports WHERE id = ?',
+            [report_id]
+        );
+
+        if (reports.length === 0) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+
+        const report = reports[0];
+        
+        // Prepare attachments
+        const attachments = [];
+        
+        if (include_pdf) {
+            attachments.push({
+                filename: `${report.title}.pdf`,
+                path: `./reports/${report.id}.pdf`, // Adjust path as needed
+                contentType: 'application/pdf'
+            });
+        }
+        
+        if (include_excel) {
+            attachments.push({
+                filename: `${report.title}.xlsx`,
+                path: `./reports/${report.id}.xlsx`, // Adjust path as needed
+                contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+        }
+
+        // Check if at least one attachment is included
+        if (attachments.length === 0) {
+            return res.status(400).json({ error: 'No attachment format selected' });
+        }
+
+        // Prepare email content
+        const emailContent = {
+            from: process.env.EMAIL_FROM || 'yacobedan@gmail.com',
+            to: recipients.join(', '),
+            subject: subject || `${report.title} - ${report.type} Report`,
+            text: message || `Please find attached the ${report.title} report.`,
+            html: `
+                <h2>${report.title}</h2>
+                <p>${message || `Please find attached the ${report.title} report.`}</p>
+                <p><strong>Report Details:</strong></p>
+                <ul>
+                    <li>Type: ${report.type}</li>
+                    <li>Generated: ${new Date(report.generated_at).toLocaleString()}</li>
+                </ul>
+                <p>Best regards,<br>Your Team</p>
+            `,
+            attachments: attachments
+        };
+
+        // Send email
+        await transporter.sendMail(emailContent);
+        
+        // Log the email sending in database
+        await db.promise().query(
+            'INSERT INTO report_emails (report_id, sent_by, recipients, subject, sent_at) VALUES (?, ?, ?, ?, NOW())',
+            [report.id, req.user.id, recipients.join(', '), emailContent.subject]
+        );
+
+        res.status(200).json({ 
+            success: true,
+            message: 'Report sent successfully'
+        });
+    } catch (error) {
+        console.error('Error sending report email:', error);
+        res.status(500).json({ 
+            error: 'Failed to send email',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

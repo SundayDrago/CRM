@@ -30,6 +30,7 @@ import GetStartedPage from './components/GetStartedPage.vue';
 import AdminStats from './components/admins/AdminStats.vue';
 import UsersStats from './components/admins/UsersStats.vue';
 import ProfilePage from './components/users/ProfilePage.vue';
+import SendEmailPage from './components/admins/SendEmailPage.vue';
 
 
 // Define routes
@@ -53,6 +54,7 @@ const routes = [
     { path: '/setup-account', component: SetupAccountPage },
     { path: '/contact-us', component: ContactPage },
     { path: '/profile', component: ProfilePage },
+    { path: '/send', component: SendEmailPage },
     { path: '/create', component: CreateSegmentsPage },
     { path: '/:catchAll(.*)', component: NotFoundPage },
     { path: '/get-started', component: GetStartedPage },
