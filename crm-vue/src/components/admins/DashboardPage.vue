@@ -256,6 +256,8 @@
             <option value="100,000-200,000">100,000-200,000</option>
             <option value=">200,000">&lt;S200,000</option>
           </select>
+          <div class="form-group">
+          </div>
         </div>
         <button @click="resetFilters" class="reset-button">Reset Filters</button>
       </div>
@@ -427,14 +429,8 @@ export default {
         "Rate of Satisfaction": 3,
         "Rate of availability of products": 3,
       },
-      insightGraphs: [
-        { id: 1, title: "Age Distribution", src: "http://127.0.0.1:5000/static/img/age_distribution.png", description: "Distribution of customers by age group" },
-        { id: 2, title: "Average Spending Distribution", src: "http://127.0.0.1:5000/static/img/avg_spending_distribution.png", description: "Spending patterns across customer segments" },
-        { id: 3, title: "Cluster Characteristics", src: "http://127.0.0.1:5000/static/img/cluster_characteristics.png", description: "Key traits defining each cluster" },
-        { id: 4, title: "Region Distribution", src: "http://127.0.0.1:5000/static/img/region_distribution.png", description: "Geographical spread of customers" },
-        { id: 5, title: "Shopping Frequency", src: "http://127.0.0.1:5000/static/img/shopping_frequency.png", description: "How often customers shop" },
-        { id: 6, title: "Silhouette Analysis", src: "http://127.0.0.1:5000/static/img/silhouette_analysis.png", description: "Cluster quality assessment" },
-      ],
+      insightGraphs: [],
+      graphsLoading: false,
       queryFilters: {
         age: "",
         gender: "",
@@ -478,37 +474,69 @@ export default {
   async mounted() {
     await this.checkDatasetStatus();
     if (this.isDatasetUploaded) {
-      await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData()]);
+      await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData(), this.fetchGraphs()]);
     }
   },
   methods: {
-async checkDatasetStatus() {
-  try {
-    console.log("Making request to /segments...");
-    const response = await axios.get("http://127.0.0.1:5000/segments", {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+    async checkDatasetStatus() {
+      try {
+        console.log("Making request to /segments...");
+        const response = await axios.get("http://127.0.0.1:5000/segments", {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log("Response:", response.data);
+        this.isDatasetUploaded = !response.data.error || 
+          response.data.error !== "No dataset uploaded yet. Please upload a CSV dataset first.";
+      } catch (error) {
+        console.error("Full error:", {
+          message: error.message,
+          response: error.response,
+          request: error.request
+        });
+        
+        if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
+          this.isDatasetUploaded = false;
+        } else {
+          this.showError("Failed to verify dataset status: " + error.message);
+        }
       }
-    });
-    
-    console.log("Response:", response.data);
-    this.isDatasetUploaded = !response.data.error || 
-      response.data.error !== "No dataset uploaded yet. Please upload a CSV dataset first.";
-  } catch (error) {
-    console.error("Full error:", {
-      message: error.message,
-      response: error.response,
-      request: error.request
-    });
-    
-    if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
-      this.isDatasetUploaded = false;
-    } else {
-      this.showError("Failed to verify dataset status: " + error.message);
-    }
-  }
-},
+    },
+    async fetchGraphs() {
+      this.graphsLoading = true;
+      try {
+        const response = await axios.get("http://127.0.0.1:5000/graphs");
+        this.insightGraphs = response.data.graphs.map((graph, index) => ({
+          id: index + 1,
+          title: graph.title,
+          src: `http://127.0.0.1:5000${graph.url}`,
+          description: this.getGraphDescription(graph.title)
+        }));
+      } catch (error) {
+        console.error("Error fetching graphs:", error);
+        this.showError("Failed to load graphs: " + error.message);
+        this.insightGraphs = [];
+        if (error.response?.data?.error === "No graphs generated yet") {
+          this.showError("No graphs available. Please upload a dataset and generate graphs.");
+        }
+      } finally {
+        this.graphsLoading = false;
+      }
+    },
+    getGraphDescription(title) {
+      const descriptions = {
+        "Age Distribution": "Distribution of customers by age group",
+        "Average Spending Distribution": "Spending patterns across customer segments",
+        "Cluster Characteristics": "Key traits defining each cluster",
+        "Region Distribution": "Geographical spread of customers",
+        "Shopping Frequency": "How often customers shop",
+        "Silhouette Analysis": "Cluster quality assessment"
+      };
+      return descriptions[title] || `${title} visualization`;
+    },
     async fetchModelData() {
       this.isLoading = true;
       try {
@@ -518,7 +546,7 @@ async checkDatasetStatus() {
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         this.showError("Failed to load dashboard data: " + error.message);
-        this.isDatasetUploaded = false; // Reset if dataset is not available
+        this.isDatasetUploaded = false;
       } finally {
         this.isLoading = false;
       }
@@ -586,36 +614,37 @@ async checkDatasetStatus() {
         }
       });
     },
-    async fetchQueryData() {
-      this.queryLoading = true;
-      try {
+async fetchQueryData() {
+    this.queryLoading = true;
+    try {
         const params = {};
         if (this.queryFilters.age) params.age = this.queryFilters.age;
         if (this.queryFilters.gender) params.gender = this.queryFilters.gender;
         if (this.queryFilters.region) params.region = this.queryFilters.region;
         if (this.queryFilters.spending) params.spending = this.queryFilters.spending;
+        if (this.queryFilters.time_period) params.time_period = this.queryFilters.time_period;
 
         const response = await axios.get("http://127.0.0.1:5000/query", { params });
         this.queryData = response.data || {
-          total: 0,
-          counts: {},
-          most_frequent_category: null,
-          average_spending: 0,
-          highest_spender: null,
-          most_purchased_category: null
+            total: 0,
+            counts: {},
+            most_frequent_category: null,
+            average_spending: 0,
+            highest_spender: null,
+            most_purchased_category: null
         };
         this.updateQueryChart();
-      } catch (error) {
+    } catch (error) {
         console.error("fetchQueryData Error:", error);
         this.showError("Failed to fetch query data: " + error.message);
         this.queryData = null;
         if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
-          this.isDatasetUploaded = false;
+            this.isDatasetUploaded = false;
         }
-      } finally {
+    } finally {
         this.queryLoading = false;
-      }
-    },
+    }
+},
     updateQueryChart() {
       if (!this.queryData || !this.charts["queryChart"]) return;
 
@@ -699,12 +728,13 @@ async checkDatasetStatus() {
     async refreshData() {
       await this.checkDatasetStatus();
       if (this.isDatasetUploaded) {
-        await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData()]);
+        await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData(), this.fetchGraphs()]);
       } else {
         this.keyMetrics = [];
         this.recommendations = [];
         this.customerPredictions = [];
         this.queryData = null;
+        this.insightGraphs = [];
         this.showError("No dataset available. Please upload a dataset.");
       }
     },

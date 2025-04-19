@@ -30,6 +30,8 @@ import GetStartedPage from './components/GetStartedPage.vue';
 import AdminStats from './components/admins/AdminStats.vue';
 import UsersStats from './components/admins/UsersStats.vue';
 import ProfilePage from './components/users/ProfilePage.vue';
+import AnalyticsPage from './components/users/AnalyticsPage.vue';
+import ClientsPage from './components/users/ClientsPage.vue';
 import SendEmailPage from './components/admins/SendEmailPage.vue';
 
 
@@ -55,21 +57,13 @@ const routes = [
     { path: '/contact-us', component: ContactPage },
     { path: '/profile', component: ProfilePage },
     { path: '/send', component: SendEmailPage },
+    { path: '/analytics', component: AnalyticsPage },
+    { path: '/clients', component: ClientsPage },
     { path: '/create', component: CreateSegmentsPage },
     { path: '/:catchAll(.*)', component: NotFoundPage },
     { path: '/get-started', component: GetStartedPage },
-      {
-    path: '/dashboard/admin-stats',
-    name: 'AdminStats',
-    component: AdminStats,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/dashboard/user-stats',
-    name: 'UsersStats',
-    component: UsersStats,
-    meta: { requiresAuth: true }
-  },
+    { path: '/dashboard/admin-stats', name: 'AdminStats', component: AdminStats, meta: { requiresAuth: true }},
+    { path: '/dashboard/user-stats', name: 'UsersStats', component: UsersStats, meta: { requiresAuth: true }},
 ];
 
 // Create the router instance
@@ -77,21 +71,6 @@ const router = createRouter({
     history: createWebHistory(),
     routes
 });
-
-//router.beforeEach((to, from, next) => {
-//  const isAuthenticated = !!localStorage.getItem("authToken");
-//  if (to.meta.requiresAuth && !isAuthenticated) {
-//    if (to.path === '/users-dashboard') {
-//      console.log('Redirecting to /user-login');
-//      next('/user-login'); // Redirect to user login for users-dashboard
-//    } else {
-//      console.log('Redirecting to /login');
-//      next('/login'); // Redirect to admin login for other protected routes
-//    }
-//  } else {
-//    next();
-//  }
-//});
 
 // Create the Vue app and mount it with the router and Toast
 const app = createApp(App);

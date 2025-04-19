@@ -17,16 +17,6 @@
             alt="Customer segmentation dashboard"
             class="dashboard-preview"
           >
-          <div class="floating-elements">
-            <div class="floating-card card-1">
-              <span class="material-icons">trending_up</span>
-              <p>+32% Engagement</p>
-            </div>
-            <div class="floating-card card-2">
-              <span class="material-icons">groups</span>
-              <p>5 Customer Segments</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -54,6 +44,42 @@
       </div>
     </section>
 
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+      <div class="section-intro">
+        <h2>Trusted by Industry Leaders</h2>
+        <p>Join thousands of businesses transforming their customer strategies</p>
+      </div>
+      <div class="testimonials-container">
+        <div class="testimonial-card">
+          <div class="testimonial-content">
+            <div class="quote-icon">"</div>
+            <p class="testimonial-text">CustomerSeg helped us increase our campaign response rates by 45% while reducing marketing costs by 30%.</p>
+          </div>
+          <div class="testimonial-author">
+            <img src="@/assets/img-1.png" alt="Sunday Drago" class="author-avatar">
+            <div class="author-info">
+              <p class="author-name">Sunday Drago</p>
+              <p class="author-title">CMO, TechSolutions Inc.</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-content">
+            <div class="quote-icon">"</div>
+            <p class="testimonial-text">The predictive scoring alone has saved us millions in customer retention costs. This platform pays for itself.</p>
+          </div>
+          <div class="testimonial-author">
+            <img src="@/assets/img-2.png" alt="Akoldou Wel" class="author-avatar">
+            <div class="author-info">
+              <p class="author-name">Akoldou Wel</p>
+              <p class="author-title">Director of Growth, GlobalRetail</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA Section -->
     <section class="cta-section">
       <div class="cta-content">
@@ -71,6 +97,11 @@
         <div class="footer-brand">
           <h3>CustomerSeg</h3>
           <p>Intelligent customer segmentation for modern businesses</p>
+          <div class="social-links">
+            <a href="#"><span class="material-icons">twitter</span></a>
+            <a href="#"><span class="material-icons">linkedin</span></a>
+            <a href="#"><span class="material-icons">facebook</span></a>
+          </div>
         </div>
 
         <div class="footer-links">
@@ -136,12 +167,14 @@ export default {
 
 <style scoped lang="scss">
 :root {
-  --primary-color: #4361ee;
-  --primary-light: #4895ef;
-  --secondary-color: #3f37c9;
-  --dark-color: #1a2a44;
-  --light-color: #f9fafc;
+  --primary-color: #4f46e5;
+  --primary-light: #6366f1;
+  --secondary-color: #4338ca;
+  --accent-color: #10b981;
+  --dark-color: #111827;
+  --light-color: #f9fafb;
   --gray-color: #6b7280;
+  --light-gray: #e5e7eb;
   --dark-gray: #374151;
   --white: #ffffff;
   --box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
@@ -157,14 +190,26 @@ export default {
 }
 
 h1, h2, h3, h4 {
-  font-weight: 700;
+  font-weight: 800;
   margin: 0 0 1rem;
   line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+h1 {
+  font-size: 3.5rem;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 2.5rem;
 }
 
 p {
   margin: 0 0 1.5rem;
   color: var(--gray-color);
+  font-size: 1.1rem;
+  line-height: 1.7;
 }
 
 /* Button Styles */
@@ -175,16 +220,19 @@ button {
   border-radius: 8px;
   border: none;
   font-size: 1rem;
+  letter-spacing: 0.025em;
 }
 
 .primary-btn {
   background: var(--primary-color);
   color: var(--white);
   padding: 12px 24px;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+  
   &:hover {
     background: var(--secondary-color);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
   }
 }
 
@@ -193,21 +241,37 @@ button {
   color: var(--primary-color);
   padding: 12px 24px;
   border: 2px solid var(--primary-color);
+  
   &:hover {
-    background: rgba(67, 97, 238, 0.1);
+    background: rgba(79, 70, 229, 0.05);
     transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
   }
 }
 
 .large-btn {
-  padding: 14px 32px;
+  padding: 16px 40px;
   font-size: 1.1rem;
+  border-radius: 12px;
 }
 
 /* Hero Section */
 .hero-section {
-  padding: 100px 5% 120px;
-  background: linear-gradient(120deg, #f9fafc 0%, #e5e7eb 100%);
+  padding: 120px 5% 140px;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 80%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.05) 0%, transparent 70%);
+    z-index: 0;
+  }
 }
 
 .hero-container {
@@ -216,21 +280,31 @@ button {
   display: flex;
   align-items: center;
   gap: 60px;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-text {
   flex: 1;
+  
   h1 {
-    font-size: 3rem;
     margin-bottom: 1.5rem;
+    
     span {
       color: var(--primary-color);
+      background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
     }
   }
+  
   .subtitle {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     max-width: 500px;
     margin-bottom: 2.5rem;
+    color: var(--dark-gray);
   }
 }
 
@@ -242,13 +316,15 @@ button {
 .hero-image {
   flex: 1;
   position: relative;
+  
   .dashboard-preview {
     width: 100%;
     max-width: 600px;
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
     position: relative;
     z-index: 1;
+    border: 1px solid var(--light-gray);
   }
 }
 
@@ -264,70 +340,99 @@ button {
 .floating-card {
   position: absolute;
   background: var(--white);
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: 16px 20px;
+  border-radius: 12px;
   box-shadow: var(--box-shadow);
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 
   .material-icons {
     color: var(--primary-color);
+    font-size: 1.5rem;
   }
 
   &.card-1 {
     top: 20%;
-    right: 10%;
+    right: 5%;
     animation: float 4s ease-in-out infinite;
+    background: rgba(255, 255, 255, 0.9);
   }
 
   &.card-2 {
     bottom: 20%;
-    left: 10%;
+    left: 5%;
     animation: float 4s ease-in-out infinite 0.5s;
+    background: rgba(255, 255, 255, 0.9);
   }
 }
 
 /* Features Section */
 .features-section {
-  padding: 100px 5%;
+  padding: 120px 5%;
   background: var(--white);
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--light-gray) 50%, transparent 100%);
+  }
 }
 
 .section-intro {
   text-align: center;
   max-width: 800px;
-  margin: 0 auto 60px;
+  margin: 0 auto 80px;
 
   h2 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+    font-size: 2.75rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(90deg, var(--dark-color) 0%, var(--gray-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
   }
 
   p {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+    color: var(--gray-color);
   }
 }
 
 .features-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 40px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .feature-card {
   background: var(--light-color);
-  border-radius: 12px;
-  padding: 30px;
+  border-radius: 16px;
+  padding: 40px 30px;
   transition: var(--transition);
-
+  border: 1px solid var(--light-gray);
+  
   &:hover {
     transform: translateY(-8px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: rgba(79, 70, 229, 0.2);
+  }
+  
+  p {
+    color: var(--dark-gray);
+    font-size: 1rem;
   }
 }
 
@@ -335,50 +440,156 @@ button {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 
   .icon-circle {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: rgba(67, 97, 238, 0.1);
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 
     .material-icons {
       color: var(--primary-color);
-      font-size: 24px;
+      font-size: 28px;
     }
   }
 
   h3 {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
+    margin: 0;
+    color: var(--dark-color);
+  }
+}
+
+/* Testimonials Section */
+.testimonials-section {
+  padding: 120px 5%;
+  background: var(--light-color);
+}
+
+.testimonials-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.testimonial-card {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: var(--box-shadow);
+  transition: var(--transition);
+  
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+.testimonial-content {
+  position: relative;
+  margin-bottom: 30px;
+  
+  .quote-icon {
+    position: absolute;
+    top: -20px;
+    left: -10px;
+    font-size: 80px;
+    color: rgba(79, 70, 229, 0.1);
+    font-family: serif;
+    font-weight: bold;
+    line-height: 1;
+    z-index: 0;
+  }
+  
+  .testimonial-text {
+    position: relative;
+    z-index: 1;
+    font-size: 1.1rem;
+    color: var(--dark-gray);
+    font-style: italic;
+    line-height: 1.8;
+  }
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  
+  .author-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--light-gray);
+  }
+  
+  .author-name {
+    font-weight: 700;
+    color: var(--dark-color);
+    margin-bottom: 4px;
+  }
+  
+  .author-title {
+    font-size: 0.9rem;
+    color: var(--gray-color);
     margin: 0;
   }
 }
 
 /* CTA Section */
 .cta-section {
-  padding: 100px 5%;
+  padding: 140px 5%;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: var(--white);
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 80%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    z-index: 0;
+  }
 }
 
 .cta-content {
   max-width: 800px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 
   h2 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+    font-size: 2.75rem;
+    margin-bottom: 1.5rem;
   }
 
   p {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  
+  .large-btn {
+    background: var(--white);
+    color: var(--primary-color);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
   }
 }
 
@@ -386,13 +597,14 @@ button {
 .main-footer {
   background: var(--dark-color);
   color: var(--white);
-  padding: 80px 5% 40px;
+  padding: 100px 5% 40px;
+  position: relative;
 }
 
 .footer-grid {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 60px;
+  gap: 80px;
   max-width: 1200px;
   margin: 0 auto 60px;
 }
@@ -400,18 +612,39 @@ button {
 .footer-brand {
   h3 {
     font-size: 1.8rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    color: var(--white);
   }
 
   p {
     color: var(--gray-color);
+    margin-bottom: 2rem;
+  }
+}
+
+.social-links {
+  display: flex;
+  gap: 16px;
+  
+  a {
+    color: var(--gray-color);
+    transition: var(--transition);
+    
+    &:hover {
+      color: var(--white);
+      transform: translateY(-2px);
+    }
+    
+    .material-icons {
+      font-size: 1.5rem;
+    }
   }
 }
 
 .footer-links {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
+  gap: 60px;
 }
 
 .link-column {
@@ -423,10 +656,11 @@ button {
 
   a {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     color: var(--gray-color);
     text-decoration: none;
     transition: var(--transition);
+    font-size: 0.95rem;
 
     &:hover {
       color: var(--white);
@@ -447,6 +681,7 @@ button {
   p {
     color: var(--gray-color);
     margin: 0;
+    font-size: 0.9rem;
   }
 }
 
@@ -477,6 +712,7 @@ button {
   .hero-container {
     flex-direction: column;
     text-align: center;
+    gap: 40px;
   }
 
   .hero-text {
@@ -492,20 +728,36 @@ button {
 
   .footer-grid {
     grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  
+  .footer-links {
+    gap: 40px;
   }
 }
 
 @media (max-width: 768px) {
-  .hero-text h1 {
-    font-size: 2.5rem;
+  h1 {
+    font-size: 2.75rem;
+  }
+  
+  h2 {
+    font-size: 2.25rem;
+  }
+
+  .hero-section, 
+  .features-section,
+  .testimonials-section,
+  .cta-section {
+    padding: 80px 5%;
   }
 
   .section-intro h2 {
-    font-size: 2rem;
+    font-size: 2.25rem;
   }
 
   .cta-content h2 {
-    font-size: 2rem;
+    font-size: 2.25rem;
   }
 
   .footer-links {
@@ -520,8 +772,12 @@ button {
 }
 
 @media (max-width: 480px) {
-  .hero-text h1 {
-    font-size: 2rem;
+  h1 {
+    font-size: 2.25rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
   }
 
   .cta-buttons {
@@ -534,6 +790,10 @@ button {
 
   .footer-links {
     grid-template-columns: 1fr;
+  }
+  
+  .testimonial-card {
+    padding: 30px;
   }
 }
 </style>

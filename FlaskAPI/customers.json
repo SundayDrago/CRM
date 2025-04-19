@@ -46,5 +46,45 @@
     "churnRisk": 10,
     "predictedValue": 500,
     "nextPurchase": "2025-04-19"
+  },
+  {
+    "id": 1006,
+    "name": "Customer 7",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 500,
+    "nextPurchase": "2025-05-08"
+  },
+  {
+    "id": 1007,
+    "name": "Customer 8",
+    "segment": "Young, Moderate-Income Shoppers",
+    "churnRisk": 10,
+    "predictedValue": 500,
+    "nextPurchase": "2025-05-01"
+  },
+  {
+    "id": 1008,
+    "name": "Customer 9",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 500,
+    "nextPurchase": "2025-05-08"
+  },
+  {
+    "id": 1009,
+    "name": "Customer 10",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 3000,
+    "nextPurchase": "2025-05-07"
+  },
+  {
+    "id": 1010,
+    "name": "Customer 11",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 3000,
+    "nextPurchase": "2025-05-18"
   }
 ]

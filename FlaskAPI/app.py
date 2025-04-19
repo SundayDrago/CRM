@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file #Done
+from flask import Flask, request, jsonify, send_file, render_template
 import pandas as pd
 import joblib
 import logging
@@ -10,10 +10,14 @@ import json
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
+import matplotlib.pyplot as plt
+import seaborn as sns
+from io import BytesIO
+import base64
 
-app = Flask(__name__) #Done
-
-
+app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": ["http://localhost:8080", "http://127.0.0.1:8080"],
@@ -82,7 +86,141 @@ ml_artifacts = load_artifacts()
 RAW_DATA = None
 PREPROCESSED_DATA = None
 
-# Load and preprocess dataset
+def generate_visualizations(df):
+    """Generate visualizations from the dataset; save some to disk and return base64 for heatmap and silhouette"""
+    try:
+        os.makedirs(STATIC_IMG_DIR, exist_ok=True)
+        for filename in os.listdir(STATIC_IMG_DIR):
+            if filename.endswith('.png'):
+                os.remove(os.path.join(STATIC_IMG_DIR, filename))
+
+        # Dictionary to store base64-encoded images for heatmap and silhouette
+        base64_images = {}
+
+        # 1. Age Distribution (save to disk)
+        plt.figure(figsize=(10, 6))
+        sns.countplot(data=df, x='Age', order=sorted(df['Age'].unique()))
+        plt.title('Age Distribution')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(STATIC_IMG_DIR, 'age_distribution.png'))
+        plt.close()
+
+        # 2. Average Spending Distribution (save to disk)
+        plt.figure(figsize=(10, 6))
+        sns.countplot(data=df, x='Average spending',
+                      order=['<50,000', '50,000-100,000', '100,000-200,000', '>200,000'])
+        plt.title('Average Spending Distribution')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(STATIC_IMG_DIR, 'avg_spending_distribution.png'))
+        plt.close()
+
+        # 3. Cluster Characteristics (Heatmap, generate in memory)
+        if 'Cluster' in df.columns:
+            # Generate cluster statistics
+            cluster_stats = df.groupby('Cluster').agg({
+                'Average spending': lambda x: x.map({
+                    '<50,000': 1, '50,000-100,000': 2, '100,000-200,000': 3, '>200,000': 4
+                }).mean(),
+                'Rate of Satisfaction': 'mean',
+                'Frequency of Shopping(Regular)': lambda x: x.map({
+                    'Daily': 4, 'Weekly': 3, 'Monthly': 2, 'Rarely': 1
+                }).mean(),
+                'Monthly Income': lambda x: x.map({
+                    '<450,000': 1, '450,000-1,000,000': 2, '1,000,000-2,000,000': 3, '>2,000,000': 4
+                }).mean()
+            })
+
+            # Create heatmap
+            plt.figure(figsize=(12, 8))
+            sns.heatmap(
+                cluster_stats.T,
+                annot=True,
+                cmap='YlGnBu',
+                fmt='.2f',
+                linewidths=.5,
+                cbar_kws={'label': 'Average Value'}
+            )
+            plt.title('Average Characteristics by Cluster', pad=20)
+            plt.xlabel('Cluster')
+            plt.ylabel('Feature')
+
+            # Save to BytesIO and encode as base64
+            img = BytesIO()
+            plt.savefig(img, format='png', bbox_inches='tight', dpi=300)
+            plt.close()
+            img.seek(0)
+            base64_images['cluster_characteristics'] = base64.b64encode(img.getvalue()).decode('utf-8')
+
+        # 4. Silhouette Analysis (generate in memory)
+        if 'Cluster' in df.columns:
+            from sklearn.metrics import silhouette_samples, silhouette_score
+            # Recompute scaled features for silhouette analysis
+            df_encoded = df.copy()
+            for col in CATEGORICAL_COLS:
+                if col in df_encoded.columns:
+                    df_encoded[col] = df_encoded[col].fillna('Unknown')
+                    df_encoded[col] = ml_artifacts['encoders'][col].transform(df_encoded[col])
+            X = df_encoded[CATEGORICAL_COLS + NUMERICAL_COLS].copy()
+            for col in (CATEGORICAL_COLS + NUMERICAL_COLS):
+                if col not in X.columns:
+                    X[col] = 0
+            X_scaled = ml_artifacts['scaler'].transform(X)
+
+            silhouette_avg = silhouette_score(X_scaled, df['Cluster'])
+            sample_silhouette_values = silhouette_samples(X_scaled, df['Cluster'])
+
+            plt.figure(figsize=(10, 6))
+            y_lower = 10
+            for i in range(4):  # Assuming 4 clusters
+                ith_cluster_values = sample_silhouette_values[df['Cluster'] == i]
+                ith_cluster_values.sort()
+                size_cluster_i = ith_cluster_values.shape[0]
+                y_upper = y_lower + size_cluster_i
+                color = plt.cm.viridis(float(i) / 4)
+                plt.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_values,
+                                  facecolor=color, edgecolor=color, alpha=0.7)
+                plt.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
+                y_lower = y_upper + 10
+            plt.axvline(x=silhouette_avg, color="red", linestyle="--")
+            plt.title(f"Silhouette Analysis (Avg Score: {silhouette_avg:.2f})")
+            plt.xlabel("Silhouette Coefficient")
+            plt.ylabel("Cluster")
+
+            # Save to BytesIO and encode as base64
+            img = BytesIO()
+            plt.savefig(img, format='png', bbox_inches='tight', dpi=300)
+            plt.close()
+            img.seek(0)
+            base64_images['silhouette_analysis'] = base64.b64encode(img.getvalue()).decode('utf-8')
+
+        # 5. Region Distribution (save to disk)
+        if 'Region' in df.columns:
+            plt.figure(figsize=(10, 6))
+            sns.countplot(data=df, x='Region')
+            plt.title('Region Distribution')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            plt.savefig(os.path.join(STATIC_IMG_DIR, 'region_distribution.png'))
+            plt.close()
+
+        # 6. Shopping Frequency (save to disk)
+        if 'Frequency of Shopping(Regular)' in df.columns:
+            plt.figure(figsize=(10, 6))
+            sns.countplot(data=df, x='Frequency of Shopping(Regular)',
+                          order=['Daily', 'Weekly', 'Monthly', 'Rarely'])
+            plt.title('Shopping Frequency')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            plt.savefig(os.path.join(STATIC_IMG_DIR, 'shopping_frequency.png'))
+            plt.close()
+
+        return True, base64_images
+    except Exception as e:
+        logging.error(f"Error generating visualizations: {str(e)}")
+        return False, {}
+
 def load_and_preprocess_data(filepath):
     try:
         data = pd.read_csv(filepath)
@@ -152,8 +290,10 @@ IMPLEMENTED_RECOMMENDATIONS = set()
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({'message': 'Customer Segmentation API',
-                    'endpoints': ['/upload', '/segments', '/segments/import', '/segments/model', '/segment', '/dashboard', '/query',
-                                  '/recommendations', '/implement-recommendation', '/reports', '/reports/generate']})
+                    'endpoints': ['/upload', '/segments', '/segments/import', '/segments/model', '/segment',
+                                  '/dashboard', '/dashboard/visual', '/query',
+                                  '/recommendations', '/implement-recommendation', '/reports', '/reports/generate',
+                                  '/graphs', '/graphs/generate']})
 
 @app.route('/upload', methods=['POST'])
 def upload_dataset():
@@ -171,9 +311,121 @@ def upload_dataset():
         RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data(UPLOADED_DATA_PATH)
         if RAW_DATA is None or PREPROCESSED_DATA is None:
             return jsonify({'error': 'Failed to process uploaded dataset'}), 500
-        return jsonify({'success': True, 'message': 'Dataset uploaded and processed successfully', 'path': UPLOADED_DATA_PATH}), 200
+
+        generate_visualizations(RAW_DATA)
+        return jsonify({
+            'success': True,
+            'message': 'Dataset uploaded and processed successfully',
+            'path': UPLOADED_DATA_PATH
+        }), 200
     except Exception as e:
         logging.error(f"Error in upload_dataset: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/graphs', methods=['GET'])
+def get_available_graphs():
+    try:
+        graphs = []
+        name_map = {
+            'age_distribution.png': 'Age Distribution',
+            'avg_spending_distribution.png': 'Average Spending Distribution',
+            'cluster_characteristics': 'Cluster Characteristics',
+            'silhouette_analysis': 'Silhouette Analysis',
+            'region_distribution.png': 'Region Distribution',
+            'shopping_frequency.png': 'Shopping Frequency'
+        }
+
+        # Add file-based graphs
+        if os.path.exists(STATIC_IMG_DIR):
+            graph_files = os.listdir(STATIC_IMG_DIR)
+            for filename in graph_files:
+                if filename.endswith('.png'):
+                    graphs.append({
+                        "title": name_map.get(filename, filename.replace('_', ' ').title().replace('.png', '')),
+                        "filename": filename,
+                        "url": f"/static/img/{filename}",
+                        "type": "file"
+                    })
+
+        # Add base64-encoded graphs if dataset is available
+        if RAW_DATA is not None:
+            success, base64_images = generate_visualizations(RAW_DATA)
+            if success:
+                for key, base64_data in base64_images.items():
+                    graphs.append({
+                        "title": name_map.get(key, key.replace('_', ' ').title()),
+                        "filename": f"{key}.png",
+                        "url": f"data:image/png;base64,{base64_data}",
+                        "type": "base64"
+                    })
+
+        if not graphs:
+            return jsonify({"error": "No graphs generated yet"}), 404
+
+        return jsonify({"graphs": graphs})
+    except Exception as e:
+        logging.error(f"Error getting available graphs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/graphs/generate', methods=['POST'])
+def generate_graphs():
+    try:
+        if RAW_DATA is None:
+            return jsonify({"error": "No dataset available"}), 400
+
+        success, _ = generate_visualizations(RAW_DATA)
+        if not success:
+            return jsonify({"error": "Failed to generate some graphs"}), 500
+
+        return jsonify({"success": True, "message": "Graphs generated successfully"})
+    except Exception as e:
+        logging.error(f"Error generating graphs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/static/img/<path:filename>')
+def serve_img(filename):
+    try:
+        return send_file(os.path.join(STATIC_IMG_DIR, filename))
+    except Exception as e:
+        logging.error(f"Error serving image: {str(e)}")
+        return jsonify({'error': str(e)}), 404
+
+@app.route('/dashboard/visual', methods=['GET'])
+def visual_dashboard():
+    try:
+        graphs = []
+        name_map = {
+            'age_distribution.png': 'Age Distribution',
+            'avg_spending_distribution.png': 'Average Spending Distribution',
+            'cluster_characteristics': 'Cluster Characteristics',
+            'silhouette_analysis': 'Silhouette Analysis',
+            'region_distribution.png': 'Region Distribution',
+            'shopping_frequency.png': 'Shopping Frequency'
+        }
+
+        # Add file-based graphs
+        if os.path.exists(STATIC_IMG_DIR):
+            graph_files = os.listdir(STATIC_IMG_DIR)
+            for filename in graph_files:
+                if filename.endswith('.png'):
+                    graphs.append({
+                        "title": name_map.get(filename, filename.replace('_', ' ').title().replace('.png', '')),
+                        "url": f"/static/img/{filename}"
+                    })
+
+        # Add base64-encoded graphs if dataset is available
+        if RAW_DATA is not None:
+            success, base64_images = generate_visualizations(RAW_DATA)
+            if success:
+                for key, base64_data in base64_images.items():
+                    graphs.append({
+                        "title": name_map.get(key, key.replace('_', ' ').title()),
+                        "url": f"data:image/png;base64,{base64_data}"
+                    })
+
+        return render_template('dashboard.html', graphs=graphs)
+    except Exception as e:
+        logging.error(f"Error rendering visual dashboard: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/segments/import', methods=['POST'])
@@ -717,14 +969,6 @@ def serve_report(filename):
         logging.error(f"Error serving report: {str(e)}")
         return jsonify({'error': str(e)}), 404
 
-@app.route('/static/img/<path:filename>')
-def serve_img(filename):
-    try:
-        return send_file(os.path.join(STATIC_IMG_DIR, filename))
-    except Exception as e:
-        logging.error(f"Error serving image: {str(e)}")
-        return jsonify({'error': str(e)}), 404
-
 def generate_pdf_report(filepath, report, customers):
     doc = SimpleDocTemplate(filepath, pagesize=letter)
     styles = getSampleStyleSheet()
@@ -749,7 +993,6 @@ def generate_pdf_report(filepath, report, customers):
                              ('BACKGROUND', (0, 0), (-1, 0), '#d3d3d3')])
     elements.append(customer_table)
     doc.build(elements)
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -114,13 +114,13 @@
               type="file"
               ref="fileInput"
               @change="handleFileUpload"
-              accept=".csv,.json"
+              accept=".csv,.json,.xlsx,.xls"
               style="display: none;"
             />
             <div class="upload-content" :class="{ 'drag-active': isDragOver }">
               <i class="fas fa-cloud-upload-alt"></i>
               <p>Drag & drop files here or click to browse</p>
-              <small>Supported formats: CSV, JSON (Max 5MB)</small>
+              <small>Supported formats: CSV, JSON, XLSX, XLS (Max 5MB)</small>
             </div>
           </div>
           <div v-if="uploadProgress > 0" class="upload-progress">
@@ -323,8 +323,7 @@
             <div class="detail-row">
               <span class="detail-label">Segment Criteria:</span>
               <div class="criteria-details">
-                <div v-for="(criterion, index) in parseCriteria(selectedSegment.criteria)"
-                     :key="index" class="criterion-item">
+                <div v-for="(criterion, index) in parseCriteria(selectedSegment.criteria)" :key="index" class="criterion-item">
                   <span class="criterion-field">{{ criterion.field }}</span>
                   <span class="criterion-operator">{{ criterion.operator }}</span>
                   <span class="criterion-value">{{ criterion.value }}</span>
@@ -860,16 +859,21 @@ export default {
       const file = event.target.files[0];
       if (!file) return;
 
-      const validTypes = ['text/csv', 'application/json'];
+      const validTypes = [
+        'text/csv',
+        'application/json',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
       const fileType = file.type;
       const fileExtension = file.name.split('.').pop().toLowerCase();
 
       if (
-        (!validTypes.includes(fileType) && !['csv', 'json'].includes(fileExtension)) ||
+        (!validTypes.includes(fileType) && !['csv', 'json', 'xlsx', 'xls'].includes(fileExtension)) ||
         file.size > 5 * 1024 * 1024
       ) {
-        this.uploadError = 'Please upload a CSV or JSON file under 5MB';
-        this.showError('Invalid file: Please upload a CSV or JSON file under 5MB');
+        this.uploadError = 'Please upload a CSV, JSON, XLSX, or XLS file under 5MB';
+        this.showError('Invalid file: Please upload a CSV, JSON, XLSX, or XLS file under 5MB');
         return;
       }
 
@@ -898,7 +902,7 @@ export default {
         );
 
         if (response.data.success) {
-          this.showSuccess('CSV dataset uploaded successfully!');
+          this.showSuccess('File uploaded successfully!');
           this.loadSegments();
         } else {
           throw new Error(response.data.message || 'Failed to import segments');

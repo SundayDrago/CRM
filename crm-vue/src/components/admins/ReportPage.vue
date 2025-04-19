@@ -4,6 +4,9 @@
     <div class="header">
       <h1>Reports Dashboard</h1>
       <div class="header-actions">
+        <button @click="goToDashboard" class="action-button generate-button">
+          <i class="fas fa-arrow-left"></i> Generate New Report
+        </button>
         <button @click="fetchReports" class="action-button refresh-button">
           <i class="fas fa-sync-alt"></i> Refresh Reports
         </button>
@@ -224,6 +227,11 @@ export default {
     },
     goToEmailPage(){
     this.$router.push('/send');
+
+    },
+
+        goToDashboard(){
+    this.$router.push('/admins');
 
     },
 

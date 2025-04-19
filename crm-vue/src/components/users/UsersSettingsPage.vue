@@ -128,11 +128,10 @@ export default {
 
     const fetchSettings = async () => {
       try {
-        // Simulated API call - replace with actual API call
         await new Promise(resolve => setTimeout(resolve, 300));
 
         const mockResponse = {
-          username: 'CurrentUser123', // This would come from your API
+          username: 'CurrentUser123',
           theme: 'system',
           notifications: 'all',
         };
