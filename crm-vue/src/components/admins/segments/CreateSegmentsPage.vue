@@ -22,6 +22,7 @@
               required
               maxlength="50"
               aria-describedby="segment-name-char-count"
+              class="form-control"
             />
             <span id="segment-name-char-count" class="char-count">{{ newSegment.name.length }}/50</span>
           </div>
@@ -30,33 +31,68 @@
             <label>Segment Criteria</label>
             <div class="criteria-selector">
               <div class="criteria-row" v-for="(criterion, index) in criteria" :key="index">
-                <select v-model="criterion.field" @change="resetCriterionValue(index)" class="field-select">
-                  <option value="">Select field...</option>
-                  <option v-for="field in availableFields" :value="field" :key="field">{{ field }}</option>
-                </select>
+                <!-- Field Dropdown -->
+                <div class="criteria-field">
+                  <select
+                    v-model="criterion.field"
+                    @change="resetCriterionValue(index)"
+                    class="field-select"
+                    required
+                  >
+                    <option value="" disabled>Select field...</option>
+                    <option v-for="field in availableFields" :value="field" :key="field">
+                      {{ formatFieldName(field) }}
+                    </option>
+                  </select>
+                </div>
 
-                <select v-model="criterion.operator" class="operator-select" v-if="criterion.field">
-                  <option value="equals">equals</option>
-                  <option value="contains">contains</option>
-                  <option value="greater">greater than</option>
-                  <option value="less">less than</option>
-                  <option value="between">between</option>
-                </select>
+                <!-- Operator Dropdown -->
+                <div class="criteria-operator" v-if="criterion.field">
+                  <select
+                    v-model="criterion.operator"
+                    class="operator-select"
+                    @change="resetCriterionValue(index)"
+                  >
+                    <option value="" disabled>Select operator...</option>
+                    <option
+                      v-for="op in getAvailableOperators(criterion.field)"
+                      :value="op.value"
+                      :key="op.value"
+                    >
+                      {{ op.label }}
+                    </option>
+                  </select>
+                </div>
 
-                <template v-if="criterion.field && criterion.operator">
-                  <input
-                    v-if="!isRangeField(criterion.field) || criterion.operator !== 'between'"
+                <!-- Value Input -->
+                <div class="criteria-value" v-if="criterion.field && criterion.operator">
+                  <!-- Predefined Values for Categorical Fields -->
+                  <select
+                    v-if="hasPredefinedValues(criterion.field)"
                     v-model="criterion.value"
-                    :type="getInputType(criterion.field)"
-                    :placeholder="getPlaceholder(criterion.field)"
-                    class="value-input"
-                  />
-                  <div v-else class="range-inputs">
+                    class="value-select"
+                    required
+                  >
+                    <option value="" disabled>Select value...</option>
+                    <option
+                      v-for="value in valueOptions[criterion.field]"
+                      :key="value"
+                      :value="value"
+                    >
+                      {{ value }}
+                    </option>
+                  </select>
+
+                  <!-- Range Inputs for 'between' Operator -->
+                  <div v-else-if="criterion.operator === 'between'" class="range-inputs">
                     <input
                       v-model="criterion.valueFrom"
                       :type="getInputType(criterion.field)"
                       placeholder="From"
                       class="range-input"
+                      :class="{ 'input-error': criterion.errors?.valueFrom }"
+                      @input="validateCriterion(index)"
+                      required
                     />
                     <span class="range-separator">to</span>
                     <input
@@ -64,10 +100,26 @@
                       :type="getInputType(criterion.field)"
                       placeholder="To"
                       class="range-input"
+                      :class="{ 'input-error': criterion.errors?.valueTo }"
+                      @input="validateCriterion(index)"
+                      required
                     />
                   </div>
-                </template>
 
+                  <!-- Single Value Input -->
+                  <input
+                    v-else
+                    v-model="criterion.value"
+                    :type="getInputType(criterion.field)"
+                    :placeholder="getPlaceholder(criterion.field)"
+                    class="value-input"
+                    :class="{ 'input-error': criterion.errors?.value }"
+                    @input="validateCriterion(index)"
+                    required
+                  />
+                </div>
+
+                <!-- Remove Criterion Button -->
                 <button
                   type="button"
                   @click="removeCriterion(index)"
@@ -79,14 +131,35 @@
                   <i class="fas fa-times"></i>
                 </button>
               </div>
+
+              <!-- Criteria Validation Errors -->
+              <div
+                v-for="(criterion, index) in criteria"
+                :key="'error-' + index"
+                class="criteria-error"
+              >
+                <span v-if="criterion.errors?.value" class="error-text">
+                  {{ criterion.errors.value }}
+                </span>
+                <span v-if="criterion.errors?.valueFrom" class="error-text">
+                  {{ criterion.errors.valueFrom }}
+                </span>
+                <span v-if="criterion.errors?.valueTo" class="error-text">
+                  {{ criterion.errors.valueTo }}
+                </span>
+              </div>
             </div>
-            <button
-              type="button"
-              @click="addCriterion"
-              class="btn btn-outline btn-sm"
-            >
+
+            <!-- Add Criterion Button -->
+            <button type="button" @click="addCriterion" class="btn btn-outline btn-sm">
               <i class="fas fa-plus"></i> Add Criteria
             </button>
+
+            <!-- Criteria Preview -->
+            <div class="criteria-preview" v-if="criteriaString">
+              <label>Criteria Preview:</label>
+              <p>{{ criteriaString }}</p>
+            </div>
           </div>
 
           <button
@@ -107,9 +180,14 @@
         <div class="card-header">
           <h2><i class="fas fa-file-import"></i> Import/Export Segments</h2>
         </div>
-
         <div class="file-upload-container">
-          <div class="upload-area" @click="triggerFileInput" @dragover.prevent="dragOver" @drop.prevent="handleDrop">
+          <div
+            class="upload-area"
+            @click="triggerFileInput"
+            @dragover.prevent="dragOver"
+            @dragleave.prevent="dragLeave"
+            @drop.prevent="handleDrop"
+          >
             <input
               type="file"
               ref="fileInput"
@@ -225,6 +303,7 @@
                   <i class="fas fa-file-csv"></i>
                 </button>
                 <button
+                  v-if="segment.source === 'Custom'"
                   @click="confirmDelete(segment)"
                   class="btn-icon danger"
                   title="Delete"
@@ -323,7 +402,11 @@
             <div class="detail-row">
               <span class="detail-label">Segment Criteria:</span>
               <div class="criteria-details">
-                <div v-for="(criterion, index) in parseCriteria(selectedSegment.criteria)" :key="index" class="criterion-item">
+                <div
+                  v-for="(criterion, index) in parseCriteria(selectedSegment.criteria)"
+                  :key="index"
+                  class="criterion-item"
+                >
                   <span class="criterion-field">{{ criterion.field }}</span>
                   <span class="criterion-operator">{{ criterion.operator }}</span>
                   <span class="criterion-value">{{ criterion.value }}</span>
@@ -417,7 +500,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 export default {
-  name: 'SegmentManagement',
+  name: 'CreateSegmentsPage',
   data() {
     return {
       newSegment: {
@@ -425,7 +508,7 @@ export default {
         description: ''
       },
       criteria: [
-        { field: '', operator: '', value: '', valueFrom: '', valueTo: '' }
+        { field: '', operator: '', value: '', valueFrom: '', valueTo: '', errors: {} }
       ],
       availableFields: [
         'Age',
@@ -441,6 +524,17 @@ export default {
         'Device to shop',
         'Internet connection used'
       ],
+      valueOptions: {
+        Gender: ['Male', 'Female'],
+        Region: ['Northern', 'Southern', 'Eastern', 'Western', 'Central'],
+        'Frequency of Shopping(Regular)': ['Daily', 'Weekly', 'Monthly', 'Rarely'],
+        Categories: ['Electronics', 'Fashion', 'Groceries', 'Home'],
+        'Means of Payment': ['Cash', 'Card', 'Mobile Money'],
+        'Enrolled on Jumia Prime or any loyalty program': ['Yes', 'No'],
+        'Reason for your purchase': ['Need', 'Convenience', 'Promotion'],
+        'Device to shop': ['Mobile', 'Desktop', 'Tablet'],
+        'Internet connection used': ['WiFi', 'Mobile Data']
+      },
       segments: [],
       filteredSegments: [],
       searchQuery: '',
@@ -473,8 +567,15 @@ export default {
     isFormValid() {
       return (
         this.newSegment.name.trim() &&
-        this.criteria.every(c => c.field && c.operator &&
-          (c.value || (c.operator === 'between' && c.valueFrom && c.valueTo)))
+        this.criteria.every(
+          (c) =>
+            c.field &&
+            c.operator &&
+            !Object.keys(c.errors).length &&
+            (c.operator === 'between'
+              ? c.valueFrom && c.valueTo
+              : c.value)
+        )
       );
     },
     totalPages() {
@@ -484,6 +585,9 @@ export default {
       const start = (this.currentPage - 1) * this.itemsPerPage;
       const end = start + this.itemsPerPage;
       return this.filteredSegments.slice(start, end);
+    },
+    criteriaString() {
+      return this.buildCriteriaString();
     }
   },
   created() {
@@ -503,60 +607,140 @@ export default {
         this.isLoading = false;
       }
     },
-
     addCriterion() {
-      this.criteria.push({ field: '', operator: '', value: '', valueFrom: '', valueTo: '' });
+      this.criteria.push({
+        field: '',
+        operator: '',
+        value: '',
+        valueFrom: '',
+        valueTo: '',
+        errors: {}
+      });
     },
-
     removeCriterion(index) {
       this.criteria.splice(index, 1);
     },
-
     resetCriterionValue(index) {
       this.criteria[index].value = '';
       this.criteria[index].valueFrom = '';
-      this.criteria[index].valueTo = '';
+      this.criteria[index].valueTo ='';
+      this.criteria[index].errors = {};
     },
-
-    isRangeField(field) {
-      return ['Age', 'Monthly Income', 'Average spending'].includes(field);
+    hasPredefinedValues(field) {
+      return field in this.valueOptions;
     },
+    getAvailableOperators(field) {
+      const numericFields = ['Monthly Income', 'Average spending'];
+      const rangeFields = ['Age', 'Monthly Income', 'Average spending'];
 
+      // Base operators for all fields
+      const operators = [{ value: 'equals', label: 'equals' }];
+
+      // Add range operators for fields that support 'between'
+      if (rangeFields.includes(field)) {
+        operators.push({ value: 'between', label: 'between' });
+      }
+
+      // Add greater/less operators for numeric fields
+      if (numericFields.includes(field)) {
+        operators.push(
+          { value: 'greater', label: 'greater than' },
+          { value: 'less', label: 'less than' }
+        );
+      }
+
+      return operators;
+    },
     getInputType(field) {
       return ['Monthly Income', 'Average spending'].includes(field) ? 'number' : 'text';
     },
-
     getPlaceholder(field) {
-      if (field === 'Age') return 'e.g. 18-24 or 45+';
+      if (field === 'Age') return 'e.g. 18-24';
       if (field === 'Monthly Income') return 'e.g. 500000';
       if (field === 'Average spending') return 'e.g. 75000';
       return 'Enter value...';
     },
+    validateCriterion(index) {
+      const criterion = this.criteria[index];
+      criterion.errors = {};
 
-    buildCriteriaString() {
-      return this.criteria.map(criterion => {
-        if (!criterion.field || !criterion.operator) return '';
-
-        if (criterion.operator === 'between') {
-          return `${criterion.field} ${criterion.valueFrom}-${criterion.valueTo}`;
+      if (criterion.operator === 'between') {
+        if (criterion.field === 'Age') {
+          const rangeRegex = /^\d+-\d+$/;
+          if (criterion.valueFrom && !/^\d+$/.test(criterion.valueFrom)) {
+            criterion.errors.valueFrom = 'Must be a number';
+          }
+          if (criterion.valueTo && !/^\d+$/.test(criterion.valueTo)) {
+            criterion.errors.valueTo = 'Must be a number';
+          }
+          if (
+            criterion.valueFrom &&
+            criterion.valueTo &&
+            !rangeRegex.test(`${criterion.valueFrom}-${criterion.valueTo}`)
+          ) {
+            criterion.errors.valueTo = 'Invalid range format';
+          }
+          if (
+            criterion.valueFrom &&
+            criterion.valueTo &&
+            parseInt(criterion.valueFrom) >= parseInt(criterion.valueTo)
+          ) {
+            criterion.errors.valueTo = '"To" must be greater than "From"';
+          }
+        } else {
+          if (criterion.valueFrom && isNaN(criterion.valueFrom)) {
+            criterion.errors.valueFrom = 'Must be a number';
+          }
+          if (criterion.valueTo && isNaN(criterion.valueTo)) {
+            criterion.errors.valueTo = 'Must be a number';
+          }
+          if (
+            criterion.valueFrom &&
+            criterion.valueTo &&
+            parseFloat(criterion.valueFrom) >= parseFloat(criterion.valueTo)
+          ) {
+            criterion.errors.valueTo = '"To" must be greater than "From"';
+          }
         }
-
-        let operatorSymbol = '';
-        switch(criterion.operator) {
-          case 'equals': operatorSymbol = '='; break;
-          case 'contains': operatorSymbol = 'contains'; break;
-          case 'greater': operatorSymbol = '>'; break;
-          case 'less': operatorSymbol = '<'; break;
+      } else if (criterion.field === 'Age' && criterion.operator === 'equals') {
+        const rangeRegex = /^\d+-\d+$/;
+        if (criterion.value && !rangeRegex.test(criterion.value)) {
+          criterion.errors.value = 'Age must be in range format (e.g., 18-24)';
         }
-
-        return `${criterion.field} ${operatorSymbol} ${criterion.value}`;
-      }).filter(Boolean).join(', ');
+      } else if (['Monthly Income', 'Average spending'].includes(criterion.field)) {
+        if (criterion.value && isNaN(criterion.value)) {
+          criterion.errors.value = 'Must be a number';
+        }
+      }
     },
+    buildCriteriaString() {
+      return this.criteria
+        .map((criterion) => {
+          if (!criterion.field || !criterion.operator) return '';
 
+          if (criterion.operator === 'between') {
+            return `${criterion.field} ${criterion.valueFrom}-${criterion.valueTo}`;
+          }
+
+          let prefix = '';
+          if (criterion.operator === 'greater') {
+            prefix = '>';
+          } else if (criterion.operator === 'less') {
+            prefix = '<';
+          }
+
+          return `${criterion.field} ${prefix}${criterion.value}`;
+        })
+        .filter(Boolean)
+        .join(', ');
+    },
+    formatFieldName(field) {
+      return field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    },
     parseCriteria(criteriaString) {
       if (!criteriaString) return [];
       try {
-        return criteriaString.split(', ').map(part => {
+        return criteriaString.split(', ').map((part) => {
           const betweenMatch = part.match(/^(.+?) (\d+)-(\d+)$/);
           if (betweenMatch) {
             return {
@@ -568,26 +752,20 @@ export default {
             };
           }
 
-          const operatorMatch = part.match(/^(.+?) ([<=>]+|contains) (.+)$/);
+          const operatorMatch = part.match(/^(.+?) ([<>])?(.+)$/);
           if (operatorMatch) {
-            let operator = operatorMatch[2];
-            switch(operator) {
-              case '=': operator = 'equals'; break;
-              case '>': operator = 'greater'; break;
-              case '<': operator = 'less'; break;
-            }
-
+            const operator = operatorMatch[2];
             return {
               field: operatorMatch[1],
-              operator: operator,
-              value: operatorMatch[3]
+              operator: operator === '>' ? 'greater' : operator === '<' ? 'less' : 'equals',
+              value: operatorMatch[2] ? operatorMatch[3] : operatorMatch[2]
             };
           }
 
           return {
-            field: part,
-            operator: 'contains',
-            value: part
+            field: part.split(' ')[0],
+            operator: 'equals',
+            value: part.split(' ').slice(1).join(' ')
           };
         });
       } catch (error) {
@@ -595,18 +773,17 @@ export default {
         return [];
       }
     },
-
-    formatCriteria(criteriaString) {
-      return criteriaString.replace(/,/g, ', ');
+    formatCriteria(value) {
+      if (!value || typeof value !== 'string') return '';
+      return value.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     },
-
     filterSegments() {
       const query = this.searchQuery.toLowerCase();
       let filtered = this.segments;
 
       if (query) {
         filtered = filtered.filter(
-          segment =>
+          (segment) =>
             segment.name.toLowerCase().includes(query) ||
             segment.criteria.toLowerCase().includes(query) ||
             (segment.description && segment.description.toLowerCase().includes(query))
@@ -616,14 +793,16 @@ export default {
       this.filteredSegments = filtered;
       this.currentPage = 1;
     },
-
     async createSegment() {
       this.isCreating = true;
       try {
-        if (this.segments.some(s => s.name.toLowerCase() === this.newSegment.name.toLowerCase())) {
+        if (this.segments.some((s) => s.name.toLowerCase() === this.newSegment.name.toLowerCase())) {
           throw new Error('Segment name already exists');
         }
         const criteriaString = this.buildCriteriaString();
+        if (!criteriaString) {
+          throw new Error('At least one valid criterion is required');
+        }
 
         const response = await axios.post('http://127.0.0.1:5000/segment', {
           name: this.newSegment.name,
@@ -645,7 +824,7 @@ export default {
         this.segments.unshift(newSegment);
         this.filterSegments();
         this.resetForm();
-        this.showSuccess('Segment created successfully!');
+        this.showSuccess(`Segment "${newSegment.name}" created with ${newSegment.count} customers!`);
       } catch (error) {
         console.error('Failed to create segment:', error);
         const message = error.response?.data?.error || error.message || 'An unexpected error occurred';
@@ -654,28 +833,22 @@ export default {
         this.isCreating = false;
       }
     },
-
     resetForm() {
       this.newSegment = {
         name: '',
         description: ''
       };
-      this.criteria = [
-        { field: '', operator: '', value: '', valueFrom: '', valueTo: '' }
-      ];
+      this.criteria = [{ field: '', operator: '', value: '', valueFrom: '', valueTo: '', errors: {} }];
     },
-
     viewSegmentDetails(segment) {
       this.selectedSegment = segment;
       this.showDetailsModal = true;
     },
-
     editSegment(segment) {
       this.closeModal();
-      this.editingSegment = { ...segment};
+      this.editingSegment = { ...segment };
       this.showEditModal = true;
     },
-
     async updateSegment() {
       this.isUpdating = true;
       try {
@@ -684,7 +857,7 @@ export default {
           this.editingSegment
         );
 
-        const index = this.segments.findIndex(s => s.id === this.editingSegment.id);
+        const index = this.segments.findIndex((s) => s.id === this.editingSegment.id);
         if (index !== -1) {
           this.segments[index] = {
             ...this.editingSegment,
@@ -702,17 +875,15 @@ export default {
         this.isUpdating = false;
       }
     },
-
     confirmDelete(segment) {
       this.segmentToDelete = segment;
       this.showDeleteModal = true;
     },
-
     async deleteSegment() {
       this.isDeleting = true;
       try {
         await axios.delete(`http://127.0.0.1:5000/segments/${this.segmentToDelete.id}`);
-        this.segments = this.segments.filter(s => s.id !== this.segmentToDelete.id);
+        this.segments = this.segments.filter((s) => s.id !== this.segmentToDelete.id);
         if (this.selectedSegment?.id === this.segmentToDelete.id) {
           this.selectedSegment = null;
         }
@@ -727,7 +898,6 @@ export default {
         this.isDeleting = false;
       }
     },
-
     exportSegmentData(segment, format = 'json') {
       try {
         const data = {
@@ -756,14 +926,12 @@ export default {
         this.showError('Failed to export segment data');
       }
     },
-
     downloadSegment(segment, format) {
       this.exportSegmentData(segment, format);
     },
-
     async exportAllSegments(format) {
       try {
-        const data = this.segments.map(segment => ({
+        const data = this.segments.map((segment) => ({
           id: segment.id,
           name: segment.name,
           criteria: segment.criteria,
@@ -790,16 +958,13 @@ export default {
         this.showError('Failed to export segments');
       }
     },
-
     createCampaign(segment) {
       this.showSuccess(`Campaign creation initiated for segment: ${segment.name}`);
     },
-
     refreshSegments() {
       this.loadSegments();
       this.searchQuery = '';
     },
-
     closeModal() {
       this.showEditModal = false;
       this.showDeleteModal = false;
@@ -807,21 +972,17 @@ export default {
       this.segmentToDelete = null;
       this.selectedSegment = null;
     },
-
     nextPage() {
       if (this.currentPage < this.totalPages) this.currentPage++;
     },
-
     prevPage() {
       if (this.currentPage > 1) this.currentPage--;
     },
-
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     },
-
     calculateGrowthRate(segment) {
       if (!segment.count || !segment.createdAt) return 0;
 
@@ -834,19 +995,15 @@ export default {
 
       return Math.round(growthRate * 10) / 10;
     },
-
     triggerFileInput() {
       this.$refs.fileInput.click();
     },
-
     dragOver() {
       this.isDragOver = true;
     },
-
     dragLeave() {
       this.isDragOver = false;
     },
-
     handleDrop(e) {
       this.isDragOver = false;
       const files = e.dataTransfer.files;
@@ -854,7 +1011,6 @@ export default {
         this.handleFileUpload({ target: { files } });
       }
     },
-
     async handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -885,7 +1041,7 @@ export default {
         formData.append('file', file);
 
         const config = {
-          onUploadProgress: progressEvent => {
+          onUploadProgress: (progressEvent) => {
             this.uploadProgress = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
             );
@@ -916,7 +1072,6 @@ export default {
         this.$refs.fileInput.value = '';
       }
     },
-
     addNotification(message, type = 'success', persistent = false) {
       if (this.notifications.length >= 3) {
         this.notifications.shift();
@@ -929,11 +1084,9 @@ export default {
         }, 5000);
       }
     },
-
     removeNotification(id) {
-      this.notifications = this.notifications.filter(n => n.id !== id);
+      this.notifications = this.notifications.filter((n) => n.id !== id);
     },
-
     getNotificationIcon(type) {
       switch (type) {
         case 'success':
@@ -944,17 +1097,606 @@ export default {
           return 'fas fa-info-circle';
       }
     },
-
     showSuccess(message) {
       this.addNotification(message, 'success');
     },
-
     showError(message) {
       this.addNotification(message, 'error', true);
     }
   }
 };
 </script>
+
+<style scoped>
+.segment-management-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  color: #333;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.management-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-header h2 {
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.card-header h2 i {
+  margin-right: 0.5rem;
+}
+
+.segment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.form-control,
+.field-select,
+.operator-select,
+.value-input,
+.value-select,
+.range-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus,
+.field-select:focus,
+.operator-select:focus,
+.value-input:focus,
+.value-select:focus,
+.range-input:focus {
+  outline: none;
+  border-color: #82cafa;
+}
+
+.char-count {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.criteria-selector {
+  margin-bottom: 1rem;
+}
+
+.criteria-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.criteria-field,
+.criteria-operator,
+.criteria-value {
+  flex: 1;
+  min-width: 200px;
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.range-separator {
+  color: #666;
+}
+
+.criteria-error {
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-text {
+  color: #e74c3c;
+  font-size: 0.85rem;
+}
+
+.input-error {
+  border-color: #e74c3c;
+}
+
+.criteria-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.criteria-preview label {
+  font-weight: bold;
+  color: #555;
+}
+
+.criteria-preview p {
+  margin: 0.5rem 0 0;
+  color: #333;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: #fff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #3498db;
+  color: #3498db;
+}
+
+.btn-outline:hover {
+  background: #3498db;
+  color: #fff;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: #666;
+  cursor: pointer;
+}
+
+.btn-icon.danger {
+  color: #e74c3c;
+}
+
+.btn-icon.danger:hover {
+  color: #c0392b;
+}
+
+.file-upload-container {
+  padding: 1rem;
+}
+
+.upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.upload-area:hover {
+  border-color: #82cafa;
+}
+
+.upload-content i {
+  font-size: 2rem;
+  color: #666;
+}
+
+.upload-content p {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.upload-content small {
+  color: #666;
+}
+
+.upload-content.drag-active {
+  background: #f0f8ff;
+  border-color: #82cafa;
+}
+
+.upload-progress {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 5px;
+  background: #3498db;
+  transition: width 0.3s;
+}
+
+.upload-error {
+  margin-top: 1rem;
+  color: #e74c3c;
+}
+
+.upload-error i {
+  margin-right: 0.5rem;
+}
+
+.export-options h3 {
+  font-size: 1.1rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.segment-list {
+  margin-top: 1rem;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading-state i,
+.empty-state i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.segment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.segment-info {
+  flex: 1;
+}
+
+.segment-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.segment-header h3 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.segment-badge {
+  background: #3498db;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.segment-criteria {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.segment-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.segment-stats i {
+  margin-right: 0.25rem;
+}
+
+.segment-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.search-box i {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pagination button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: #3498db;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.analytics-content {
+  padding: 1rem;
+}
+
+.analytics-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.analytics-placeholder i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.segment-analytics {
+  padding: 1rem;
+}
+
+.analytics-title {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric-card {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.segment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-weight: bold;
+  color: #555;
+}
+
+.detail-value {
+  color: #333;
+}
+
+.criteria-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.criterion-item {
+  background: #f9f9f9;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.criterion-field {
+  font-weight: bold;
+  color: #555;
+}
+
+.criterion-operator {
+  margin: 0 0.25rem;
+  color: #666;
+}
+
+.criterion-value {
+  color: #333;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.confirm-modal {
+  max-width: 400px;
+}
+
+.warning-text {
+  color: #e74c3c;
+  margin: 1rem 0;
+}
+
+.warning-text i {
+  margin-right: 0.5rem;
+}
+
+.notification-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2000;
+}
+
+.notification {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notification.success {
+  background: #2ecc71;
+  color: #fff;
+}
+
+.notification.error {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.notification-enter-active,
+.notification-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.notification-enter-from,
+.notification-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+</style>
+
+
 
 <style scoped>
 /* Base Styles */

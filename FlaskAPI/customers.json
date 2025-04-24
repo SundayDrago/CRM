@@ -86,5 +86,13 @@
     "churnRisk": 10,
     "predictedValue": 3000,
     "nextPurchase": "2025-05-18"
+  },
+  {
+    "id": 1011,
+    "name": "Customer 12",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 1500,
+    "nextPurchase": "2025-05-01"
   }
 ]

@@ -130,19 +130,19 @@
             <div class="form-group">
               <label>Monthly Income:</label>
               <select v-model="newCustomer['Monthly Income']" required>
-                <option value="<450,000">&gt;450,000</option>
+                <option value="<450,000">&lt;450,000</option>
                 <option value="450,000-1,000,000">450,000-1,000,000</option>
                 <option value="1,000,000-2,000,000">1,000,000-2,000,000</option>
-                <option value=">2,000,000">&lt;2,000,000</option>
+                <option value=">2,000,000">&gt;2,000,000</option>
               </select>
             </div>
             <div class="form-group">
               <label>Average Spending:</label>
               <select v-model="newCustomer['Average spending']" required>
-                <option value="<50,000">&gt;50,000</option>
+                <option value="<50,000">&lt;50,000</option>
                 <option value="50,000-100,000">50,000-100,000</option>
                 <option value="100,000-200,000">100,000-200,000</option>
-                <option value=">200,000">&lt;200,000</option>
+                <option value=">200,000">&gt;200,000</option>
               </select>
             </div>
             <div class="form-group">
@@ -251,10 +251,10 @@
           <label for="spendingFilter">Average Spending:</label>
           <select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
             <option value="">All Spending</option>
-            <option value="<50,000">&gt;50,000</option>
+            <option value="<50,000">&lt;50,000</option>
             <option value="50,000-100,000">50,000-100,000</option>
             <option value="100,000-200,000">100,000-200,000</option>
-            <option value=">200,000">&lt;S200,000</option>
+            <option value=">200,000">&gt;200,000</option>
           </select>
           <div class="form-group">
           </div>

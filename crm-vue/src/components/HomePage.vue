@@ -1,133 +1,166 @@
 <template>
   <div class="landing-page">
-    <!-- Hero Section -->
+    <!-- Gradient Background Hero Section -->
     <section class="hero-section">
+      <div class="gradient-overlay"></div>
       <div class="hero-container">
-        <div class="hero-text">
-          <h1>Transform Customer Data Into <span>Actionable Insights</span></h1>
-          <p class="subtitle">Our AI-powered segmentation platform helps you understand your customers like never before</p>
-          <div class="cta-buttons">
-            <button class="primary-btn" @click="showLoginPrompt">Admins Only</button>
-            <button class="secondary-btn" @click="navigateToGetStarted">Users only</button>
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1>
+              <span class="gradient-text">Smarter</span> Customer Segmentation
+              <span class="highlight-circle"></span>
+            </h1>
+            <p class="subtitle">AI-powered insights that transform how you understand and engage your customers</p>
+            <div class="cta-buttons">
+              <button class="primary-btn" @click="showLoginPrompt">
+                <span class="btn-icon">🔒</span> Admin Portal
+              </button>
+              <button class="secondary-btn" @click="navigateToGetStarted">
+                <span class="btn-icon">🚀</span> User Dashboard
+              </button>
+            </div>
+          </div>
+          <div class="hero-image">
+            <div class="floating-cards">
+              <div class="card card-1">
+                <div class="card-icon">📈</div>
+                <p>45% higher engagement</p>
+              </div>
+              <div class="card card-2">
+                <div class="card-icon">⏱️</div>
+                <p>Real-time analytics</p>
+              </div>
+            </div>
+            <img
+              src="@/assets/dashboard-preview.png"
+              alt="Customer segmentation dashboard"
+              class="dashboard-preview floating"
+            >
           </div>
         </div>
-        <div class="hero-image">
-          <img
-            src="@/assets/img-3.png"
-            alt="Customer segmentation dashboard"
-            class="dashboard-preview"
-          >
+      </div>
+      <div class="scrolling-brands">
+        <div class="brands-track">
+          <span>TRUSTED BY INNOVATORS</span>
+          <div class="brand-logo">TechSolutions</div>
+          <div class="brand-logo">GlobalRetail</div>
+          <div class="brand-logo">NextGen</div>
+          <div class="brand-logo">MarketLeaders</div>
+          <div class="brand-logo">VisionaryCorp</div>
         </div>
       </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- Features Section with Animated Cards -->
     <section class="features-section">
       <div class="section-intro">
-        <h2>Powerful Features Designed for Growth</h2>
-        <p>Everything you need to turn customer data into business results</p>
+        <h2>Powerful Features <span class="underline">Built for Results</span></h2>
+        <p class="section-subtitle">Everything you need to turn customer data into business growth</p>
       </div>
       <div class="features-container">
-        <div
-          v-for="(feature, index) in features"
+        <div 
+          v-for="(feature, index) in features" 
           :key="index"
           class="feature-card"
+          :style="{ '--delay': index * 0.1 + 's' }"
         >
-          <div class="feature-header">
-            <div class="icon-circle">
-              <span class="material-icons">{{ featureIcons[index] }}</span>
-            </div>
-            <h3>{{ feature.title }}</h3>
-          </div>
+          <div class="feature-icon">{{ featureIcons[index] }}</div>
+          <h3>{{ feature.title }}</h3>
           <p>{{ feature.description }}</p>
+          <div class="feature-arrow">→</div>
         </div>
       </div>
     </section>
 
-    <!-- Testimonials Section -->
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <div class="stat-item">
+        <div class="stat-number" ref="stat1">Electronics</div>
+        <div class="stat-label">Most Purchased Category</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" ref="stat2">26.5%</div>
+        <div class="stat-label">Best Region</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" ref="stat3">0</div>
+        <div class="stat-label">Faster Insights</div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section with Slider Effect -->
     <section class="testimonials-section">
       <div class="section-intro">
-        <h2>Trusted by Industry Leaders</h2>
-        <p>Join thousands of businesses transforming their customer strategies</p>
+        <h2>What Our <span class="underline">Clients Say</span></h2>
       </div>
-      <div class="testimonials-container">
-        <div class="testimonial-card">
+      <div class="testimonial-slider">
+        <div class="testimonial active">
           <div class="testimonial-content">
-            <div class="quote-icon">"</div>
-            <p class="testimonial-text">CustomerSeg helped us increase our campaign response rates by 45% while reducing marketing costs by 30%.</p>
-          </div>
-          <div class="testimonial-author">
-            <img src="@/assets/img-1.png" alt="Sunday Drago" class="author-avatar">
-            <div class="author-info">
-              <p class="author-name">Sunday Drago</p>
-              <p class="author-title">CMO, TechSolutions Inc.</p>
+            <div class="quote-mark">“</div>
+            <p class="testimonial-text">CustomerSeg transformed our marketing strategy. We now understand our customers at a level we never thought possible.</p>
+            <div class="testimonial-author">
+              <img src="@/assets/testimonial-1.jpg" alt="Sunday Drago" class="author-avatar">
+              <div class="author-info">
+                <p class="author-name">Sunday Drago</p>
+                <p class="author-title">CMO, TechSolutions Inc.</p>
+              </div>
             </div>
           </div>
         </div>
-        <div class="testimonial-card">
-          <div class="testimonial-content">
-            <div class="quote-icon">"</div>
-            <p class="testimonial-text">The predictive scoring alone has saved us millions in customer retention costs. This platform pays for itself.</p>
-          </div>
-          <div class="testimonial-author">
-            <img src="@/assets/img-2.png" alt="Akoldou Wel" class="author-avatar">
-            <div class="author-info">
-              <p class="author-name">Akoldou Wel</p>
-              <p class="author-title">Director of Growth, GlobalRetail</p>
-            </div>
-          </div>
+        <div class="testimonial-nav">
+          <button class="nav-dot active"></button>
+          <button class="nav-dot"></button>
+          <button class="nav-dot"></button>
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
+    <!-- CTA Section with Parallax Effect -->
     <section class="cta-section">
+      <div class="parallax-bg"></div>
       <div class="cta-content">
-        <h2>Ready to revolutionize your customer strategy?</h2>
-        <p>Join thousands of businesses using our platform to drive growth</p>
-        <button class="primary-btn large-btn" @click="navigateToGetStarted">
-          Get Started Today
+        <h2>Ready to Transform Your Customer Strategy?</h2>
+        <p>Join industry leaders who are already seeing results</p>
+        <button class="cta-button" @click="navigateToGetStarted">
+          Start Your Free Trial
+          <span class="arrow-icon">→</span>
         </button>
       </div>
     </section>
 
     <!-- Footer -->
     <footer class="main-footer">
-      <div class="footer-grid">
+      <div class="footer-content">
         <div class="footer-brand">
-          <h3>CustomerSeg</h3>
-          <p>Intelligent customer segmentation for modern businesses</p>
+          <div class="logo">CustomerSeg</div>
+          <p>Intelligent customer segmentation for the modern enterprise</p>
           <div class="social-links">
-            <a href="#"><span class="material-icons">twitter</span></a>
-            <a href="#"><span class="material-icons">linkedin</span></a>
-            <a href="#"><span class="material-icons">facebook</span></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-linkedin"></i></a>
+            <a href="#"><i class="fab fa-facebook"></i></a>
           </div>
         </div>
-
         <div class="footer-links">
-          <div class="link-column">
+          <div class="link-group">
             <h4>Product</h4>
             <router-link to="/features">Features</router-link>
             <router-link to="/pricing">Pricing</router-link>
             <router-link to="/integrations">Integrations</router-link>
           </div>
-
-          <div class="link-column">
+          <div class="link-group">
             <h4>Resources</h4>
             <router-link to="/blog">Blog</router-link>
             <router-link to="/webinars">Webinars</router-link>
             <router-link to="/docs">Documentation</router-link>
           </div>
-
-          <div class="link-column">
+          <div class="link-group">
             <h4>Company</h4>
-            <router-link to="/about-us">About Us</router-link>
+            <router-link to="/about">About Us</router-link>
             <router-link to="/careers">Careers</router-link>
-            <router-link to="/contact-us">Contact</router-link>
+            <router-link to="/contact">Contact</router-link>
           </div>
         </div>
       </div>
-
       <div class="footer-bottom">
         <p>© 2025 CustomerSeg. All rights reserved.</p>
         <div class="legal-links">
@@ -139,52 +172,124 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
 
-export default {
-  setup() {
-    const router = useRouter();
+const router = useRouter();
+const isAdmin = ref(false);
+const isAuthenticated = ref(false);
 
-    const showLoginPrompt = () => router.push('/login');
-    const navigateToGetStarted = () => router.push('/user-login');
+// Check authentication status
+onMounted(async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      const response = await axios.get('/admin/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      isAuthenticated.value = true;
+      isAdmin.value = response.data.isAdmin;
+    }
+    animateStats();
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    localStorage.removeItem('authToken');
+  }
+});
 
-    const features = [
-      { title: "AI-Driven Insights", description: "Leverage cutting-edge AI to uncover deep customer behavior patterns with high precision." },
-      { title: "Dynamic Segmentation", description: "Segment customers in real-time based on behavior, demographics, and more." },
-      { title: "Real-Time Analytics", description: "Access live data through sleek, interactive dashboards for instant decision-making." },
-      { title: "Campaign Automation", description: "Launch targeted campaigns automatically based on segment triggers." },
-      { title: "Cross-Channel Sync", description: "Integrate seamlessly with your CRM, email, and social tools." },
-      { title: "Predictive Scoring", description: "Pinpoint high-value customers and reduce churn with predictive analytics." },
-    ];
+// Animate statistics
+const animateStats = () => {
+  const animate = (element, finalValue, duration = 2000) => {
+    const start = 0;
+    const increment = finalValue / (duration / 16);
+    let current = start;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= finalValue) {
+        clearInterval(timer);
+        current = finalValue;
+      }
+      element.textContent = Math.floor(current) + (element === stat3.value ? 'x' : '%');
+    }, 16);
+  };
 
-    const featureIcons = ['insights', 'group_work', 'query_stats', 'campaign', 'sync_alt', 'score'];
+  animate(stat1.value, 78);
+  animate(stat2.value, 92);
+  animate(stat3.value, 5);
+};
 
-    return { showLoginPrompt, navigateToGetStarted, features, featureIcons };
+const stat1 = ref(null);
+const stat2 = ref(null);
+const stat3 = ref(null);
+
+const features = [
+  { 
+    title: "AI-Powered Segmentation", 
+    description: "Our machine learning algorithms automatically identify meaningful customer groups based on behavior patterns." 
   },
+  { 
+    title: "Real-Time Analytics", 
+    description: "Get up-to-the-minute insights with our interactive dashboards and reporting tools." 
+  },
+  { 
+    title: "Predictive Scoring", 
+    description: "Identify high-value customers and predict churn before it happens with our advanced scoring system." 
+  },
+  { 
+    title: "Campaign Automation", 
+    description: "Launch targeted campaigns that automatically adjust based on segment performance and engagement." 
+  },
+  { 
+    title: "Cross-Channel Integration", 
+    description: "Seamlessly connect with your existing CRM, email, and advertising platforms." 
+  },
+  { 
+    title: "Custom Reporting", 
+    description: "Create tailored reports that highlight exactly the metrics that matter to your business." 
+  }
+];
+
+const featureIcons = ['🧠', '📊', '🔮', '⚡', '🔄', '📈'];
+
+const showLoginPrompt = () => {
+  if (isAuthenticated.value && isAdmin.value) {
+    router.push('/admin');
+  } else if (isAuthenticated.value) {
+    router.push('/users-dashboard');
+  } else {
+    router.push('/login');
+  }
+};
+
+const navigateToGetStarted = () => {
+  if (isAuthenticated.value) {
+    router.push('/users-dashboard');
+  } else {
+    router.push('/user-login');
+  }
 };
 </script>
 
 <style scoped lang="scss">
+/* Color Variables */
 :root {
-  --primary-color: #4f46e5;
-  --primary-light: #6366f1;
-  --secondary-color: #4338ca;
-  --accent-color: #10b981;
-  --dark-color: #111827;
-  --light-color: #f9fafb;
-  --gray-color: #6b7280;
-  --light-gray: #e5e7eb;
-  --dark-gray: #374151;
+  --primary: #6c5ce7;
+  --primary-dark: #5649c0;
+  --secondary: #00cec9;
+  --accent: #fd79a8;
+  --dark: #2d3436;
+  --light: #f5f6fa;
+  --gray: #636e72;
   --white: #ffffff;
-  --box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
-  --transition: all 0.3s ease-in-out;
+  --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
 }
 
 /* Base Styles */
 .landing-page {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--dark-color);
+  color: var(--dark);
   line-height: 1.6;
   overflow-x: hidden;
 }
@@ -197,120 +302,122 @@ h1, h2, h3, h4 {
 }
 
 h1 {
-  font-size: 3.5rem;
-  line-height: 1.1;
+  font-size: clamp(2.5rem, 5vw, 4rem);
 }
 
 h2 {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  position: relative;
+  display: inline-block;
+  
+  .underline {
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: var(--accent);
+      z-index: -1;
+      opacity: 0.3;
+      border-radius: 4px;
+    }
+  }
 }
 
 p {
   margin: 0 0 1.5rem;
-  color: var(--gray-color);
+  color: var(--gray);
   font-size: 1.1rem;
   line-height: 1.7;
 }
 
-/* Button Styles */
-button {
-  cursor: pointer;
-  transition: var(--transition);
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  font-size: 1rem;
-  letter-spacing: 0.025em;
-}
-
-.primary-btn {
-  background: var(--primary-color);
-  color: var(--white);
-  padding: 12px 24px;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
-  
-  &:hover {
-    background: var(--secondary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-  }
-}
-
-.secondary-btn {
-  background: transparent;
-  color: var(--primary-color);
-  padding: 12px 24px;
-  border: 2px solid var(--primary-color);
-  
-  &:hover {
-    background: rgba(79, 70, 229, 0.05);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
-  }
-}
-
-.large-btn {
-  padding: 16px 40px;
-  font-size: 1.1rem;
-  border-radius: 12px;
-}
-
 /* Hero Section */
 .hero-section {
-  padding: 120px 5% 140px;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   position: relative;
+  padding: 120px 5% 180px;
+  color: var(--white);
   overflow: hidden;
+  
+  .gradient-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--gradient);
+    z-index: -2;
+  }
   
   &::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 80%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(79, 70, 229, 0.05) 0%, transparent 70%);
-    z-index: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('@/assets/hero-pattern.png') center/cover;
+    opacity: 0.05;
+    z-index: -1;
   }
 }
 
 .hero-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+}
+
+.hero-content {
   display: flex;
   align-items: center;
   gap: 60px;
-  position: relative;
-  z-index: 1;
 }
 
 .hero-text {
   flex: 1;
   
   h1 {
-    margin-bottom: 1.5rem;
+    position: relative;
+    margin-bottom: 2rem;
     
-    span {
-      color: var(--primary-color);
-      background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    .gradient-text {
+      background: linear-gradient(90deg, var(--white) 0%, var(--secondary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      text-fill-color: transparent;
+    }
+    
+    .highlight-circle {
+      position: absolute;
+      top: -15px;
+      right: -30px;
+      width: 60px;
+      height: 60px;
+      background: var(--accent);
+      border-radius: 50%;
+      z-index: -1;
+      opacity: 0.3;
     }
   }
   
   .subtitle {
-    font-size: 1.25rem;
-    max-width: 500px;
-    margin-bottom: 2.5rem;
-    color: var(--dark-gray);
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    max-width: 600px;
+    margin-bottom: 3rem;
+    color: rgba(255, 255, 255, 0.9);
   }
 }
 
 .cta-buttons {
   display: flex;
-  gap: 16px;
+  gap: 20px;
+  
+  .btn-icon {
+    margin-right: 8px;
+  }
 }
 
 .hero-image {
@@ -319,382 +426,470 @@ button {
   
   .dashboard-preview {
     width: 100%;
-    max-width: 600px;
-    border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    max-width: 700px;
+    border-radius: 20px;
+    box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
     z-index: 1;
-    border: 1px solid var(--light-gray);
+    
+    &.floating {
+      animation: float 6s ease-in-out infinite;
+    }
   }
 }
 
-.floating-elements {
+.floating-cards {
   position: absolute;
   width: 100%;
   height: 100%;
   top: 0;
   left: 0;
-  z-index: 2;
+  
+  .card {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+    width: 160px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
+    
+    .card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+    
+    p {
+      font-size: 0.9rem;
+      color: var(--white);
+      margin: 0;
+      line-height: 1.4;
+    }
+    
+    &.card-1 {
+      top: -20px;
+      left: -40px;
+      animation: float 4s ease-in-out infinite;
+    }
+    
+    &.card-2 {
+      bottom: -20px;
+      right: -40px;
+      animation: float 4s ease-in-out infinite 0.5s;
+    }
+  }
 }
 
-.floating-card {
+.scrolling-brands {
   position: absolute;
-  background: var(--white);
-  padding: 16px 20px;
-  border-radius: 12px;
-  box-shadow: var(--box-shadow);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-
-  .material-icons {
-    color: var(--primary-color);
-    font-size: 1.5rem;
+  bottom: 40px;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  
+  .brands-track {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    animation: scroll 30s linear infinite;
+    white-space: nowrap;
+    
+    span {
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 0.8rem;
+    }
   }
-
-  &.card-1 {
-    top: 20%;
-    right: 5%;
-    animation: float 4s ease-in-out infinite;
-    background: rgba(255, 255, 255, 0.9);
-  }
-
-  &.card-2 {
-    bottom: 20%;
-    left: 5%;
-    animation: float 4s ease-in-out infinite 0.5s;
-    background: rgba(255, 255, 255, 0.9);
+  
+  .brand-logo {
+    color: var(--white);
+    font-weight: 700;
+    font-size: 1.2rem;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      opacity: 1;
+    }
   }
 }
 
 /* Features Section */
 .features-section {
   padding: 120px 5%;
-  background: var(--white);
+  background: var(--light);
   position: relative;
   
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, var(--light-gray) 50%, transparent 100%);
-  }
-}
-
-.section-intro {
-  text-align: center;
-  max-width: 800px;
-  margin: 0 auto 80px;
-
-  h2 {
-    font-size: 2.75rem;
-    margin-bottom: 1.5rem;
-    background: linear-gradient(90deg, var(--dark-color) 0%, var(--gray-color) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-fill-color: transparent;
-  }
-
-  p {
-    font-size: 1.25rem;
-    color: var(--gray-color);
+  .section-intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 80px;
+    
+    .section-subtitle {
+      font-size: 1.2rem;
+      color: var(--gray);
+    }
   }
 }
 
 .features-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .feature-card {
-  background: var(--light-color);
+  background: var(--white);
   border-radius: 16px;
   padding: 40px 30px;
-  transition: var(--transition);
-  border: 1px solid var(--light-gray);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: translateY(20px);
+  opacity: 0;
+  animation: fadeInUp 0.6s forwards;
+  animation-delay: var(--delay);
+  position: relative;
+  overflow: hidden;
   
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    border-color: rgba(79, 70, 229, 0.2);
+    transform: translateY(-10px) !important;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    
+    .feature-arrow {
+      transform: translateX(5px);
+      opacity: 1;
+    }
+  }
+  
+  .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+  }
+  
+  h3 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    color: var(--dark);
   }
   
   p {
-    color: var(--dark-gray);
     font-size: 1rem;
+    color: var(--gray);
+    margin-bottom: 25px;
+  }
+  
+  .feature-arrow {
+    font-size: 1.5rem;
+    color: var(--primary);
+    transition: all 0.3s ease;
+    opacity: 0;
   }
 }
 
-.feature-header {
+/* Stats Section */
+.stats-section {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  .icon-circle {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    .material-icons {
-      color: var(--primary-color);
-      font-size: 28px;
+  justify-content: center;
+  gap: 60px;
+  padding: 80px 5%;
+  background: var(--white);
+  
+  .stat-item {
+    text-align: center;
+    
+    .stat-number {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 10px;
     }
-  }
-
-  h3 {
-    font-size: 1.4rem;
-    margin: 0;
-    color: var(--dark-color);
+    
+    .stat-label {
+      font-size: 1.1rem;
+      color: var(--gray);
+      font-weight: 500;
+    }
   }
 }
 
 /* Testimonials Section */
 .testimonials-section {
   padding: 120px 5%;
-  background: var(--light-color);
-}
-
-.testimonials-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.testimonial-card {
-  background: var(--white);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: var(--box-shadow);
-  transition: var(--transition);
+  background: var(--light);
   
-  &:hover {
-    transform: translateY(-5px);
+  .section-intro {
+    text-align: center;
+    margin-bottom: 60px;
   }
 }
 
-.testimonial-content {
+.testimonial-slider {
+  max-width: 800px;
+  margin: 0 auto;
   position: relative;
-  margin-bottom: 30px;
+}
+
+.testimonial {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 60px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
+  text-align: center;
   
-  .quote-icon {
-    position: absolute;
-    top: -20px;
-    left: -10px;
-    font-size: 80px;
-    color: rgba(79, 70, 229, 0.1);
-    font-family: serif;
-    font-weight: bold;
+  .quote-mark {
+    font-size: 5rem;
     line-height: 1;
-    z-index: 0;
+    color: var(--primary);
+    opacity: 0.2;
+    margin-bottom: -30px;
   }
   
   .testimonial-text {
-    position: relative;
-    z-index: 1;
-    font-size: 1.1rem;
-    color: var(--dark-gray);
+    font-size: 1.3rem;
     font-style: italic;
-    line-height: 1.8;
+    color: var(--dark);
+    margin-bottom: 30px;
+    line-height: 1.6;
   }
 }
 
 .testimonial-author {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 20px;
   
   .author-avatar {
-    width: 56px;
-    height: 56px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid var(--light-gray);
+    border: 3px solid var(--primary);
   }
   
   .author-name {
     font-weight: 700;
-    color: var(--dark-color);
-    margin-bottom: 4px;
+    color: var(--dark);
+    margin-bottom: 5px;
   }
   
   .author-title {
+    color: var(--gray);
     font-size: 0.9rem;
-    color: var(--gray-color);
     margin: 0;
+  }
+}
+
+.testimonial-nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 40px;
+  
+  .nav-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--gray);
+    opacity: 0.3;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &.active {
+      background: var(--primary);
+      opacity: 1;
+      transform: scale(1.2);
+    }
   }
 }
 
 /* CTA Section */
 .cta-section {
-  padding: 140px 5%;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 160px 5%;
+  position: relative;
   color: var(--white);
   text-align: center;
-  position: relative;
   overflow: hidden;
   
-  &::before {
-    content: '';
+  .parallax-bg {
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 80%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    z-index: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('@/assets/cta-bg.jpg') center/cover fixed;
+    z-index: -2;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: -1;
+    }
+  }
+  
+  .cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    
+    h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1.5rem;
+      color: var(--white);
+    }
+    
+    p {
+      font-size: 1.3rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 2.5rem;
+    }
   }
 }
 
-.cta-content {
-  max-width: 800px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 1;
-
-  h2 {
-    font-size: 2.75rem;
-    margin-bottom: 1.5rem;
-  }
-
-  p {
-    font-size: 1.25rem;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 2.5rem;
+.cta-button {
+  background: var(--accent);
+  color: var(--white);
+  border: none;
+  padding: 18px 40px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 30px -10px rgba(253, 121, 168, 0.5);
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px -10px rgba(253, 121, 168, 0.6);
+    
+    .arrow-icon {
+      transform: translateX(5px);
+    }
   }
   
-  .large-btn {
-    background: var(--white);
-    color: var(--primary-color);
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.9);
-      transform: translateY(-2px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-    }
+  .arrow-icon {
+    transition: all 0.3s ease;
   }
 }
 
 /* Footer */
 .main-footer {
-  background: var(--dark-color);
+  background: var(--dark);
   color: var(--white);
   padding: 100px 5% 40px;
-  position: relative;
 }
 
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 80px;
+.footer-content {
   max-width: 1200px;
-  margin: 0 auto 60px;
+  margin: 0 auto;
+  display: flex;
+  gap: 80px;
 }
 
 .footer-brand {
-  h3 {
+  flex: 1;
+  
+  .logo {
     font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-    color: var(--white);
+    font-weight: 800;
+    margin-bottom: 20px;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-
+  
   p {
-    color: var(--gray-color);
-    margin-bottom: 2rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 30px;
   }
 }
 
 .social-links {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   
   a {
-    color: var(--gray-color);
-    transition: var(--transition);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
     
     &:hover {
       color: var(--white);
-      transform: translateY(-2px);
-    }
-    
-    .material-icons {
-      font-size: 1.5rem;
+      transform: translateY(-3px);
     }
   }
 }
 
 .footer-links {
+  flex: 2;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 60px;
+  gap: 40px;
 }
 
-.link-column {
+.link-group {
   h4 {
-    font-size: 1.1rem;
-    margin-bottom: 1.5rem;
     color: var(--white);
+    margin-bottom: 20px;
+    font-size: 1.1rem;
   }
-
+  
   a {
     display: block;
-    margin-bottom: 16px;
-    color: var(--gray-color);
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 12px;
     text-decoration: none;
-    transition: var(--transition);
-    font-size: 0.95rem;
-
+    transition: all 0.3s ease;
+    
     &:hover {
       color: var(--white);
-      transform: translateX(4px);
+      transform: translateX(5px);
     }
   }
 }
 
 .footer-bottom {
+  max-width: 1200px;
+  margin: 60px auto 0;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-top: 40px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-
+  
   p {
-    color: var(--gray-color);
-    margin: 0;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.9rem;
+    margin: 0;
   }
 }
 
 .legal-links {
   display: flex;
   gap: 20px;
-
+  
   a {
-    color: var(--gray-color);
-    text-decoration: none;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.9rem;
-    transition: var(--transition);
-
+    text-decoration: none;
+    transition: all 0.3s ease;
+    
     &:hover {
       color: var(--white);
     }
@@ -704,66 +899,52 @@ button {
 /* Animations */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-  .hero-container {
+  .hero-content {
     flex-direction: column;
     text-align: center;
-    gap: 40px;
   }
-
-  .hero-text {
-    .subtitle {
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-
-  .cta-buttons {
-    justify-content: center;
-  }
-
-  .footer-grid {
-    grid-template-columns: 1fr;
+  
+  .footer-content {
+    flex-direction: column;
     gap: 40px;
   }
   
   .footer-links {
-    gap: 40px;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  h1 {
-    font-size: 2.75rem;
+  .stats-section {
+    flex-direction: column;
+    gap: 40px;
   }
   
-  h2 {
-    font-size: 2.25rem;
+  .testimonial {
+    padding: 40px 30px;
   }
-
-  .hero-section, 
-  .features-section,
-  .testimonials-section,
-  .cta-section {
-    padding: 80px 5%;
-  }
-
-  .section-intro h2 {
-    font-size: 2.25rem;
-  }
-
-  .cta-content h2 {
-    font-size: 2.25rem;
-  }
-
-  .footer-links {
-    grid-template-columns: 1fr 1fr;
-  }
-
+  
   .footer-bottom {
     flex-direction: column;
     gap: 20px;
@@ -772,28 +953,20 @@ button {
 }
 
 @media (max-width: 480px) {
-  h1 {
-    font-size: 2.25rem;
-  }
-  
-  h2 {
-    font-size: 1.75rem;
-  }
-
   .cta-buttons {
     flex-direction: column;
   }
-
+  
   .features-container {
     grid-template-columns: 1fr;
   }
-
+  
   .footer-links {
     grid-template-columns: 1fr;
   }
   
-  .testimonial-card {
-    padding: 30px;
+  .testimonial-author {
+    flex-direction: column;
   }
 }
 </style>

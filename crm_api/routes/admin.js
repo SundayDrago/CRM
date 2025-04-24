@@ -96,7 +96,7 @@ router.post("/users/send-notification", authenticateAdminToken, async (req, res)
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
         return res.status(400).json({ message: "Email and password are required" });
     }
 
@@ -676,10 +676,10 @@ router.post('/reports/send-email', authenticateAdminToken, async (req, res) => {
         }
 
         const report = reports[0];
-        
+
         // Prepare attachments
         const attachments = [];
-        
+
         if (include_pdf) {
             attachments.push({
                 filename: `${report.title}.pdf`,
@@ -687,7 +687,7 @@ router.post('/reports/send-email', authenticateAdminToken, async (req, res) => {
                 contentType: 'application/pdf'
             });
         }
-        
+
         if (include_excel) {
             attachments.push({
                 filename: `${report.title}.xlsx`,
@@ -722,20 +722,20 @@ router.post('/reports/send-email', authenticateAdminToken, async (req, res) => {
 
         // Send email
         await transporter.sendMail(emailContent);
-        
+
         // Log the email sending in database
         await db.promise().query(
             'INSERT INTO report_emails (report_id, sent_by, recipients, subject, sent_at) VALUES (?, ?, ?, ?, NOW())',
             [report.id, req.user.id, recipients.join(', '), emailContent.subject]
         );
 
-        res.status(200).json({ 
+        res.status(200).json({
             success: true,
             message: 'Report sent successfully'
         });
     } catch (error) {
         console.error('Error sending report email:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to send email',
             details: error.message
         });

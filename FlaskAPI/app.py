@@ -86,6 +86,125 @@ ml_artifacts = load_artifacts()
 RAW_DATA = None
 PREPROCESSED_DATA = None
 
+
+def filter_data_by_criteria(data, criteria, cluster_id=None):
+    try:
+        # Initialize with full dataset
+        filtered_data = data.copy()
+        logging.info(f"Starting with {len(filtered_data)} records")
+
+        def apply_single_filter(field, value):
+            """Apply one filter condition"""
+            nonlocal filtered_data
+            try:
+                original_count = len(filtered_data)
+                
+                # Handle numeric fields with operators
+                if field in ['Monthly Income', 'Average spending']:
+                    if isinstance(value, str):
+                        # Extract operator if present
+                        operator = None
+                        if value.startswith('<'):
+                            operator = '<'
+                            value = value[1:].strip()
+                        elif value.startswith('>'):
+                            operator = '>'
+                            value = value[1:].strip()
+                        
+                        # Clean numeric value
+                        value = value.replace(',', '').strip()
+                        
+                        if operator == '<':
+                            threshold = float(value)
+                            filtered_data = filtered_data[
+                                filtered_data[field].str.replace(',', '').astype(float) < threshold
+                            ]
+                        elif operator == '>':
+                            threshold = float(value)
+                            filtered_data = filtered_data[
+                                filtered_data[field].str.replace(',', '').astype(float) > threshold
+                            ]
+                        elif '-' in value:  # Range
+                            low, high = map(float, value.split('-'))
+                            filtered_data = filtered_data[
+                                (filtered_data[field].str.replace(',', '').astype(float) >= low) & 
+                                (filtered_data[field].str.replace(',', '').astype(float) <= high)
+                            ]
+                        else:  # Exact value
+                            filtered_data = filtered_data[
+                                filtered_data[field].str.replace(',', '').astype(float) == float(value)
+                            ]
+                
+                # Handle Age ranges
+                elif field == 'Age':
+                    if '-' in value:
+                        low, high = map(int, value.split('-'))
+                        filtered_data = filtered_data[
+                            filtered_data['Age'].str.match(f"^{low}-{high}$", na=False)
+                        ]
+                    else:  # Single age value
+                        filtered_data = filtered_data[
+                            filtered_data['Age'].astype(str).str.strip() == value.strip()
+                        ]
+                
+                # Handle all other categorical fields
+                else:
+                    filtered_data = filtered_data[
+                        filtered_data[field].astype(str).str.strip().str.lower() == value.strip().lower()
+                    ]
+                
+                logging.info(f"Filter: {field}={value} | {original_count} → {len(filtered_data)} records")
+                return True
+                
+            except Exception as e:
+                logging.error(f"Failed to apply {field}={value}: {str(e)}")
+                return False
+
+        # Process criteria
+        if isinstance(criteria, str):
+            # Handle comma-separated criteria
+            criteria_parts = [part.strip() for part in criteria.split(',') if part.strip()]
+            for part in criteria_parts:
+                # Supported fields - add any missing ones
+                fields = [
+                    'Age', 'Gender', 'Region', 'Monthly Income', 
+                    'Average spending', 'Frequency of Shopping(Regular)',
+                    'Categories', 'Means of Payment'
+                ]
+                
+                # Find which field this part refers to
+                applied = False
+                for field in fields:
+                    if part.startswith(field):
+                        value = part[len(field):].strip()
+                        if not apply_single_filter(field, value):
+                            raise ValueError(f"Invalid criteria format: {part}")
+                        applied = True
+                        break
+                
+                if not applied:
+                    raise ValueError(f"Unrecognized field in criteria: {part}")
+        
+        elif isinstance(criteria, dict):
+            # Handle dictionary criteria
+            for field, value in criteria.items():
+                if not apply_single_filter(field, str(value)):
+                    raise ValueError(f"Invalid criteria: {field}={value}")
+        
+        else:
+            raise ValueError("Criteria must be string or dictionary")
+
+        # Apply cluster filter if specified
+        if cluster_id is not None and 'Cluster' in filtered_data.columns:
+            filtered_data = filtered_data[filtered_data['Cluster'] == cluster_id]
+
+        logging.info(f"Final filtered count: {len(filtered_data)}")
+        return filtered_data
+
+    except Exception as e:
+        logging.error(f"Filtering failed: {str(e)}")
+        raise ValueError(f"Failed to filter data: {str(e)}")
+
 def generate_visualizations(df):
     """Generate visualizations from the dataset; save some to disk and return base64 for heatmap and silhouette"""
     try:
@@ -275,7 +394,21 @@ def write_customers(customers):
 def read_segments():
     try:
         with open(SEGMENTS_FILE, 'r') as f:
-            return json.load(f)
+            segments = json.load(f)
+        # Validate segments
+        valid_segments = []
+        for segment in segments:
+            if not isinstance(segment, dict):
+                logging.warning(f"Invalid segment format, skipping: {segment}")
+                continue
+            if 'criteria' not in segment or not segment['criteria']:
+                logging.warning(f"Segment missing 'criteria' field, setting default: {segment}")
+                segment['criteria'] = "Unknown criteria"
+            if 'name' not in segment or not segment['name']:
+                logging.warning(f"Segment missing 'name' field, setting default: {segment}")
+                segment['name'] = f"Unnamed Segment {segment.get('id', 'Unknown')}"
+            valid_segments.append(segment)
+        return valid_segments
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
@@ -488,8 +621,10 @@ def get_segments():
             for i in range(4)
         ]
         custom_segments = read_segments()
+        logging.info(f"Loaded custom segments: {custom_segments}")  # Debug log
         for segment in custom_segments:
-            filtered_data = filter_data_by_criteria(RAW_DATA.copy(), segment['criteria'], None)
+            criteria = segment.get('criteria', 'Unknown criteria')  # Use get with default
+            filtered_data = filter_data_by_criteria(RAW_DATA.copy(), criteria, None)
             segment['count'] = len(filtered_data)
             segment['source'] = "Custom"
         return jsonify(model_segments + custom_segments)
@@ -522,7 +657,7 @@ def update_segment(segment_id):
         data = request.get_json()
         if not data or 'criteria' not in data:
             return jsonify({'error': 'Criteria field is required'}), 400
-        new_criteria = data['criteria']
+        new_criteria = data['criteria'] or "Unknown criteria"  # Ensure criteria is not empty
         if segment_id <= 4:
             cluster_id = segment_id - 1
             if cluster_id not in CLUSTER_PROFILES:
@@ -570,48 +705,6 @@ def delete_segment(segment_id):
         logging.error(f"Error in delete_segment: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def filter_data_by_criteria(data, criteria, cluster_id=None):
-    try:
-        conditions = []
-        for part in criteria.split(','):
-            part = part.strip()
-            if 'Age' in part:
-                age_range = part.split('Age')[-1].strip()
-                if '-' in age_range:
-                    low, high = map(int, age_range.split('-'))
-                    conditions.append((data['Age'].str.match(f"^{low}-{high}$", na=False)))
-            elif 'Gender' in part:
-                gender = part.split('Gender')[-1].strip()
-                conditions.append((data['Gender'] == gender))
-            elif 'Income' in part:
-                if '<' in part:
-                    threshold = int(part.split('<')[-1].replace(',', '').strip())
-                    conditions.append((data['Monthly Income'].str.replace(',', '').astype(float) < threshold))
-                elif '>' in part:
-                    threshold = int(part.split('>')[-1].replace(',', '').strip())
-                    conditions.append((data['Monthly Income'].str.replace(',', '').astype(float) > threshold))
-            elif 'Spends' in part:
-                if '<' in part:
-                    threshold = int(part.split('<')[-1].replace(',', '').strip())
-                    conditions.append((data['Average spending'].str.replace(',', '').astype(float) < threshold))
-                elif '>' in part:
-                    threshold = int(part.split('>')[-1].replace(',', '').strip())
-                    conditions.append((data['Average spending'].str.replace(',', '').astype(float) > threshold))
-            elif 'Frequency of Shopping(Regular)' in part:
-                freq = part.split('Frequency of Shopping(Regular)')[-1].strip()
-                conditions.append((data['Frequency of Shopping(Regular)'] == freq))
-        if conditions:
-            final_condition = conditions[0]
-            for cond in conditions[1:]:
-                final_condition = final_condition & cond
-            filtered_data = data[final_condition]
-        else:
-            filtered_data = data
-        return filtered_data
-    except Exception as e:
-        logging.error(f"Error filtering data: {str(e)}")
-        raise
-
 @app.route('/segment', methods=['POST'])
 def segment_customer():
     try:
@@ -619,21 +712,29 @@ def segment_customer():
         if not data:
             return jsonify({'error': 'No JSON data provided'}), 400
         if 'name' in data and 'criteria' in data:
-            if PREPROCESSED_DATA is None:
+            if PREPROCESSED_DATA is None or RAW_DATA is None:
                 return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
+            # Log the unique values in the Gender column
+            if 'Gender' in RAW_DATA.columns:
+                unique_genders = RAW_DATA['Gender'].unique().tolist()
+                logging.info(f"Unique values in Gender column: {unique_genders}")
+            else:
+                logging.warning("Gender column not found in RAW_DATA")
             segments = read_segments()
             new_segment = {
                 'id': max([s['id'] for s in segments], default=4) + 1,
                 'name': data['name'],
-                'criteria': data['criteria'],
+                'criteria': data['criteria'] or "Unknown criteria",
                 'source': 'Custom',
                 'createdAt': datetime.now().isoformat()
             }
-            filtered_data = filter_data_by_criteria(RAW_DATA.copy(), data['criteria'], None)
+            filtered_data = filter_data_by_criteria(RAW_DATA.copy(), new_segment['criteria'], None)
+            logging.info(f"Filtered data size for criteria '{new_segment['criteria']}': {len(filtered_data)}")
             new_segment['count'] = len(filtered_data)
             segments.append(new_segment)
             write_segments(segments)
             return jsonify(new_segment), 201
+        # Rest of the route remains unchanged
         else:
             valid, error = validate_input(data if not isinstance(data, list) else data[0])
             if not valid:
@@ -684,6 +785,7 @@ def segment_customer():
     except Exception as e:
         logging.error(f"Error in segment_customer: {str(e)}")
         return jsonify({'error': str(e), 'status': 'error'}), 400
+
 
 @app.route('/dashboard', methods=['GET'])
 def get_dashboard_data():

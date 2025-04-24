@@ -1,50 +1,90 @@
 [
   {
-    "id": 5,
-    "name": "Youn Age",
-    "criteria": "Age 18-24",
+    "id": 6,
+    "name": "Male Customers",
+    "criteria": "Gender Male",
     "source": "Custom",
-    "createdAt": "2025-04-16T11:45:10.780571",
-    "count": 210
+    "createdAt": "2025-04-24T03:25:19.083487",
+    "count": 375
   },
   {
     "id": 7,
-    "name": "Age",
-    "criteria": "Age 35-44",
+    "name": "Kampala Customers",
+    "criteria": "Region Central",
     "source": "Custom",
-    "createdAt": "2025-04-16T11:49:10.065397",
-    "count": 167
-  },
-  {
-    "id": 8,
-    "name": "Age brackets",
-    "criteria": "Age 25-34",
-    "source": "Custom",
-    "createdAt": "2025-04-16T11:52:13.063732",
-    "count": 221
+    "createdAt": "2025-04-24T03:27:38.360787",
+    "count": 264
   },
   {
     "id": 9,
-    "name": "Greater Age",
-    "criteria": "Age > 55+",
+    "name": "Gulu Customers",
+    "criteria": "Region Northern",
     "source": "Custom",
-    "createdAt": "2025-04-16T13:43:42.711092",
-    "count": 1002
+    "createdAt": "2025-04-24T03:28:30.945970",
+    "count": 239
   },
   {
     "id": 10,
-    "name": "Young Male",
-    "criteria": "Age > 55",
+    "name": "Mbale Customers",
+    "criteria": "Region Eastern",
     "source": "Custom",
-    "createdAt": "2025-04-16T14:59:30.983599",
-    "count": 1002
+    "createdAt": "2025-04-24T03:42:12.199011",
+    "count": 233
   },
   {
     "id": 11,
-    "name": "Young People",
-    "criteria": "Age 18-24",
+    "name": "Mbale Customers",
+    "criteria": "Region Eastern",
     "source": "Custom",
-    "createdAt": "2025-04-16T15:52:40.689420",
-    "count": 210
+    "createdAt": "2025-04-24T03:46:37.111804",
+    "count": 233
+  },
+  {
+    "id": 12,
+    "name": "Kampala Male Customers",
+    "criteria": "Gender Male, Region Central",
+    "source": "Custom",
+    "createdAt": "2025-04-24T03:47:20.488449",
+    "count": 101
+  },
+  {
+    "id": 13,
+    "name": "Affluent Female Shoppers",
+    "criteria": "Gender Female, Frequency of Shopping(Regular) Weekly",
+    "source": "Custom",
+    "createdAt": "2025-04-24T03:55:04.613791",
+    "count": 58
+  },
+  {
+    "id": 14,
+    "name": "Affluent Female Shoppers",
+    "criteria": "Gender Female, Frequency of Shopping(Regular) Weekly, Region Northern",
+    "source": "Custom",
+    "createdAt": "2025-04-24T03:56:47.110018",
+    "count": 14
+  },
+  {
+    "id": 15,
+    "name": "Affluent Female Shoppers",
+    "criteria": "Gender Female, Frequency of Shopping(Regular) Weekly, Region Northern, Age 24-44",
+    "source": "Custom",
+    "createdAt": "2025-04-24T03:57:39.065874",
+    "count": 0
+  },
+  {
+    "id": 16,
+    "name": "Young Spenders",
+    "criteria": "Age 25-34, Gender Male",
+    "source": "Custom",
+    "createdAt": "2025-04-24T04:18:09.903485",
+    "count": 86
+  },
+  {
+    "id": 17,
+    "name": "Western female",
+    "criteria": "Region Western, Gender Female",
+    "source": "Custom",
+    "createdAt": "2025-04-24T04:19:49.697179",
+    "count": 90
   }
 ]

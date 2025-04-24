@@ -74,7 +74,8 @@
           <div v-else class="spinner"></div>
         </button>
 
-        <!-- Social Login -->
+        <!-- Social Login (Commented out until implemented) -->
+        <!--
         <div class="social-login">
           <div class="divider">
             <span>Or continue with</span>
@@ -88,6 +89,7 @@
             </button>
           </div>
         </div>
+        -->
 
         <!-- Registration Link -->
         <p class="signup-link">
@@ -141,7 +143,32 @@ export default {
       errorMessage: '',
     };
   },
-  created() {
+  async created() {
+    // Check if already authenticated
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      try {
+        console.log('Checking existing token on login page');
+        const response = await axios.get('http://localhost:5000/api/admin/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.status === 200) {
+          console.log('Valid token found, redirecting to /admin');
+          this.$router.push('/admin');
+        } else {
+          console.log('Invalid token, clearing');
+          localStorage.removeItem('authToken');
+        }
+      } catch (error) {
+        console.error('Error validating token:', {
+          message: error.message,
+          response: error.response ? { status: error.response.status, data: error.response.data } : null,
+        });
+        localStorage.removeItem('authToken');
+      }
+    }
+
+    // Load remembered email
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail) {
       this.email = savedEmail;
@@ -159,20 +186,33 @@ export default {
     async handleLogin() {
       this.validateEmail();
       if (this.emailError || !this.email || !this.password) {
+        if (!this.email) this.emailError = 'Email is required';
         if (!this.password) this.passwordError = 'Password is required';
+        return;
+      }
+      if (this.password.length < 8) {
+        this.passwordError = 'Password must be at least 8 characters long';
         return;
       }
 
       this.isLoading = true;
       try {
+        console.log('Sending login request:', { email: this.email });
         const response = await axios.post('http://localhost:5000/api/admin/login', {
           email: this.email,
           password: this.password,
+        }, {
+          headers: { 'Content-Type': 'application/json' },
         });
+
+        console.log('Login response:', response.data);
+        // Verify token exists
+        if (!response.data.token) {
+          throw new Error('No token received from server');
+        }
 
         // Store the authentication token
         localStorage.setItem('authToken', response.data.token);
-        this.$router.push('/users');
 
         // Handle "Remember Me" functionality
         if (this.rememberMe) {
@@ -181,38 +221,53 @@ export default {
           localStorage.removeItem('rememberedEmail');
         }
 
-        // Redirect to admin dashboard
+        console.log('Login successful, redirecting to /admin');
         this.$router.push('/admin');
       } catch (error) {
+        console.error('Login error:', {
+          message: error.message,
+          response: error.response ? { status: error.response.status, data: error.response.data } : null,
+          config: error.config,
+        });
         this.errorMessage =
           error.response?.data?.message ||
-          (error.response?.status === 401 ? 'Invalid admin credentials' : 'Login failed');
+          (error.response?.status === 400
+            ? 'Please provide both email and password'
+            : error.response?.status === 401
+            ? 'Invalid email or password'
+            : error.response?.status === 403
+            ? 'Your email is not verified'
+            : error.response?.status === 404
+            ? 'Login endpoint not found. Check server configuration.'
+            : error.message.includes('ECONNREFUSED')
+            ? 'Cannot connect to the server. Ensure it is running on port 5000.'
+            : 'An unexpected error occurred. Please try again.');
         this.showErrorModal = true;
-        this.password = ''; // Clear password field on error
+        this.password = '';
+        this.passwordError = '';
       } finally {
         this.isLoading = false;
       }
     },
+    // Placeholder for future OAuth implementation
+    /*
     loginWithGoogle() {
-      // Placeholder for Google OAuth login
       this.isLoading = true;
       console.log('Initiating Google login...');
-      // Example: Redirect to Google OAuth endpoint (implement with your backend)
-      window.location.href = 'http://localhost:5000/api/auth/google';
-      // After redirection, your backend should handle the callback and set the token
+      window.location.href = 'http://localhost:5000/api/admin/google';
     },
     loginWithMicrosoft() {
-      // Placeholder for Microsoft OAuth login
       this.isLoading = true;
       console.log('Initiating Microsoft login...');
-      // Example: Redirect to Microsoft OAuth endpoint (implement with your backend)
-      window.location.href = 'http://localhost:5000/api/auth/microsoft';
-      // After redirection, your backend should handle the callback and set the token
+      window.location.href = 'http://localhost:5000/api/admin/microsoft';
     },
+    */
   },
 };
 </script>
+
 <style scoped lang="scss">
+/* Existing styles remain unchanged */
 $primary: #4a6cf7;
 $secondary: #2d3748;
 $accent: #ed64a6;

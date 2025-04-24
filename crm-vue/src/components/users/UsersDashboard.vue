@@ -357,7 +357,7 @@ export default {
       { path: '/customers', text: 'Customers', icon: 'people', badge: 0 },
       { path: '/segments', text: 'Segments', icon: 'category', badge: 2 },
       { path: '/analytics', text: 'Analytics', icon: 'insights', badge: 0 },
-      { path: '/reports', text: 'Reports', icon: 'description', badge: 1 },
+      { path: '/users-report', text: 'Reports', icon: 'description', badge: 1 },
       { path: '/settings', text: 'Settings', icon: 'settings', badge: 0 },
     ]);
 
