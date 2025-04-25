@@ -1,5 +1,5 @@
 Timestamp,Age,Gender,Monthly Income,Region,Frequency of Shopping(Regular),Average spending ,Categories, Means of Payment,Enrolled on Jumia Prime or any loyalty program,  Frequency of shopping(Occassional),  Rate of Satisfaction,Rate of availability of products ,Reason for your purchase,  Device to shop,Internet connection used ,Recommendation to others
-10/10/2024 12:46,25-34,Male,"<450,000",Central,"Daily, A few times a year","<50,000",Electronics,"Mobile Money, Cash on Delivery",No,Rarely,3,2,"Convenience, Delivery speed","Smart phones, Laptops","Mobile data, Public Wi-Fi",Yes
+10/10/2024 12:46,25-34,Male,"<450,000",Central,"Daily, A few times a year","<50,000",Electronics,"Mobile Money, Cash on Delivery",No,Rarely,3,2,"Convenience, Delivery speed","Smart phones, Laptops",,Yes
 10/10/2024 14:56,25-34,Male,None,Northern,A few times a year,"50,000-100,000",Electronics,Cash on Delivery,No,Rarely,5,3,Product variety,Smart phones,Home Wi-Fi,No
 10/10/2024 15:01,25-34,Male,">2,000,000",Western,A few times a year,"50,000-100,000",Electronics,"Mobile Money, Cash on Delivery",No,Rarely,3,3,"Price, Convenience, Discounts/offers",Smart phones,Mobile data,Yes
 10/10/2024 15:03,35-44,Male,"450,000-1,000,000",Central,A few times a year,"<50,000",Health & Beauty,Cash on Delivery,No,Rarely,1,3,Price,Smart phones,Mobile data,Yes

@@ -86,7 +86,6 @@ ml_artifacts = load_artifacts()
 RAW_DATA = None
 PREPROCESSED_DATA = None
 
-
 def filter_data_by_criteria(data, criteria, cluster_id=None):
     try:
         # Initialize with full dataset
@@ -99,41 +98,67 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
             try:
                 original_count = len(filtered_data)
                 
-                # Handle numeric fields with operators
-                if field in ['Monthly Income', 'Average spending']:
+                # Handle numeric fields (Monthly Income, Average spending, Rate of Satisfaction, Rate of availability of products)
+                if field in ['Monthly Income', 'Average spending', 'Rate of Satisfaction', 'Rate of availability of products']:
                     if isinstance(value, str):
-                        # Extract operator if present
+                        # Clean input value and detect operators
+                        value = value.strip()
                         operator = None
                         if value.startswith('<'):
                             operator = '<'
-                            value = value[1:].strip()
+                            value = value[1:].replace(',', '').strip()
                         elif value.startswith('>'):
                             operator = '>'
-                            value = value[1:].strip()
+                            value = value[1:].replace(',', '').strip()
+                        else:
+                            value = value.replace(',', '').strip()
+                        logging.debug(f"Processing {field} with value: {value}, operator: {operator}")
                         
-                        # Clean numeric value
-                        value = value.replace(',', '').strip()
+                        try:
+                            # Convert dataset column to numeric, handling strings or numbers
+                            if filtered_data[field].dtype == 'object':
+                                # String column, remove commas and convert to numeric
+                                logging.debug(f"Raw {field} values: {filtered_data[field].head().tolist()}")
+                                numeric_data = pd.to_numeric(
+                                    filtered_data[field].str.replace(',', '').str.strip(),
+                                    errors='coerce'
+                                )
+                            else:
+                                # Already numeric (int/float)
+                                numeric_data = filtered_data[field].astype(float)
+                            
+                            # Remove rows where conversion failed (NaN values)
+                            original_len = len(filtered_data)
+                            filtered_data['numeric_temp'] = numeric_data
+                            filtered_data = filtered_data[filtered_data['numeric_temp'].notna()]
+                            numeric_data = filtered_data['numeric_temp']
+                            logging.debug(f"Rows after NaN removal: {original_len} → {len(filtered_data)}")
+                            
+                            # Apply filter based on operator
+                            if operator == '<':
+                                threshold = float(value)
+                                filtered_data = filtered_data[numeric_data < threshold]
+                            elif operator == '>':
+                                threshold = float(value)
+                                filtered_data = filtered_data[numeric_data > threshold]
+                            elif '-' in value:  # Handle range (e.g., '50000-1000000')
+                                low, high = map(float, value.split('-'))
+                                filtered_data = filtered_data[
+                                    (numeric_data >= low) & (numeric_data <= high)
+                                ]
+                            else:  # Handle single value (e.g., '50000')
+                                target_value = float(value)
+                                filtered_data = filtered_data[numeric_data == target_value]
+                            
+                            # Drop temporary column
+                            filtered_data = filtered_data.drop(columns=['numeric_temp'])
                         
-                        if operator == '<':
-                            threshold = float(value)
-                            filtered_data = filtered_data[
-                                filtered_data[field].str.replace(',', '').astype(float) < threshold
-                            ]
-                        elif operator == '>':
-                            threshold = float(value)
-                            filtered_data = filtered_data[
-                                filtered_data[field].str.replace(',', '').astype(float) > threshold
-                            ]
-                        elif '-' in value:  # Range
-                            low, high = map(float, value.split('-'))
-                            filtered_data = filtered_data[
-                                (filtered_data[field].str.replace(',', '').astype(float) >= low) & 
-                                (filtered_data[field].str.replace(',', '').astype(float) <= high)
-                            ]
-                        else:  # Exact value
-                            filtered_data = filtered_data[
-                                filtered_data[field].str.replace(',', '').astype(float) == float(value)
-                            ]
+                        except ValueError as e:
+                            logging.error(f"Invalid numeric format for {field}: value='{value}', error={str(e)}")
+                            return False
+                        except Exception as e:
+                            logging.error(f"Unexpected error processing {field}: value='{value}', error={str(e)}")
+                            return False
                 
                 # Handle Age ranges
                 elif field == 'Age':
@@ -147,7 +172,7 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                             filtered_data['Age'].astype(str).str.strip() == value.strip()
                         ]
                 
-                # Handle all other categorical fields
+                # Handle all other categorical fields (Gender, Region, Categories, etc.)
                 else:
                     filtered_data = filtered_data[
                         filtered_data[field].astype(str).str.strip().str.lower() == value.strip().lower()
@@ -165,11 +190,12 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
             # Handle comma-separated criteria
             criteria_parts = [part.strip() for part in criteria.split(',') if part.strip()]
             for part in criteria_parts:
-                # Supported fields - add any missing ones
+                # Supported fields
                 fields = [
                     'Age', 'Gender', 'Region', 'Monthly Income', 
                     'Average spending', 'Frequency of Shopping(Regular)',
-                    'Categories', 'Means of Payment'
+                    'Categories', 'Means of Payment', 'Rate of Satisfaction',
+                    'Rate of availability of products'
                 ]
                 
                 # Find which field this part refers to

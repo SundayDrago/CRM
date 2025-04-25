@@ -5,9 +5,9 @@
       <input v-model="searchQuery" type="text" placeholder="Search by action or user..." class="search-input" />
       <select v-model="actionFilter" class="sort-select">
         <option value="">All Actions</option>
-        <option value="Login">Login</option>
-        <option value="Logout">Logout</option>
-        <option value="Failed Login">Failed Login</option>
+        <option value="login">Login</option>
+        <option value="logout">Logout</option>
+        <option value="failed_login">Failed Login</option>
       </select>
       <select v-model="sortBy" class="sort-select">
         <option value="timestamp-desc">Newest First</option>
@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(log, index) in paginatedLogs" :key="index" :class="{ 'failed-login': log.action === 'Failed Login' }">
+          <tr v-for="(log, index) in paginatedLogs" :key="index" :class="{ 'failed-login': log.action === 'failed_login' }">
             <td>{{ log.action }}</td>
             <td>{{ log.user }}</td>
             <td>{{ formatTimestamp(log.timestamp) }}</td>
@@ -50,13 +50,13 @@
 import axios from 'axios';
 
 export default {
-  name: "ActivityLogPage",
+  name: 'ActivityLogPage',
   data() {
     return {
       activityLogs: [],
-      searchQuery: "",
-      actionFilter: "",
-      sortBy: "timestamp-desc",
+      searchQuery: '',
+      actionFilter: '',
+      sortBy: 'timestamp-desc',
       currentPage: 1,
       itemsPerPage: 5,
       isLoading: false,
@@ -66,7 +66,7 @@ export default {
     filteredLogs() {
       let logs = [...this.activityLogs];
       if (this.actionFilter) {
-        logs = logs.filter(log => log.action === this.actionFilter);
+        logs = logs.filter((log) => log.action.toLowerCase() === this.actionFilter.toLowerCase());
       }
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
@@ -77,25 +77,28 @@ export default {
         );
       }
       switch (this.sortBy) {
-        case "timestamp-asc":
+        case 'timestamp-asc':
           logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           break;
-        case "timestamp-desc":
+        case 'timestamp-desc':
           logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           break;
-        case "action":
+        case 'action':
           logs.sort((a, b) => (a.action || '').localeCompare(b.action || ''));
           break;
-        case "user":
+        case 'user':
           logs.sort((a, b) => (a.user || '').localeCompare(b.user || ''));
           break;
       }
+      console.log('Filtered logs:', logs); // Debug log
       return logs;
     },
     paginatedLogs() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
       const end = start + this.itemsPerPage;
-      return this.filteredLogs.slice(start, end);
+      const paginated = this.filteredLogs.slice(start, end);
+      console.log('Paginated logs:', paginated, 'Current page:', this.currentPage); // Debug log
+      return paginated;
     },
     totalPages() {
       return Math.ceil(this.filteredLogs.length / this.itemsPerPage);
@@ -103,31 +106,41 @@ export default {
   },
   methods: {
     formatTimestamp(timestamp) {
-      return new Date(timestamp).toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
+      return new Date(timestamp).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       });
     },
     async fetchLogs() {
       this.isLoading = true;
       try {
-        const response = await axios.get('http://127.0.0.1:5000/api/admin/activity-logs', {
+        console.log('Fetching logs with token:', localStorage.getItem('authToken')); // Debug log
+        const response = await axios.get('http://127.0.0.1:5000/api/admin/activity-logins', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('authToken')}`,
           },
         });
-        this.activityLogs = response.data;
+        console.log('Backend response:', response.data); // Debug log
+        // Handle cases where data might be directly in response.data or response.data.data
+        const logs = response.data.data || response.data || [];
+        this.activityLogs = logs.map((log) => ({
+          action: log.Action || log.action,
+          user: log.User || log.user,
+          timestamp: log.Timestamp || log.timestamp,
+          details: log.Details || log.details,
+        }));
+        console.log('Mapped activityLogs:', this.activityLogs); // Debug log
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
-        console.error("Error fetching logs:", errorMessage);
+        console.error('Error fetching logs:', errorMessage);
         if (this.$toast) {
-          this.$toast.error("Failed to load activity logs: " + errorMessage);
+          this.$toast.error('Failed to load activity logs: ' + errorMessage);
         } else {
-          console.warn("Toast notification not available; error:", errorMessage);
+          console.warn('Toast notification not available; error:', errorMessage);
         }
       } finally {
         this.isLoading = false;
@@ -135,6 +148,7 @@ export default {
     },
   },
   mounted() {
+    console.log('ActivityLogPage mounted'); // Debug log
     this.fetchLogs();
   },
 };
@@ -162,7 +176,8 @@ h1 {
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
-.search-input, .sort-select {
+.search-input,
+.sort-select {
   flex: 1;
   padding: 10px;
   border: 1px solid #ccc;
@@ -188,7 +203,8 @@ table {
   border-radius: 8px;
   overflow: hidden;
 }
-th, td {
+th,
+td {
   padding: 14px;
   text-align: left;
   border-bottom: 1px solid #ddd;
@@ -243,10 +259,13 @@ tr:hover {
     margin: 20px;
     padding: 15px;
   }
-  table, .search-input, .sort-select {
+  table,
+  .search-input,
+  .sort-select {
     font-size: 12px;
   }
-  th, td {
+  th,
+  td {
     padding: 10px;
   }
 }
