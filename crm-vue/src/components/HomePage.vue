@@ -99,7 +99,7 @@
             <div class="quote-mark">“</div>
             <p class="testimonial-text">CustomerSeg transformed our marketing strategy. We now understand our customers at a level we never thought possible.</p>
             <div class="testimonial-author">
-              <img src="@/assets/testimonial-1.jpg" alt="Sunday Drago" class="author-avatar">
+              <img src="@/assets/img-1.png" alt="Sunday Drago" class="author-avatar">
               <div class="author-info">
                 <p class="author-name">Sunday Drago</p>
                 <p class="author-title">CMO, TechSolutions Inc.</p>
@@ -359,7 +359,7 @@ p {
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('@/assets/hero-pattern.png') center/cover;
+    background: url('@/assets/hero-pattern.jpg') center/cover;
     opacity: 0.05;
     z-index: -1;
   }
@@ -407,7 +407,7 @@ p {
     font-size: clamp(1.1rem, 2vw, 1.5rem);
     max-width: 600px;
     margin-bottom: 3rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(70, 68, 68, 0.9);
   }
 }
 
@@ -724,7 +724,7 @@ p {
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('@/assets/cta-bg.jpg') center/cover fixed;
+    background: url('@/assets/cta-bg.png') center/cover fixed;
     z-index: -2;
     
     &::after {
@@ -734,7 +734,7 @@ p {
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(241, 235, 235, 0.7);
       z-index: -1;
     }
   }
@@ -752,7 +752,7 @@ p {
     
     p {
       font-size: 1.3rem;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(244, 237, 237, 0.9);
       margin-bottom: 2.5rem;
     }
   }
@@ -771,11 +771,11 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 10px 30px -10px rgba(253, 121, 168, 0.5);
+  box-shadow: 0 10px 30px -10px rgba(236, 104, 148, 0.5);
   
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 15px 40px -10px rgba(253, 121, 168, 0.6);
+    box-shadow: 0 15px 40px -10px rgba(236, 102, 169, 0.6);
     
     .arrow-icon {
       transform: translateX(5px);
@@ -815,7 +815,7 @@ p {
   }
   
   p {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(9, 7, 7, 0.7);
     margin-bottom: 30px;
   }
 }
@@ -825,7 +825,7 @@ p {
   gap: 20px;
   
   a {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(5, 4, 4, 0.7);
     font-size: 1.2rem;
     transition: all 0.3s ease;
     
@@ -852,7 +852,7 @@ p {
   
   a {
     display: block;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(5, 4, 4, 0.7);
     margin-bottom: 12px;
     text-decoration: none;
     transition: all 0.3s ease;
@@ -868,7 +868,7 @@ p {
   max-width: 1200px;
   margin: 60px auto 0;
   padding-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(4, 3, 3, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;

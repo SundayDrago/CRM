@@ -50,36 +50,71 @@ const transporter = nodemailer.createTransport({
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
         return res.status(400).json({ message: "Email and password are required" });
     }
 
     try {
-        const result = await queryPromise("SELECT * FROM users WHERE email = ?", [email]);
-        if (!result.length) {
+        const [users] = await db.promise().query("SELECT * FROM users WHERE email = ?", [email]);
+        if (users.length === 0) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        const user = result[0];
-        if (!user.password) {
-            return res.status(403).json({ message: "Account not fully set up. Please complete setup." });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.password || user.temp_password);
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
         if (user.status !== "active") {
-            return res.status(403).json({ message: "Account not active. Please contact an admin." });
+            return res.status(403).json({ message: "Account not active" });
         }
 
-        const token = jwt.sign({ id: user.id, isAdmin: false }, "your_jwt_secret", { expiresIn: "1h" });
-        res.status(200).json({ message: "Login successful", token, redirect: "/users-dashboard" });
+        // Log login activity
+        await db.promise().query(
+            "INSERT INTO activity_logins (user_id, action, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)",
+            [
+                user.id,
+                "login",
+                `User ${user.username} logged in`,
+                req.ip,
+                req.get("User-Agent")
+            ]
+        );
+
+        const token = jwt.sign(
+            { id: user.id, isAdmin: false },
+            process.env.JWT_SECRET || "your_jwt_secret",
+            { expiresIn: "1h" }
+        );
+        res.status(200).json({ message: "Login successful", token });
     } catch (error) {
-        handleServerError(res, error);
+        console.error("User login error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
+
+
+// Backend route: /api/user/profile
+// app.get('/profile', (req, res) => {
+//     const token = req.headers.authorization?.split(' ')[1];
+  
+//     if (!token) {
+//       return res.status(401).json({ message: 'No token provided' });
+//     }
+  
+//     try {
+//       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  
+//       if (!decoded.isAdmin) {
+//         return res.status(200).json({ message: 'User profile', user: decoded });
+//       } else {
+//         return res.status(403).json({ message: 'Access denied. Admins are not allowed.', expectNotAdmin: false });
+//       }
+//     } catch (error) {
+//       return res.status(401).json({ message: 'Invalid token' });
+//     }
+//   });
 
 // User profile routes
 router.get("/profile", authenticateToken, async (req, res) => {

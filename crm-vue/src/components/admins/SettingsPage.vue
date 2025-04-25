@@ -275,23 +275,19 @@ export default {
   methods: {
     calculatePasswordStrength(password) {
       let strength = 0;
-
-      // Length check
       if (password.length >= 8) strength++;
       if (password.length >= 12) strength++;
-
-      // Character type checks
       if (/[A-Z]/.test(password)) strength++;
       if (/[0-9]/.test(password)) strength++;
       if (/[^A-Za-z0-9]/.test(password)) strength++;
-
-      // Cap at 5 (very strong)
       return Math.min(5, strength);
     },
     async fetchAdminProfile() {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken");
+      console.log("Fetching profile with token:", token ? "Token exists" : "No token");
       if (!token) {
         this.showNotification("error", "Authentication token is missing. Please log in again.");
+        this.$router.push("/login");
         return;
       }
 
@@ -299,20 +295,30 @@ export default {
         const response = await axios.get("http://localhost:5000/api/admin/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log("Profile response:", response.data);
         this.admin.name = response.data.name;
         this.admin.email = response.data.email;
       } catch (error) {
+        console.error("Profile fetch error:", {
+          message: error.message,
+          response: error.response ? { status: error.response.status, data: error.response.data } : null
+        });
         const message = error.response?.data?.message || "Failed to load profile data. Please try again.";
         this.showNotification("error", message);
-        console.error("Profile fetch error:", error);
+        if (error.response?.status === 401) {
+          localStorage.removeItem("authToken");
+          this.$router.push("/login");
+        }
       }
     },
     async updateProfile() {
       this.isProfileLoading = true;
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken");
+      console.log("Updating profile with token:", token ? "Token exists" : "No token");
 
       if (!token) {
         this.showNotification("error", "Authentication token is missing. Please log in again.");
+        this.$router.push("/login");
         this.isProfileLoading = false;
         return;
       }
@@ -326,10 +332,10 @@ export default {
           { name: this.admin.name, email: this.admin.email },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        console.log("Profile update response:", response.data);
 
         this.showNotification("success", response.data.message || "Profile updated successfully!");
 
-        // Send notification email
         try {
           await axios.post(
             "http://localhost:5000/api/admin/users/send-notification",
@@ -340,23 +346,33 @@ export default {
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
+          console.log("Notification email sent");
         } catch (notificationError) {
           console.warn("Failed to send notification email:", notificationError);
         }
       } catch (error) {
+        console.error("Profile update error:", {
+          message: error.message,
+          response: error.response ? { status: error.response.status, data: error.response.data } : null
+        });
         const message = error.response?.data?.message || error.message || "Failed to update profile.";
         this.showNotification("error", message);
-        console.error("Profile update error:", error);
+        if (error.response?.status === 401) {
+          localStorage.removeItem("authToken");
+          this.$router.push("/login");
+        }
       } finally {
         this.isProfileLoading = false;
       }
     },
     async updatePassword() {
       this.isPasswordLoading = true;
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken");
+      console.log("Updating password with token:", token ? "Token exists" : "No token");
 
       if (!token) {
         this.showNotification("error", "Authentication token is missing. Please log in again.");
+        this.$router.push("/login");
         this.isPasswordLoading = false;
         return;
       }
@@ -372,21 +388,28 @@ export default {
           { currentPassword: this.passwords.current, newPassword: this.passwords.new },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        console.log("Password update response:", response.data);
 
         this.showNotification("success", response.data.message || "Password updated successfully!");
         this.passwords.current = "";
         this.passwords.new = "";
         this.passwords.confirm = "";
       } catch (error) {
+        console.error("Password update error:", {
+          message: error.message,
+          response: error.response ? { status: error.response.status, data: error.response.data } : null
+        });
         const message = error.response?.data?.message || error.message || "Failed to update password.";
         this.showNotification("error", message);
-        console.error("Password update error:", error);
+        if (error.response?.status === 401) {
+          localStorage.removeItem("authToken");
+          this.$router.push("/login");
+        }
       } finally {
         this.isPasswordLoading = false;
       }
     },
     showNotification(type, message) {
-      // Clear any existing timeout
       if (this.notification.timeout) {
         clearTimeout(this.notification.timeout);
       }
@@ -726,7 +749,6 @@ export default {
   transform: translateY(20px);
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .settings-page {
     padding: 1.5rem 1rem;

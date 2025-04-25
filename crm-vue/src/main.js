@@ -1,10 +1,11 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+//import jwtDecode from 'jwt-decode';
 import { createRouter, createWebHistory } from 'vue-router';
 import Toast from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
 import '@fortawesome/fontawesome-free/css/all.css';
-import axios from 'axios';
+//import axios from 'axios';
 
 // Import components
 import HomePage from './components/HomePage.vue';
@@ -74,44 +75,52 @@ const router = createRouter({
     routes,
 });
 
-//// Navigation guard
-router.beforeEach(async (to, from, next) => {
- const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
- const token = localStorage.getItem('authToken');
+// Navigation guard
+// router.beforeEach(async (to, from, next) => {
+//   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+//   const token = localStorage.getItem('authToken');
 
- if (!requiresAuth) {
-   // Allow access to public routes (e.g., /login, /register)
-   return next();
- }
+//   if (!requiresAuth) {
+//     return next();
+//   }
 
- if (!token) {
-   console.log(`No token found for ${to.path}, redirecting to /login`);
-   return next('/login');
- }
+//   if (!token) {
+//     console.log(`No token found for ${to.path}, redirecting to /login`);
+//     return next('/login');
+//   }
 
- try {
-   console.log(`Validating token for ${to.path}`);
-   const response = await axios.get('http://localhost:5000/api/admin/profile', {
-     headers: { Authorization: `Bearer ${token}` },
-   });
+//   try {
+//     // Decode token to check isAdmin
+//     const decoded = jwtDecode(token);
+//     const isAdmin = decoded.isAdmin;
+//     const validationUrl = isAdmin
+//       ? 'http://localhost:5000/api/admin/profile'
+//       : 'http://localhost:5000/api/user/profile'; // Add user profile endpoint in backend
 
-   if (response.status === 200) {
-     console.log(`Valid token for ${to.path}, proceeding`);
-     return next();
-   } else {
-     console.log(`Invalid response status ${response.status} for ${to.path}, clearing token`);
-     localStorage.removeItem('authToken');
-     return next('/login');
-   }
- } catch (error) {
-   console.error(`Token validation error for ${to.path}:`, {
-     message: error.message,
-     response: error.response ? { status: error.response.status, data: error.response.data } : null,
-   });
-   localStorage.removeItem('authToken');
-   return next('/login');
- }
-});
+//     console.log(`Validating token for ${to.path} as ${isAdmin ? 'admin' : 'user'}`);
+//     const response = await axios.get(validationUrl, {
+//       headers: { Authorization: `Bearer ${token}` },
+//     });
+
+//     if (response.status === 200) {
+//       console.log(`Valid token for ${to.path}, proceeding`);
+//       return next();
+//     } else {
+//       console.log(`Invalid response status ${response.status} for ${to.path}, clearing token`);
+//       localStorage.removeItem('authToken');
+//       return next('/login');
+//     }
+//   } catch (error) {
+//     console.error(`Token validation error for ${to.path}:`, {
+//       message: error.message,
+//       response: error.response ? { status: error.response.status, data: error.response.data } : null,
+//     });
+//     localStorage.removeItem('authToken');
+//     return next('/login');
+//   }
+// });
+
+
 // Create and mount the app
 
 const app = createApp(App);

@@ -1,67 +1,51 @@
-<!-- UserLogin.vue -->
 <template>
-  <div class="user-login-container">
-    <div class="login-card">
-      <h1>User Login</h1>
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            v-model.trim="email"
-            placeholder="Enter your email"
-            required
-            @input="validateEmail"
-            :aria-invalid="!!emailError"
-            aria-describedby="email-error"
-          />
-          <span v-if="emailError" id="email-error" class="error-message">{{ emailError }}</span>
-        </div>
-        <div class="form-group">
+  <div class="login-container">
+    <h1>User Login</h1>
+    <form @submit.prevent="handleLogin" class="login-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          v-model="email"
+          required
+          placeholder="Enter your email"
+          @input="validateEmail"
+        />
+        <span v-if="emailError" class="input-error">{{ emailError }}</span>
+      </div>
+      <div class="form-group">
+        <div class="label-row">
           <label for="password">Password</label>
-          <div class="password-wrapper">
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              id="password"
-              v-model.trim="password"
-              placeholder="Enter your password"
-              required
-              @input="validatePassword"
-              :aria-invalid="!!passwordError"
-              aria-describedby="password-error"
-            />
-            <button
-              type="button"
-              class="toggle-password"
-              @click="togglePassword"
-              :aria-label="showPassword ? 'Hide password' : 'Show password'"
-            >
-              <span class="material-icons">{{
-                showPassword ? 'visibility_off' : 'visibility'
-              }}</span>
-            </button>
-          </div>
-          <span v-if="passwordError" id="password-error" class="error-message">{{
-            passwordError
-          }}</span>
-          <p v-if="password.length && !passwordError" class="password-hint">
-            Password must be at least 8 characters long.
-          </p>
+          <router-link to="/forgot-password" class="forgot-password">Forgot Password?</router-link>
         </div>
-        <button
-          type="submit"
-          class="login-btn"
-          :disabled="isLoading || !!emailError || !!passwordError"
-        >
-          <span v-if="!isLoading">Sign In</span>
-          <div v-else class="spinner"></div>
-        </button>
-        <p class="admin-link">
-          Are you an admin? <router-link to="/login">Admin Login</router-link>
-        </p>
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      </form>
+        <div class="password-container">
+          <input
+            :type="showPassword ? 'text' : 'password'"
+            id="password"
+            v-model="password"
+            required
+            placeholder="Enter your password"
+            minlength="6"
+            @input="validatePassword"
+          />
+          <i
+            :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"
+            class="password-toggle-icon"
+            @click="togglePassword"
+          ></i>
+        </div>
+        <span v-if="passwordError" class="input-error">{{ passwordError }}</span>
+      </div>
+      <button type="submit" class="login-btn" :disabled="loading || !isFormValid">
+        {{ loading ? 'Logging in...' : 'Login' }}
+      </button>
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+    </form>
+    <div class="admin-link">
+      Are you an admin? <router-link to="/login">Admin Login</router-link>
     </div>
   </div>
 </template>
@@ -75,216 +59,241 @@ export default {
     return {
       email: '',
       password: '',
-      showPassword: false,
-      isLoading: false,
+      loading: false,
+      errorMessage: '',
       emailError: '',
       passwordError: '',
-      errorMessage: '',
-    };
+      showPassword: false
+    }
+  },
+  computed: {
+    isFormValid() {
+      return this.email && !this.emailError && 
+             this.password && !this.passwordError;
+    }
   },
   methods: {
     validateEmail() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      this.emailError = emailRegex.test(this.email)
-        ? ''
-        : 'Please enter a valid email address.';
-      this.clearGeneralError();
+      
+      if (!this.email) {
+        this.emailError = '';
+        return;
+      }
+
+      if (!emailRegex.test(this.email)) {
+        this.emailError = 'Please enter a valid email address';
+      } else {
+        this.emailError = '';
+      }
     },
     validatePassword() {
-      this.passwordError =
-        this.password.length >= 8 ? '' : 'Password must be at least 8 characters long.';
-      this.clearGeneralError();
+      if (!this.password) {
+        this.passwordError = '';
+        return;
+      }
+
+      if (this.password.length < 6) {
+        this.passwordError = 'Password must be at least 6 characters';
+      } else {
+        this.passwordError = '';
+      }
     },
     togglePassword() {
       this.showPassword = !this.showPassword;
     },
-    clearGeneralError() {
-      this.errorMessage = '';
-    },
     async handleLogin() {
-      this.validateEmail();
-      this.validatePassword();
-      if (this.emailError || this.passwordError || !this.email || !this.password) {
-        this.errorMessage = 'Please fill in all fields correctly.';
-        return;
-      }
+      if (!this.isFormValid) return;
 
-      this.isLoading = true;
+      this.loading = true;
+      this.errorMessage = '';
+
       try {
         const response = await axios.post('http://localhost:5000/api/user/login', {
           email: this.email,
-          password: this.password,
+          password: this.password
         });
-        localStorage.setItem('token', response.data.token);
-        this.$router.push(response.data.redirect || '/users-dashboard');
+        console.log('Response:', response);
+        const { data } = response;
+        console.log('Response Data:', data);
+
+        if (data.token) {
+          await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay
+          localStorage.setItem('authToken', data.token);
+          console.log('Token stored:', localStorage.getItem('authToken'));
+          const redirectPath = data.redirect || '/users-dashboard';
+          console.log('Redirecting to:', redirectPath);
+          try {
+            await this.$router.push(redirectPath);
+          } catch (err) {
+            console.error('Router push error:', err);
+            this.errorMessage = 'Failed to redirect to dashboard';
+          }
+        } else {
+          throw new Error('Authentication token not received');
+        }
       } catch (error) {
-        this.errorMessage =
-          error.response?.data?.message || 'Login failed. Please check your credentials.';
+        console.error('Full Error:', error);
+        if (error.response) {
+          console.error('Error Response:', error.response);
+          switch (error.response.status) {
+            case 400:
+              this.errorMessage = 'Email and password are required';
+              break;
+            case 401:
+              this.errorMessage = 'Invalid credentials';
+              break;
+            case 403:
+              this.errorMessage = error.response.data.message || 'Account not active';
+              break;
+            default:
+              this.errorMessage = error.response.data.message || 'Login failed';
+          }
+        } else if (error.request) {
+          this.errorMessage = 'Network error - please try again later';
+        } else {
+          this.errorMessage = error.message || 'An error occurred during login';
+        }
       } finally {
-        this.isLoading = false;
+        this.loading = false;
       }
-    },
-  },
-};
+    }
+  }
+}
 </script>
 
-<style scoped lang="scss">
-.user-login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  padding: 1rem;
-}
-
-.login-card {
-  width: 100%;
+<style scoped>
+.login-container {
   max-width: 400px;
-  background: #ffffff;
+  margin: 0 auto;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
   text-align: center;
-  color: #1a202c;
-  font-size: 1.8rem;
-  font-weight: 600;
+  color: #333;
   margin-bottom: 1.5rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group {
   margin-bottom: 1.5rem;
 }
 
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
 label {
   display: block;
-  color: #4a5568;
+  color: #555;
   font-weight: 500;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
+}
+
+.forgot-password {
+  font-size: 0.85rem;
+  color: #007bff;
+  text-decoration: none;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
 }
 
 input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: #f7fafc;
-  transition: border-color 0.2s;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  transition: border-color 0.3s;
 }
 
 input:focus {
+  border-color: #007bff;
   outline: none;
-  border-color: #2196f3;
 }
 
-.password-wrapper {
+.password-container {
   position: relative;
 }
 
-.toggle-password {
+.password-toggle-icon {
   position: absolute;
-  right: 0.75rem;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #718096;
   cursor: pointer;
-  font-size: 1.2rem;
+  color: #555;
+  font-size: 1rem;
 }
 
-.toggle-password:hover {
-  color: #2196f3;
+.password-toggle-icon:hover {
+  color: #007bff;
 }
 
-.login-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background: #2196f3;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.login-btn:hover:not(:disabled) {
-  background: #1e88e5;
-}
-
-.login-btn:disabled {
-  background: #b0bec5;
-  cursor: not-allowed;
-}
-
-.spinner {
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.error-message {
-  color: #e53e3e;
+.input-error {
+  color: #dc3545;
   font-size: 0.85rem;
   margin-top: 0.25rem;
   display: block;
 }
 
-.password-hint {
-  color: #718096;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
+.login-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 1rem;
+  transition: background-color 0.3s;
+}
+
+.login-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.login-btn:hover:not(:disabled) {
+  background-color: #0069d9;
+}
+
+.error-message {
+  color: #dc3545;
+  margin-top: 1rem;
+  text-align: center;
+  padding: 0.5rem;
+  background-color: #f8d7da;
+  border-radius: 4px;
 }
 
 .admin-link {
-  text-align: center;
   margin-top: 1rem;
-  color: #718096;
+  text-align: center;
   font-size: 0.9rem;
+  color: #555;
 }
 
 .admin-link a {
-  color: #2196f3;
+  color: #007bff;
   text-decoration: none;
-  transition: color 0.2s;
 }
 
 .admin-link a:hover {
-  color: #1e88e5;
-}
-
-@media (max-width: 480px) {
-  .login-card {
-    padding: 1.5rem;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  input,
-  .login-btn {
-    font-size: 0.85rem;
-  }
+  text-decoration: underline;
 }
 </style>

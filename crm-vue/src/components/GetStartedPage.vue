@@ -279,7 +279,7 @@ pre {
 }
 
 .footer a {
-  color: #4242e5;
+  color: #040407;
   text-decoration: none;
 }
 

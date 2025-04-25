@@ -216,6 +216,30 @@ router.post("/verify-security-code", async (req, res) => {
     }
 });
 
+// Login Activity Logs for Users
+router.get("/activity-logins", authenticateAdminToken, async (req, res) => {
+    console.log("Activity-logins route accessed"); // Debug log
+    try {
+        const [rows] = await db.promise().query(`
+            SELECT 
+                al.action AS Action,
+                u.username AS User,
+                al.created_at AS Timestamp,
+                al.details AS Details
+            FROM activity_logins al
+            JOIN users u ON al.user_id = u.id
+            ORDER BY al.created_at DESC
+        `);
+        if (rows.length === 0) {
+            return res.status(200).json({ message: "No login activity found", data: [] });
+        }
+        res.status(200).json({ message: "Login activity retrieved successfully", data: rows });
+    } catch (error) {
+        console.error("Activity logs fetch error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
 // Get Admin Profile (used as /api/auth/me)
 router.get("/profile", authenticateAdminToken, async (req, res) => {
     const adminId = req.user.id;
@@ -609,13 +633,11 @@ router.post("/reset-password", async (req, res) => {
     }
 });
 
-// Updated Admin User Statistics Endpoint (MySQL compatible)
+// Admin User Statistics Endpoint
 router.get("/stats", authenticateAdminToken, async (req, res) => {
-console.log("Stats endpoint reached!");
     const createdBy = req.user.id;
 
     try {
-        // MySQL-compatible queries
         const [stats] = await db.promise().query(
             `SELECT
                 COUNT(*) AS totalUsersCreated,
@@ -639,72 +661,61 @@ console.log("Stats endpoint reached!");
         );
 
         res.status(200).json({
-            totalUsersCreated: stats[0].totalUsersCreated || 0,
-            pendingUsers: stats[0].pendingUsers || 0,
-            inactiveUsers: stats[0].inactiveUsers || 0,
-            activeUsers: stats[0].activeUsers || 0,
-            growthData: growthData
+            message: "Statistics retrieved successfully",
+            data: {
+                totalUsersCreated: stats[0].totalUsersCreated || 0,
+                pendingUsers: stats[0].pendingUsers || 0,
+                inactiveUsers: stats[0].inactiveUsers || 0,
+                activeUsers: stats[0].activeUsers || 0,
+                growthData: growthData,
+            },
         });
     } catch (error) {
         console.error("Stats error:", error);
-        res.status(500).json({
-            message: "Failed to fetch statistics",
-            error: error.message
-        });
+        res.status(500).json({ message: "Failed to fetch statistics", error: error.message });
     }
 });
 
-
-// Add this route to your existing backend router
-router.post('/reports/send-email', authenticateAdminToken, async (req, res) => {
+// Send Report Email
+router.post("/reports/send-email", authenticateAdminToken, async (req, res) => {
     try {
         const { report_id, recipients, subject, message, include_pdf, include_excel } = req.body;
 
-        // Validate input
         if (!report_id || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
-            return res.status(400).json({ error: 'Invalid recipients list' });
+            return res.status(400).json({ message: "Invalid recipients list" });
         }
 
-        // Get report details from database
-        const [reports] = await db.promise().query(
-            'SELECT * FROM reports WHERE id = ?',
-            [report_id]
-        );
-
+        const [reports] = await db.promise().query("SELECT * FROM reports WHERE id = ?", [report_id]);
         if (reports.length === 0) {
-            return res.status(404).json({ error: 'Report not found' });
+            return res.status(404).json({ message: "Report not found" });
         }
 
         const report = reports[0];
-
-        // Prepare attachments
         const attachments = [];
 
         if (include_pdf) {
             attachments.push({
                 filename: `${report.title}.pdf`,
-                path: `./reports/${report.id}.pdf`, // Adjust path as needed
-                contentType: 'application/pdf'
+                path: `./reports/${report.id}.pdf`,
+                contentType: "application/pdf",
             });
         }
 
         if (include_excel) {
             attachments.push({
                 filename: `${report.title}.xlsx`,
-                path: `./reports/${report.id}.xlsx`, // Adjust path as needed
-                contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                path: `./reports/${report.id}.xlsx`,
+                contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             });
         }
 
-        // Check if at least one attachment is included
         if (attachments.length === 0) {
-            return res.status(400).json({ error: 'No attachment format selected' });
+            return res.status(400).json({ message: "No attachment format selected" });
         }
 
-        // Prepare email content
         const emailContent = {
-            from: process.env.EMAIL_FROM || 'yacobedan@gmail.com',
-            to: recipients.join(', '),
+            from: process.env.EMAIL_FROM || "yacobedan@gmail.com",
+            to: recipients.join(", "),
             subject: subject || `${report.title} - ${report.type} Report`,
             text: message || `Please find attached the ${report.title} report.`,
             html: `
@@ -717,28 +728,20 @@ router.post('/reports/send-email', authenticateAdminToken, async (req, res) => {
                 </ul>
                 <p>Best regards,<br>Your Team</p>
             `,
-            attachments: attachments
+            attachments: attachments,
         };
 
-        // Send email
         await transporter.sendMail(emailContent);
 
-        // Log the email sending in database
         await db.promise().query(
-            'INSERT INTO report_emails (report_id, sent_by, recipients, subject, sent_at) VALUES (?, ?, ?, ?, NOW())',
-            [report.id, req.user.id, recipients.join(', '), emailContent.subject]
+            "INSERT INTO report_emails (report_id, sent_by, recipients, subject, sent_at) VALUES (?, ?, ?, ?, NOW())",
+            [report.id, req.user.id, recipients.join(", "), emailContent.subject]
         );
 
-        res.status(200).json({
-            success: true,
-            message: 'Report sent successfully'
-        });
+        res.status(200).json({ message: "Report sent successfully" });
     } catch (error) {
-        console.error('Error sending report email:', error);
-        res.status(500).json({
-            error: 'Failed to send email',
-            details: error.message
-        });
+        console.error("Error sending report email:", error);
+        res.status(500).json({ message: "Failed to send email", error: error.message });
     }
 });
 
