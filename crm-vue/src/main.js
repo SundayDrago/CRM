@@ -9,6 +9,7 @@ import '@fortawesome/fontawesome-free/css/all.css';
 
 // Import components
 import HomePage from './components/HomePage.vue';
+import AboutUsPage from './components/AboutUsPage.vue';
 import LoginPage from './components/LoginPage.vue';
 import UserLoginPage from './components/UserLoginPage.vue';
 import RegisterPage from './components/RegisterPage.vue';
@@ -46,6 +47,7 @@ const routes = [
     { path: '/register', component: RegisterPage },
     { path: '/admin', component: AdminPage, meta: { requiresAuth: true } },
     { path: '/verify', component: VerifySecurityCode },
+    { path: '/about-us', component: AboutUsPage },
     { path: '/forgot-password', component: ForgotPasswordPage },
     { path: '/reset-password/:token', component: ResetPasswordPage },
     { path: '/activity-log', component: ActivityLogPage, meta: { requiresAuth: true } },

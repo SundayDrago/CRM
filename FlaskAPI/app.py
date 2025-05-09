@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, send_file, render_template 
 import pandas as pd
 import joblib
 import logging
@@ -194,8 +194,9 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                 fields = [
                     'Age', 'Gender', 'Region', 'Monthly Income', 
                     'Average spending', 'Frequency of Shopping(Regular)',
-                    'Categories', 'Means of Payment', 'Rate of Satisfaction',
-                    'Rate of availability of products'
+                    'Categories', 'Rate of Satisfaction',
+                    'Rate of availability of products', 'Internet connection used',
+                    'Device to shop'
                 ]
                 
                 # Find which field this part refers to
@@ -230,7 +231,6 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
     except Exception as e:
         logging.error(f"Filtering failed: {str(e)}")
         raise ValueError(f"Failed to filter data: {str(e)}")
-
 def generate_visualizations(df):
     """Generate visualizations from the dataset; save some to disk and return base64 for heatmap and silhouette"""
     try:
@@ -465,7 +465,7 @@ def upload_dataset():
             return jsonify({'error': 'No file selected'}), 400
         file_ext = file.filename.rsplit('.', 1)[-1].lower()
         if file_ext != 'csv':
-            return jsonify({'error': 'Only CSV files are supported for dataset upload'}), 400
+            return jsonify({'error': 'Only CSV or JSON files are supported for dataset upload'}), 400
         file.save(UPLOADED_DATA_PATH)
         RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data(UPLOADED_DATA_PATH)
         if RAW_DATA is None or PREPROCESSED_DATA is None:
@@ -811,7 +811,6 @@ def segment_customer():
     except Exception as e:
         logging.error(f"Error in segment_customer: {str(e)}")
         return jsonify({'error': str(e), 'status': 'error'}), 400
-
 
 @app.route('/dashboard', methods=['GET'])
 def get_dashboard_data():

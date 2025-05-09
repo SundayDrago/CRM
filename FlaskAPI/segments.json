@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": 5,
+    "name": "Higher Male ",
+    "criteria": "Age 25-34, Gender Male",
+    "source": "Custom",
+    "createdAt": "2025-05-07T14:48:56.799085",
+    "count": 86
+  }
+]

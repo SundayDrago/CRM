@@ -250,7 +250,8 @@ body {
 
 .submit-btn {
   background-color: var(--primary-color);
-  color: white;
+  color: rgb(5, 3, 3);
+  border: 1px solid;
   position: relative;
 }
 

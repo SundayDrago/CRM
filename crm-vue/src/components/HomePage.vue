@@ -73,47 +73,46 @@
     </section>
 
     <!-- Stats Section -->
-    <section class="stats-section">
-      <div class="stat-item">
-        <div class="stat-number" ref="stat1">Electronics</div>
-        <div class="stat-label">Most Purchased Category</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" ref="stat2">26.5%</div>
-        <div class="stat-label">Best Region</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" ref="stat3">0</div>
-        <div class="stat-label">Faster Insights</div>
-      </div>
-    </section>
+<!-- Stats Section -->
+<section class="stats-section">
+  <div class="stat-item">
+    <div class="stat-number" ref="stat1">Loading...</div>
+    <div class="stat-label">Most Purchased Category</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number" ref="stat2">Loading...</div>
+    <div class="stat-label">Best Region</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number" ref="stat3">Loading...</div>
+    <div class="stat-label">Accuracy Level</div>
+  </div>
+</section>
+
 
     <!-- Testimonials Section with Slider Effect -->
-    <section class="testimonials-section">
-      <div class="section-intro">
-        <h2>What Our <span class="underline">Clients Say</span></h2>
-      </div>
-      <div class="testimonial-slider">
-        <div class="testimonial active">
-          <div class="testimonial-content">
-            <div class="quote-mark">“</div>
-            <p class="testimonial-text">CustomerSeg transformed our marketing strategy. We now understand our customers at a level we never thought possible.</p>
-            <div class="testimonial-author">
-              <img src="@/assets/img-1.png" alt="Sunday Drago" class="author-avatar">
-              <div class="author-info">
-                <p class="author-name">Sunday Drago</p>
-                <p class="author-title">CMO, TechSolutions Inc.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="testimonial-nav">
-          <button class="nav-dot active"></button>
-          <button class="nav-dot"></button>
-          <button class="nav-dot"></button>
-        </div>
-      </div>
-    </section>
+    <div class="team-content">
+    <h2>Our Team Members</h2>
+
+  <div class="team-member">
+    <img src="@/assets/img-3.jpg" alt="Member One" class="member-avatar">
+    <div class="member-info">
+      <h2 class="member-name">Geriga Sunday Drago</h2>
+      <p class="member-skills"><strong>Skills:</strong> Frontend Development, UI/UX Design</p>
+      <p class="member-contribution"><strong>Contribution:</strong> Designed and implemented the user interface, ensuring responsive and accessible layouts using Vue.js and SCSS.</p>
+    </div>
+  </div>
+
+  <div class="team-member">
+    <img src="@/assets/img-2.jpg" alt="Member Two" class="member-avatar">
+    <div class="member-info">
+      <h2 class="member-name">Akoldou Samuel Wel</h2>
+      <p class="member-skills"><strong>Skills:</strong> Backend Development, Database Management</p>
+      <p class="member-contribution"><strong>Contribution:</strong> Developed REST APIs with Node.js and Express, handled database integration with MySQL, and implemented secure authentication.</p>
+    </div>
+  </div>
+</div>
+
 
     <!-- CTA Section with Parallax Effect -->
     <section class="cta-section">
@@ -155,9 +154,9 @@
           </div>
           <div class="link-group">
             <h4>Company</h4>
-            <router-link to="/about">About Us</router-link>
+            <router-link to="/about-us">About Us</router-link>
             <router-link to="/careers">Careers</router-link>
-            <router-link to="/contact">Contact</router-link>
+            <router-link to="/contact-us">Contact</router-link>
           </div>
         </div>
       </div>
@@ -199,31 +198,53 @@ onMounted(async () => {
   }
 });
 
-// Animate statistics
-const animateStats = () => {
-  const animate = (element, finalValue, duration = 2000) => {
-    const start = 0;
-    const increment = finalValue / (duration / 16);
-    let current = start;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= finalValue) {
-        clearInterval(timer);
-        current = finalValue;
-      }
-      element.textContent = Math.floor(current) + (element === stat3.value ? 'x' : '%');
-    }, 16);
-  };
+// Refs for DOM elements
+const stat1 = ref(null); // Most Purchased Category
+const stat2 = ref(null); // Best Region (as percentage)
+const stat3 = ref(null); // Accuracy Level
 
-  animate(stat1.value, 78);
-  animate(stat2.value, 92);
-  animate(stat3.value, 5);
+// Animate function
+const animate = (element, finalValue, suffix = '', duration = 2000) => {
+  const start = 0;
+  const increment = finalValue / (duration / 16);
+  let current = start;
+  const timer = setInterval(() => {
+    current += increment;
+    if (current >= finalValue) {
+      clearInterval(timer);
+      current = finalValue;
+    }
+    element.textContent = Math.floor(current) + suffix;
+  }, 16);
+}
+
+// Fetch and apply backend stats
+const animateStats = async () => {
+  try {
+    const response = await fetch('http://localhost:5000/query');
+    const data = await response.json();
+
+    // Most Purchased Category
+    const category = data.most_purchased_category || 'Unknown';
+    stat1.value.textContent = category;
+
+    // Best Region (percentage)
+    const percentage = parseFloat(data.percentage?.replace('%', '') || 0);
+    animate(stat2.value, percentage, '%');
+
+    // Accuracy Level (use average_spending here)
+    const accuracy = parseFloat(data.average_spending || 0);
+    animate(stat3.value, accuracy, '');
+  } catch (error) {
+    console.error('Failed to fetch stats:', error);
+  }
 };
 
-const stat1 = ref(null);
-const stat2 = ref(null);
-const stat3 = ref(null);
+onMounted(() => {
+  animateStats();
+});
 
+// Features data
 const features = [
   { 
     title: "AI-Powered Segmentation", 
@@ -253,6 +274,7 @@ const features = [
 
 const featureIcons = ['🧠', '📊', '🔮', '⚡', '🔄', '📈'];
 
+// Login redirection based on authentication status
 const showLoginPrompt = () => {
   if (isAuthenticated.value && isAdmin.value) {
     router.push('/admin');
@@ -271,6 +293,7 @@ const navigateToGetStarted = () => {
   }
 };
 </script>
+
 
 <style scoped lang="scss">
 /* Color Variables */
@@ -618,97 +641,62 @@ p {
   }
 }
 
-/* Testimonials Section */
-.testimonials-section {
+/* Team Section */
+.team-content {
   padding: 120px 5%;
   background: var(--light);
-  
-  .section-intro {
+
+  h2 {
     text-align: center;
     margin-bottom: 60px;
+    font-size: 2.5rem;
+    color: var(--dark);
   }
 }
 
-.testimonial-slider {
-  max-width: 800px;
-  margin: 0 auto;
-  position: relative;
-}
-
-.testimonial {
+.team-member {
   background: var(--white);
   border-radius: 20px;
-  padding: 60px;
+  padding: 40px;
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  
-  .quote-mark {
-    font-size: 5rem;
-    line-height: 1;
-    color: var(--primary);
-    opacity: 0.2;
-    margin-bottom: -30px;
-  }
-  
-  .testimonial-text {
-    font-size: 1.3rem;
-    font-style: italic;
-    color: var(--dark);
-    margin-bottom: 30px;
-    line-height: 1.6;
-  }
-}
-
-.testimonial-author {
+  margin: 30px auto;
+  max-width: 600px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-  
-  .author-avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
+  text-align: center;
+
+  .member-avatar {
+    width: 200px;
+    height: 200px;
+    border-radius: 100%;
     object-fit: cover;
     border: 3px solid var(--primary);
+    margin-bottom: 20px;
   }
-  
-  .author-name {
-    font-weight: 700;
-    color: var(--dark);
-    margin-bottom: 5px;
-  }
-  
-  .author-title {
-    color: var(--gray);
-    font-size: 0.9rem;
-    margin: 0;
-  }
-}
 
-.testimonial-nav {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 40px;
-  
-  .nav-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--gray);
-    opacity: 0.3;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    &.active {
-      background: var(--primary);
-      opacity: 1;
-      transform: scale(1.2);
+  .member-info {
+    .member-name {
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--dark);
+      margin-bottom: 10px;
+    }
+
+    .member-skills,
+    .member-contribution {
+      font-size: 1rem;
+      color: var(--gray);
+      margin-bottom: 10px;
+      line-height: 1.6;
+
+      strong {
+        color: var(--dark);
+      }
     }
   }
 }
+
 
 /* CTA Section */
 .cta-section {
