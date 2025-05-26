@@ -5,6 +5,11 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
 
 // Middleware to verify JWT and ensure admin access
 const authenticateAdminToken = (req, res, next) => {
@@ -34,6 +39,39 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS || "qdbdgryrzwodqksg",
     },
 });
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/profile_pictures';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, req.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files (jpeg, jpg, png, gif) are allowed'));
+  }
+});
+
+// Serve uploads folder statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Notification endpoint
 router.post("/users/send-notification", authenticateAdminToken, async (req, res) => {
@@ -90,6 +128,49 @@ router.post("/users/send-notification", authenticateAdminToken, async (req, res)
         console.error("Error sending notification:", error);
         res.status(500).json({ message: "Failed to send notification", error: error.message });
     }
+});
+
+// Add this to your auth.routes.js or admin.routes.js
+router.post('/profile/avatar', authenticateAdminToken, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const avatarPath = `/uploads/profile_pictures/${req.file.filename}`;
+    
+    await db.promise().query(
+      'UPDATE admins SET avatar = ? WHERE id = ?',
+      [avatarPath, req.user.id]
+    );
+
+    res.status(200).json({ 
+      message: 'Avatar updated successfully',
+      avatar: avatarPath 
+    });
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ message: 'Failed to upload avatar', error: error.message });
+  }
+});
+
+// Add this GET endpoint to fetch the current avatar
+router.get('/profile/avatar', authenticateAdminToken, async (req, res) => {
+  try {
+    const [admins] = await db.promise().query(
+      'SELECT avatar FROM admins WHERE id = ?',
+      [req.user.id]
+    );
+    
+    if (admins.length === 0) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    res.status(200).json({ avatar: admins[0].avatar });
+  } catch (error) {
+    console.error('Avatar fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch avatar', error: error.message });
+  }
 });
 
 // Admin Login

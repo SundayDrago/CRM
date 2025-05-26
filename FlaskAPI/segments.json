@@ -1,10 +1,66 @@
 [
   {
     "id": 5,
-    "name": "Higher Male ",
-    "criteria": "Age 25-34, Gender Male",
+    "name": "Central Members",
+    "criteria": "Region Central, Categories Groceries",
     "source": "Custom",
-    "createdAt": "2025-05-07T14:48:56.799085",
-    "count": 86
+    "createdAt": "2025-05-12T22:04:24.822432",
+    "count": 45
+  },
+  {
+    "id": 6,
+    "name": "High Spender Customers",
+    "criteria": "Monthly Income 450000-1000000",
+    "source": "Custom",
+    "createdAt": "2025-05-23T23:30:21.433885",
+    "count": 0
+  },
+  {
+    "id": 7,
+    "name": "Urbaners",
+    "criteria": "Region Central, Gender Female, Age 25-34",
+    "source": "Custom",
+    "createdAt": "2025-05-23T23:34:25.481299",
+    "count": 20
+  },
+  {
+    "id": 8,
+    "name": "High Spender",
+    "criteria": "Average spending 500000-1000000",
+    "source": "Custom",
+    "createdAt": "2025-05-24T22:30:31.849347",
+    "count": 0
+  },
+  {
+    "id": 9,
+    "name": "Urbaner Shoppers",
+    "criteria": "Categories Electronics, Region Central, Average spending >1000000",
+    "source": "Custom",
+    "createdAt": "2025-05-24T23:20:09.965920",
+    "count": 0
+  },
+  {
+    "id": 10,
+    "name": "Average Spenders",
+    "criteria": "Monthly Income 100000, Gender Female, Age 24-34",
+    "source": "Custom",
+    "createdAt": "2025-05-25T18:04:16.195874",
+    "count": 0
+  },
+  {
+    "id": 11,
+    "name": "Elderly Shoppers",
+    "criteria": "Age 45-54, Gender Female, Categories Electronics",
+    "source": "Custom",
+    "createdAt": "2025-05-25T18:49:31.580211",
+    "count": 18
+  },
+  {
+    "id": 12,
+    "name": "Rare shoppers total",
+    "criteria": "Frequency of Shopping(Regular) Rarely",
+    "source": "Custom",
+    "createdAt": "2025-05-26T13:22:57.877658",
+    "count": 1666
   }
 ]

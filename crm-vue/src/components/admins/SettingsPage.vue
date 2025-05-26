@@ -434,82 +434,185 @@ export default {
 </script>
 
 <style scoped>
-.settings-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #1a202c;
+/* Transition Variables */
+:root {
+  --transition-fast: 150ms;
+  --transition-medium: 250ms;
+  --transition-slow: 400ms;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Element Transitions */
+.settings-page {
+  animation: fadeInUp var(--transition-slow) var(--ease-out);
+}
+
+.settings-section {
+  transition: transform var(--transition-fast) var(--ease-out), box-shadow var(--transition-fast) var(--ease-out);
+}
+
+.settings-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15); /* Matches feature-card hover */
+}
+
+.btn-primary,
+.password-toggle,
+.notification-close {
+  transition: background-color var(--transition-fast) var(--ease-out), transform 100ms var(--ease-out), color var(--transition-fast) var(--ease-out);
+}
+
+.btn-primary:active,
+.password-toggle:active,
+.notification-close:active {
+  transform: scale(0.98);
+}
+
+.form-input {
+  transition: border-color var(--transition-fast) var(--ease-out), box-shadow var(--transition-fast) var(--ease-out);
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.notification {
+  animation: fadeInUp var(--transition-medium) var(--ease-out);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 1ms;
+    --transition-medium: 1ms;
+    --transition-slow: 1ms;
+  }
+  .settings-page,
+  .notification {
+    animation: none;
+  }
+  .settings-section:hover {
+    transform: none;
+  }
+  .loading-spinner {
+    animation: none;
+    border: 2px solid #4CAF50; /* Matches primary color */
+  }
+}
+
+/* Base Styles */
+.settings-page {
+  font-family: 'Inter', sans-serif;
+  padding: 2rem 1.5rem;
+  color: #333;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #f5f7fa; /* Matches LandingPage.vue */
+  min-height: 100vh;
+}
+
+/* Header */
 .settings-header {
-  margin-bottom: 3rem;
   text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 1.5rem;
+  position: relative;
 }
 
 .settings-title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: #1a202c;
+  font-size: clamp(1.8rem, 4.5vw, 2.5rem);
+  font-weight: 800; /* Matches LandingPage.vue h1 */
+  color: #333;
   margin-bottom: 0.5rem;
-  line-height: 1.2;
+}
+
+.settings-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: #4CAF50; /* Matches underline::after */
 }
 
 .settings-subtitle {
-  font-size: 1.125rem;
-  color: #718096;
-  margin: 0;
+  font-size: clamp(0.9rem, 2.2vw, 1rem);
+  color: #666; /* Matches section-subtitle */
+  font-weight: 500;
 }
 
+/* Content */
 .settings-content {
   display: grid;
-  gap: 2.5rem;
+  gap: 2rem;
   max-width: 800px;
   margin: 0 auto;
 }
 
+/* Section */
 .settings-section {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Matches feature-card */
   overflow: hidden;
+  animation: fadeInUp 0.6s ease-out;
 }
 
+/* Section Header */
 .section-header {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  background: #f7fafc;
-  border-bottom: 1px solid #edf2f7;
+  background: #f9f9f9; /* Matches AICustomerDashboard.vue section headers */
+  border-bottom: 1px solid #ddd;
 }
 
 .header-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: #ffffff;
+  width: 40px;
+  height: 40px;
+  background: #e3f2fd; /* Matches secondary color background */
   border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: #2196F3; /* Matches secondary color */
+}
+
+.header-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
 }
 
 .section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1a202c;
-  margin: 0 0 0.25rem 0;
-}
-
-.section-description {
-  font-size: 0.875rem;
-  color: #718096;
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-weight: 700; /* Matches h2 in LandingPage.vue */
+  color: #333;
   margin: 0;
 }
 
+.section-description {
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+  color: #666;
+  margin: 0;
+}
+
+/* Form */
 .settings-form {
-  padding: 1.5rem 2rem 2rem;
+  padding: 2rem;
 }
 
 .form-group {
@@ -518,9 +621,9 @@ export default {
 
 .form-label {
   display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4a5568;
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+  font-weight: 600;
+  color: #555;
   margin-bottom: 0.5rem;
 }
 
@@ -530,44 +633,51 @@ export default {
 
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
-  font-size: 0.9375rem;
-  color: #1a202c;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+  color: #333;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .form-input:focus {
+  border-color: #4CAF50; /* Matches primary color */
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
   outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
 .input-icon {
   position: absolute;
-  left: 1rem;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #a0aec0;
+  color: #666;
+}
+
+.input-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
 }
 
 .password-toggle {
   position: absolute;
-  right: 1rem;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #a0aec0;
+  color: #666;
   cursor: pointer;
   padding: 0.25rem;
-  transition: color 0.2s;
 }
 
-.password-toggle:hover {
-  color: #4a5568;
+.password-toggle:hover,
+.password-toggle:focus {
+  color: #2196F3; /* Matches secondary color */
+  outline: none;
 }
 
 .password-strength {
@@ -580,7 +690,7 @@ export default {
 .strength-meter {
   flex: 1;
   height: 4px;
-  background: #e2e8f0;
+  background: #ddd;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -593,12 +703,12 @@ export default {
 
 .strength-1 {
   width: 20%;
-  background-color: #e53e3e;
+  background-color: #f44336; /* Matches error color */
 }
 
 .strength-2 {
   width: 40%;
-  background-color: #dd6b20;
+  background-color: #fb8c00;
 }
 
 .strength-3 {
@@ -608,18 +718,18 @@ export default {
 
 .strength-4 {
   width: 80%;
-  background-color: #38a169;
+  background-color: #4CAF50; /* Matches primary color */
 }
 
 .strength-5 {
   width: 100%;
-  background-color: #2f855a;
+  background-color: #388E3C; /* Darker green for very strong */
 }
 
 .strength-text {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #4a5568;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+  font-weight: 600;
+  color: #555;
 }
 
 .form-actions {
@@ -630,12 +740,12 @@ export default {
 
 .btn {
   padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px; /* Matches primary-btn */
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -643,16 +753,22 @@ export default {
 }
 
 .btn-primary {
-  background-color: #4299e1;
-  color: #ffffff;
+  background: #4CAF50; /* Matches primary color */
+  color: #fff;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #3182ce;
+.btn-primary:hover:not(:disabled),
+.btn-primary:focus:not(:disabled) {
+  background: #388E3C; /* Matches primary-btn:hover */
+  transform: translateY(-2px);
+}
+
+.btn-primary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
 }
 
 .btn-primary:disabled {
-  background-color: #cbd5e0;
+  background: #ccc;
   cursor: not-allowed;
 }
 
@@ -662,14 +778,10 @@ export default {
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  border-top-color: #ffffff;
-  animation: spin 1s ease-in-out infinite;
+  border-top-color: #fff;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
+/* Notification */
 .notification {
   position: fixed;
   bottom: 2rem;
@@ -677,21 +789,18 @@ export default {
   z-index: 1000;
   max-width: 400px;
   width: calc(100% - 4rem);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(0);
-  transition: all 0.3s ease;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); /* Matches modal shadow */
 }
 
 .notification.success {
-  background: #f0fff4;
-  border-left: 4px solid #38a169;
+  background: #e8f5e9; /* Matches success background */
+  border-left: 4px solid #4CAF50;
 }
 
 .notification.error {
-  background: #fff5f5;
-  border-left: 4px solid #e53e3e;
+  background: #ffebee; /* Matches error background */
+  border-left: 4px solid #f44336;
 }
 
 .notification-content {
@@ -708,19 +817,25 @@ export default {
 .notification-icon svg {
   width: 24px;
   height: 24px;
+  stroke-width: 2;
 }
 
 .notification.success .notification-icon svg {
-  color: #38a169;
+  color: #4CAF50;
 }
 
 .notification.error .notification-icon svg {
-  color: #e53e3e;
+  color: #f44336;
 }
 
 .notification-message {
   flex: 1;
-  font-size: 0.9375rem;
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+  color: #333;
+}
+
+.notification-message p {
+  margin: 0;
   line-height: 1.5;
 }
 
@@ -728,14 +843,21 @@ export default {
   margin-left: 1rem;
   background: none;
   border: none;
-  color: #a0aec0;
+  color: #666;
   cursor: pointer;
   padding: 0.25rem;
-  transition: color 0.2s;
 }
 
-.notification-close:hover {
-  color: #4a5568;
+.notification-close:hover,
+.notification-close:focus {
+  color: #2196F3; /* Matches secondary color */
+  outline: none;
+}
+
+.notification-close svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
 }
 
 .fade-enter-active,
@@ -749,17 +871,22 @@ export default {
   transform: translateY(20px);
 }
 
+/* Responsive Adjustments */
 @media (max-width: 768px) {
   .settings-page {
     padding: 1.5rem 1rem;
   }
 
   .settings-title {
-    font-size: 1.75rem;
+    font-size: clamp(1.6rem, 3.5vw, 2rem);
   }
 
   .settings-subtitle {
-    font-size: 1rem;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
+  }
+
+  .settings-header {
+    margin-bottom: 2rem;
   }
 
   .section-header {
@@ -767,7 +894,7 @@ export default {
   }
 
   .settings-form {
-    padding: 1.25rem 1.5rem 1.5rem;
+    padding: 1.5rem;
   }
 
   .notification {
@@ -778,8 +905,12 @@ export default {
 }
 
 @media (max-width: 480px) {
-  .settings-header {
-    margin-bottom: 2rem;
+  .settings-page {
+    padding: 1rem;
+  }
+
+  .settings-content {
+    gap: 1.5rem;
   }
 
   .section-header {
@@ -789,8 +920,22 @@ export default {
   }
 
   .header-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .section-title {
+    font-size: clamp(1.1rem, 3vw, 1.3rem);
+  }
+
+  .form-input,
+  .btn {
+    font-size: clamp(0.8rem, 3vw, 0.85rem);
   }
 
   .form-actions {
@@ -799,6 +944,10 @@ export default {
 
   .btn {
     width: 100%;
+  }
+
+  .notification {
+    max-width: 100%;
   }
 }
 </style>

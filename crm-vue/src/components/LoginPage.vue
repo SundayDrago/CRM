@@ -133,7 +133,7 @@ export default {
   },
   async created() {
     // Check if already authenticated
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     if (token) {
       try {
         console.log('Checking existing token on login page');
@@ -145,14 +145,14 @@ export default {
           this.$router.push('/admin');
         } else {
           console.log('Invalid token, clearing');
-          localStorage.removeItem('authToken');
+          localStorage.removeItem('token');
         }
       } catch (error) {
         console.error('Error validating token:', {
           message: error.message,
           response: error.response ? { status: error.response.status, data: error.response.data } : null,
         });
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
       }
     }
 
@@ -242,39 +242,49 @@ export default {
 </script>
 
 <style scoped>
-/* Colors matching UserLoginPage.vue */
+/* General Styling */
 .login-container {
+  font-family: 'Inter', sans-serif;
   max-width: 400px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 5rem auto;
+  padding: 0; /* Padding moved to login-card */
+  background: #f5f7fa; /* Matches LandingPage.vue background */
+  animation: fadeInUp 0.6s ease-out;
 }
 
+/* Login Card */
+.login-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Matches feature-card */
+  overflow: hidden; /* Ensures rounded corners clip content */
+}
+
+/* Branding Section */
 .branding {
   padding: 2rem;
-  background: #007bff;
+  background: linear-gradient(135deg, #4CAF50, #2196F3); /* Matches gradient-overlay */
   text-align: center;
   color: white;
-
-  .logo-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-  }
-
-  h1 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin: 0 0 0.25rem;
-  }
-
-  p {
-    font-size: 0.9rem;
-    opacity: 0.9;
-  }
 }
 
+.branding .logo-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.branding h1 {
+  font-size: 2rem;
+  font-weight: 800; /* Matches LandingPage.vue h1 */
+  margin: 0 0 0.25rem;
+}
+
+.branding p {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Form Styling */
 .login-form {
   padding: 2rem;
   display: flex;
@@ -284,20 +294,33 @@ export default {
 .form-header {
   text-align: center;
   margin-bottom: 2rem;
-
-  h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.25rem;
-  }
-
-  p {
-    font-size: 0.9rem;
-    color: #555;
-  }
 }
 
+.form-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700; /* Matches section-intro h2 */
+  color: #333;
+  margin-bottom: 0.25rem;
+  position: relative;
+}
+
+.form-header h2::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: #4CAF50; /* Matches underline::after */
+}
+
+.form-header p {
+  font-size: 0.9rem;
+  color: #666; /* Matches section-subtitle */
+}
+
+/* Form Group */
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -306,25 +329,28 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0.5rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
   color: #555;
-  font-weight: 500;
+  font-weight: 600; /* Matches UserLoginPage.vue label */
+  font-size: 1rem;
 }
 
 .forgot-password {
-  font-size: 0.85rem;
-  color: #007bff;
+  font-size: 0.9rem;
+  color: #2196F3; /* Matches secondary color */
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .forgot-password:hover {
-  text-decoration: underline;
+  color: #4CAF50; /* Matches primary color on hover */
 }
 
+/* Input Wrapper */
 .input-wrapper {
   position: relative;
 }
@@ -335,6 +361,7 @@ label {
   top: 50%;
   transform: translateY(-50%);
   color: #555;
+  font-size: 1rem;
 }
 
 input {
@@ -344,11 +371,13 @@ input {
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 1rem;
-  transition: border-color 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background: #fff;
 }
 
 input:focus {
-  border-color: #007bff;
+  border-color: #4CAF50; /* Matches primary color */
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2); /* Matches gradient-overlay */
   outline: none;
 }
 
@@ -361,19 +390,22 @@ input:focus {
   border: none;
   color: #555;
   cursor: pointer;
+  font-size: 1rem;
+  transition: color 0.3s ease;
 }
 
 .toggle-password:hover {
-  color: #007bff;
+  color: #4CAF50; /* Matches primary color */
 }
 
 .error-message {
-  color: #dc3545;
+  color: #f44336;
   font-size: 0.85rem;
   margin-top: 0.25rem;
   display: block;
 }
 
+/* Form Options */
 .form-options {
   margin: 1.5rem 0;
 }
@@ -389,8 +421,8 @@ input:focus {
 }
 
 .checkbox-container input:checked + .checkmark {
-  background: #007bff;
-  border-color: #007bff;
+  background: #4CAF50; /* Matches primary color */
+  border-color: #4CAF50;
 }
 
 .checkbox-container input:checked + .checkmark::after {
@@ -421,32 +453,35 @@ input:focus {
 
 .checkbox-label {
   font-size: 0.9rem;
-  color: #555;
+  color: #666; /* Matches section-subtitle */
 }
 
+/* Login Button */
 .login-btn {
   width: 100%;
   padding: 0.75rem;
-  background-color: #007bff;
+  background: #4CAF50; /* Matches primary-btn */
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 50px; /* Matches LandingPage.vue buttons */
   cursor: pointer;
   font-size: 1rem;
+  font-weight: 600;
   margin-top: 1rem;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .login-btn:disabled {
-  background-color: #cccccc;
+  background: #cccccc;
   cursor: not-allowed;
 }
 
 .login-btn:hover:not(:disabled) {
-  background-color: #0069d9;
+  background: #388E3C; /* Matches primary-btn:hover */
+  transform: translateY(-2px); /* Matches hover effect */
 }
 
 .spinner {
@@ -462,54 +497,42 @@ input:focus {
   to { transform: rotate(360deg); }
 }
 
-.signup-link {
+/* Links */
+.signup-link, .user-link {
   text-align: center;
   font-size: 0.9rem;
-  color: #555;
+  color: #666; /* Matches section-subtitle */
   margin-top: 1rem;
 }
 
-.signup-link a {
-  color: #007bff;
+.signup-link a, .user-link a {
+  color: #2196F3; /* Matches secondary color */
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
-.signup-link a:hover {
-  text-decoration: underline;
-}
-
-.user-link {
-  margin-top: 1rem;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.user-link a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.user-link a:hover {
-  text-decoration: underline;
+.signup-link a:hover, .user-link a:hover {
+  color: #4CAF50; /* Matches primary color */
 }
 
 .back-link {
   position: absolute;
   top: 1.5rem;
   left: 1.5rem;
-  color: #007bff;
+  color: #2196F3; /* Matches secondary color */
   text-decoration: none;
   font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .back-link:hover {
-  text-decoration: underline;
+  color: #4CAF50; /* Matches primary color */
 }
 
+/* Modal Styling */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -520,11 +543,12 @@ input:focus {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
+  background: #fff;
+  border-radius: 10px; /* Matches feature-card */
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Matches login-card */
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .modal-header {
@@ -538,6 +562,7 @@ input:focus {
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
+  font-weight: 700;
   color: #333;
 }
 
@@ -546,36 +571,44 @@ input:focus {
   border: none;
   color: #555;
   cursor: pointer;
+  font-size: 1rem;
+  transition: color 0.3s ease;
 }
 
 .modal-header .close-btn:hover {
-  color: #333;
+  color: #4CAF50; /* Matches primary color */
 }
 
 .modal-body {
   padding: 1.5rem;
   color: #333;
+  font-size: 1rem;
 }
 
 .modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #DDD;
+  border-top: 1px solid #ddd;
   text-align: right;
 }
 
 .modal-footer .modal-btn {
   padding: 0.5rem 1rem;
-  background: #007bff;
+  background: #4CAF50; /* Matches primary color */
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 50px; /* Matches button style */
   cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .modal-footer .modal-btn:hover {
-  background: #0069d9;
+  background: #388E3C; /* Matches primary-btn:hover */
+  transform: translateY(-2px);
 }
 
+/* Transitions */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.2s;
 }
@@ -592,18 +625,32 @@ input:focus {
   opacity: 0;
 }
 
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive Design */
 @media (max-width: 480px) {
   .login-container {
-    margin: 1rem;
-    padding: 1rem;
+    margin: 2rem 1rem;
   }
 
-  .branding {
+  .login-card {
+    margin: 0;
+  }
+
+  .branding, .login-form {
     padding: 1.5rem;
   }
 
-  .login-form {
-    padding: 1.5rem;
+  .form-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .modal-content {
+    width: 95%;
   }
 }
 </style>

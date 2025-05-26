@@ -110,5 +110,29 @@
     "churnRisk": 10,
     "predictedValue": 3000,
     "nextPurchase": "2025-05-24"
+  },
+  {
+    "id": 1014,
+    "name": "Customer 20",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 5000,
+    "nextPurchase": "2025-06-15"
+  },
+  {
+    "id": 1015,
+    "name": "Customer 19",
+    "segment": "Young, Moderate-Income Shoppers",
+    "churnRisk": 10,
+    "predictedValue": 1500,
+    "nextPurchase": "2025-05-27"
+  },
+  {
+    "id": 1016,
+    "name": "Customer 18",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 3000,
+    "nextPurchase": "2025-06-10"
   }
 ]

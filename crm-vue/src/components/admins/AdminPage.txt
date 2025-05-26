@@ -1,0 +1,3451 @@
+<template>
+  <div class="admin-dashboard" :class="{ 
+    'sidebar-collapsed': isSidebarCollapsed, 
+    'dark-theme': darkMode,
+    'rtl-mode': rtlMode
+  }">
+    <!-- Enhanced Sidebar with 3-level navigation -->
+    <aside class="sidebar" :class="{ 
+      'sidebar-open': sidebarOpen,
+      'sidebar-hover': sidebarHover
+    }" @mouseenter="sidebarHover = true" @mouseleave="sidebarHover = false">
+      <div class="sidebar-header">
+        <button class="toggle-sidebar" @click="toggleSidebar" aria-label="Toggle sidebar">
+          <i :class="isSidebarCollapsed ? 'fas fa-bars' : 'fas fa-chevron-left'"></i>
+        </button>
+        <router-link to="/dashboard" class="logo-container" v-if="!isSidebarCollapsed || sidebarHover">
+          <img :src="logoImage" alt="Company Logo" class="logo-image">
+          <h2 class="logo-text">
+            <span class="logo-primary">System</span>
+            <span class="logo-secondary">Admin</span>
+          </h2>
+        </router-link>
+        <router-link to="/dashboard" class="logo-collapsed" v-else>
+          <img :src="logoIcon" alt="Logo" class="logo-collapsed-image">
+        </router-link>
+      </div>
+
+      <!-- Enhanced Navigation with 3-level support -->
+      <nav class="sidebar-nav">
+        <ul class="sidebar-menu">
+          <li v-for="item in filteredMenuItems" :key="item.id" 
+              :class="getMenuItemClasses(item)"
+              @mouseenter="handleMenuHover(item)">
+            <!-- Top Level Item -->
+            <div class="menu-item-wrapper" @click="handleMenuItemClick(item)">
+              <div class="menu-item">
+                <i :class="item.icon" :style="getIconStyle(item)"></i>
+                <span v-if="!isSidebarCollapsed || sidebarHover">{{ item.label }}</span>
+                <span v-if="item.badge && (!isSidebarCollapsed || sidebarHover)" 
+                      class="menu-badge" :class="item.badge.type">
+                  {{ item.badge.value }}
+                </span>
+                <i v-if="hasChildren(item) && (!isSidebarCollapsed || sidebarHover)" 
+                   class="fas fa-chevron-right dropdown-arrow" 
+                   :class="{ 'rotated': item.isOpen }"></i>
+              </div>
+              <div v-if="item.tooltip && (isSidebarCollapsed && !sidebarHover)" 
+                   class="menu-tooltip">
+                {{ item.label }}
+                <span v-if="item.badge" class="tooltip-badge" :class="item.badge.type">
+                  {{ item.badge.value }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Second Level -->
+            <transition name="slide-fade">
+              <ul v-if="item.isOpen && (!isSidebarCollapsed || sidebarHover)" class="submenu level-1">
+                <li v-for="child in item.children" :key="child.id" 
+                    :class="getChildItemClasses(child)"
+                    @click.stop="handleChildClick(child, item)">
+                  <div class="submenu-item">
+                    <i :class="child.icon" :style="getIconStyle(child)"></i>
+                    <span>{{ child.label }}</span>
+                    <span v-if="child.badge" class="menu-badge" :class="child.badge.type">
+                      {{ child.badge.value }}
+                    </span>
+                    <i v-if="hasGrandChildren(child)" 
+                       class="fas fa-chevron-right dropdown-arrow"
+                       :class="{ 'rotated': child.isOpen }"></i>
+                  </div>
+
+                  <!-- Third Level -->
+                  <transition name="slide-fade">
+                    <ul v-if="child.isOpen" class="submenu level-2">
+                      <li v-for="grandChild in child.children" :key="grandChild.id"
+                          :class="getGrandChildItemClasses(grandChild)"
+                          @click.stop="handleGrandChildClick(grandChild, child, item)">
+                        <div class="submenu-item">
+                          <i :class="grandChild.icon" :style="getIconStyle(grandChild)"></i>
+                          <span>{{ grandChild.label }}</span>
+                          <span v-if="grandChild.badge" class="menu-badge" :class="grandChild.badge.type">
+                            {{ grandChild.badge.value }}
+                          </span>
+                        </div>
+                      </li>
+                    </ul>
+                  </transition>
+                </li>
+              </ul>
+            </transition>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Sidebar Footer with System Status -->
+      <div class="sidebar-footer">
+        <div class="system-status" v-if="!isSidebarCollapsed || sidebarHover">
+          <div class="status-indicator" :class="systemStatus">
+            <i class="status-icon" :class="getStatusIcon"></i>
+            <span class="status-text">{{ systemStatusMessage }}</span>
+          </div>
+          <div class="resource-usage">
+            <div class="usage-item">
+              <span class="usage-label">CPU:</span>
+              <progress class="usage-bar" :value="systemResources.cpu" max="100"></progress>
+              <span class="usage-value">{{ systemResources.cpu }}%</span>
+            </div>
+            <div class="usage-item">
+              <span class="usage-label">RAM:</span>
+              <progress class="usage-bar" :value="systemResources.memory" max="100"></progress>
+              <span class="usage-value">{{ systemResources.memory }}%</span>
+            </div>
+          </div>
+        </div>
+        <button class="quick-settings" @click="openQuickSettings" aria-label="Quick settings">
+          <i class="fas fa-cog"></i>
+          <span v-if="!isSidebarCollapsed || sidebarHover">Quick Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-container">
+      <!-- Enhanced Navbar -->
+      <nav class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-toggle-sidebar" @click="toggleSidebarMobile" aria-label="Toggle mobile sidebar">
+            <i class="fas fa-bars"></i>
+          </button>
+          
+          <!-- Breadcrumbs with Quick Actions -->
+          <div class="breadcrumbs">
+            <template v-for="(crumb, index) in breadcrumbs" :key="index">
+              <router-link v-if="index < breadcrumbs.length - 1" 
+                          :to="crumb.path" 
+                          class="breadcrumb-link">
+                {{ crumb.title }}
+              </router-link>
+              <span v-else class="breadcrumb-current">
+                {{ crumb.title }}
+              </span>
+              <i v-if="index < breadcrumbs.length - 1" class="fas fa-chevron-right separator"></i>
+            </template>
+            
+            <div class="breadcrumb-actions" v-if="breadcrumbActions.length">
+              <button v-for="action in breadcrumbActions" 
+                      :key="action.id"
+                      @click="handleBreadcrumbAction(action)"
+                      class="breadcrumb-action"
+                      :class="action.type">
+                <i :class="action.icon"></i>
+                <span>{{ action.label }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <!-- Quick Access Toolbar -->
+          <div class="quick-access-toolbar">
+            <button v-for="action in quickActions" 
+                    :key="action.id"
+                    @click="handleQuickAction(action)"
+                    class="quick-action"
+                    :class="{ 'active': quickActionActive === action.id }"
+                    :title="action.label">
+              <i :class="action.icon"></i>
+              <span class="action-badge" v-if="action.badge">{{ action.badge }}</span>
+            </button>
+          </div>
+
+          <!-- Enhanced Search with Filters -->
+          <div class="search-container" :class="{ 'focused': searchFocused }">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" 
+                  v-model="searchQuery" 
+                  @focus="searchFocused = true"
+                  @blur="searchFocused = false"
+                  @keyup.enter="performSearch"
+                  @input="handleSearchInput"
+                  placeholder="Search users, logs, settings..."
+                  class="search-input"
+                  ref="searchInput">
+            <div class="search-filters" v-if="searchFocused && searchHistory.length">
+              <div class="filter-section">
+                <h4>Recent Searches</h4>
+                <ul>
+                  <li v-for="(item, index) in searchHistory" 
+                      :key="index"
+                      @click="applyRecentSearch(item)">
+                    <i class="fas fa-history"></i>
+                    <span>{{ item.query }}</span>
+                    <button @click.stop="removeSearchHistory(index)" class="remove-search">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div class="filter-section">
+                <h4>Search Filters</h4>
+                <div class="filter-options">
+                  <select v-model="searchFilter.type" class="filter-select">
+                    <option value="all">All</option>
+                    <option value="users">Users</option>
+                    <option value="logs">Logs</option>
+                    <option value="settings">Settings</option>
+                  </select>
+                  <select v-model="searchFilter.time" class="filter-select">
+                    <option value="anytime">Anytime</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enhanced Theme Toggle -->
+          <div class="nav-item">
+            <button class="nav-icon theme-toggle" 
+                    @click="toggleDarkMode" 
+                    :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                    aria-label="Toggle dark mode">
+              <div class="theme-icon-wrapper" :class="{ 'dark': darkMode }">
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+              </div>
+            </button>
+          </div>
+
+          <!-- RTL Toggle -->
+          <div class="nav-item">
+            <button class="nav-icon rtl-toggle" 
+                    @click="toggleRTLMode" 
+                    :title="rtlMode ? 'Switch to LTR' : 'Switch to RTL'"
+                    aria-label="Toggle RTL mode">
+              <i class="fas fa-text-width"></i>
+            </button>
+          </div>
+
+          <!-- Enhanced Notifications -->
+          <div class="nav-item notification-wrapper">
+            <button class="nav-icon" @click="toggleNotifications" aria-label="Notifications">
+              <i class="fas fa-bell"></i>
+              <span v-if="unreadNotifications > 0" class="notification-count">
+                {{ unreadNotifications > 9 ? '9+' : unreadNotifications }}
+              </span>
+            </button>
+            <transition name="slide-down">
+              <div v-if="notificationsOpen" class="notifications-dropdown">
+                <div class="notifications-header">
+                  <h3>Notifications ({{ notifications.length }})</h3>
+                  <div class="header-actions">
+                    <button class="mark-read" @click.stop="markAllAsRead">
+                      <i class="fas fa-check-double"></i> Mark all
+                    </button>
+                    <button class="settings" @click.stop="openNotificationSettings">
+                      <i class="fas fa-cog"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="notifications-tabs">
+                  <button v-for="tab in notificationTabs" 
+                          :key="tab.id"
+                          @click="setNotificationTab(tab.id)"
+                          :class="{ 'active': activeNotificationTab === tab.id }">
+                    {{ tab.label }} ({{ tab.count }})
+                  </button>
+                </div>
+                <perfect-scrollbar class="notifications-list">
+                  <ul>
+                    <li v-for="(notification, index) in filteredNotifications" 
+                        :key="index" 
+                        :class="getNotificationClasses(notification)">
+                      <div class="notification-content" @click="handleNotificationClick(notification)">
+                        <div class="notification-icon">
+                          <i :class="notification.icon"></i>
+                        </div>
+                        <div class="notification-details">
+                          <p class="notification-title">{{ notification.title }}</p>
+                          <p class="notification-message" v-if="notification.message">
+                            {{ notification.message }}
+                          </p>
+                          <div class="notification-meta">
+                            <span class="notification-time">{{ formatTime(notification.time) }}</span>
+                            <span class="notification-source">{{ notification.source }}</span>
+                          </div>
+                        </div>
+                        <div class="notification-actions">
+                          <button @click.stop="handleNotificationAction(notification, 'dismiss')"
+                                  class="action-dismiss"
+                                  title="Dismiss">
+                            <i class="fas fa-times"></i>
+                          </button>
+                          <button v-if="notification.actions"
+                                  @click.stop="handleNotificationAction(notification, 'action')"
+                                  class="action-primary"
+                                  title="Action">
+                            <i class="fas fa-arrow-right"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </perfect-scrollbar>
+                <div class="notifications-footer">
+                  <button @click.stop="viewAllNotifications" class="view-all">
+                    View All Notifications
+                  </button>
+                </div>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Enhanced User Profile -->
+          <div class="nav-item profile-menu" :class="{ 'open': profileMenuOpen }">
+            <div class="profile-info" @click="toggleProfileMenu">
+              <div class="avatar-wrapper">
+                <img :src="adminProfile.picture || defaultAvatar" 
+                     alt="Profile" 
+                     class="profile-pic"
+                     @error="adminProfile.picture = defaultAvatar">
+                <span class="active-status" :class="{ 
+                  'online': adminProfile.isOnline,
+                  'away': adminProfile.status === 'away',
+                  'busy': adminProfile.status === 'busy',
+                  'offline': adminProfile.status === 'offline'
+                }"></span>
+              </div>
+              <div class="profile-details" v-if="!isSidebarCollapsed">
+                <span class="profile-name">{{ adminProfile.username }}</span>
+                <span class="profile-role">{{ adminProfile.role }}</span>
+              </div>
+              <i class="fas fa-chevron-down profile-arrow"></i>
+            </div>
+            <transition name="slide-down">
+              <div v-if="profileMenuOpen" class="profile-dropdown">
+                <div class="profile-header">
+                  <div class="avatar-wrapper large">
+                    <img :src="adminProfile.picture || defaultAvatar" 
+                         alt="Profile" 
+                         class="profile-pic"
+                         @error="adminProfile.picture = defaultAvatar">
+                    <span class="active-status" :class="{ 
+                      'online': adminProfile.isOnline,
+                      'away': adminProfile.status === 'away',
+                      'busy': adminProfile.status === 'busy',
+                      'offline': adminProfile.status === 'offline'
+                    }"></span>
+                  </div>
+                  <div class="profile-info">
+                    <h4>{{ adminProfile.username }}</h4>
+                    <p>{{ adminProfile.role }}</p>
+                    <p class="profile-email">{{ adminProfile.email }}</p>
+                  </div>
+                </div>
+                <div class="status-selector">
+                  <label>Status:</label>
+                  <select v-model="adminProfile.status" @change="updateUserStatus">
+                    <option value="online">Online</option>
+                    <option value="away">Away</option>
+                    <option value="busy">Busy</option>
+                    <option value="offline">Offline</option>
+                  </select>
+                </div>
+                <ul class="profile-actions">
+                  <li @click="triggerFileInput">
+                    <i class="fas fa-user-edit"></i> Change Profile
+                    <input type="file" 
+                           accept="image/png,image/jpeg" 
+                           @change="onProfilePicChange" 
+                           class="profile-input" 
+                           ref="fileInput" 
+                           hidden>
+                  </li>
+                  <li @click="navigateToProfile">
+                    <i class="fas fa-user-cog"></i> Account Settings
+                  </li>
+                  <li @click="openActivityLog">
+                    <i class="fas fa-history"></i> Activity Log
+                  </li>
+                  <li class="divider"></li>
+                  <li @click="toggleDarkMode">
+                    <i :class="darkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
+                    {{ darkMode ? 'Light Mode' : 'Dark Mode' }}
+                  </li>
+                  <li @click="toggleRTLMode">
+                    <i class="fas fa-text-width"></i>
+                    {{ rtlMode ? 'LTR Mode' : 'RTL Mode' }}
+                  </li>
+                  <li class="divider"></li>
+                  <li @click="confirmLogout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                  </li>
+                </ul>
+              </div>
+            </transition>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="content">
+        <div class="content-header">
+          <div class="page-title">
+            <h2>{{ currentPageTitle }}</h2>
+            <div class="page-actions" v-if="pageActions.length">
+              <button v-for="action in pageActions" 
+                      :key="action.id"
+                      @click="handlePageAction(action)"
+                      class="page-action"
+                      :class="action.type">
+                <i :class="action.icon"></i>
+                <span>{{ action.label }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="content-tabs" v-if="contentTabs.length">
+            <button v-for="tab in contentTabs" 
+                    :key="tab.id"
+                    @click="setContentTab(tab.id)"
+                    :class="{ 'active': activeContentTab === tab.id }">
+              {{ tab.label }}
+              <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="content-body">
+          <transition name="fade" mode="out-in">
+            <keep-alive>
+              <component :is="currentTabComponent" 
+                         :key="currentTab"
+                         :search-query="searchQuery"
+                         :search-filter="searchFilter"
+                         @update-search="updateSearchResults"
+                         @update-actions="updatePageActions"
+                         @update-tabs="updateContentTabs"
+                         @update-title="updatePageTitle">
+              </component>
+            </keep-alive>
+          </transition>
+        </div>
+      </main>
+
+      <!-- Quick Settings Modal -->
+      <modal v-if="showQuickSettings" @close="showQuickSettings = false">
+        <template #header>
+          <h3>Quick Settings</h3>
+        </template>
+        <template #body>
+          <div class="settings-grid">
+            <div class="settings-group">
+              <h4>Appearance</h4>
+              <div class="setting-item">
+                <label>Theme</label>
+                <select v-model="appSettings.theme" @change="applyThemeSettings">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="system">System Default</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <label>Layout Density</label>
+                <select v-model="appSettings.density" @change="applyThemeSettings">
+                  <option value="compact">Compact</option>
+                  <option value="normal">Normal</option>
+                  <option value="spacious">Spacious</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <label>Sidebar Style</label>
+                <select v-model="appSettings.sidebarStyle" @change="applyThemeSettings">
+                  <option value="default">Default</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="floating">Floating</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-group">
+              <h4>Notifications</h4>
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" v-model="appSettings.notificationsEnabled">
+                  Enable Notifications
+                </label>
+              </div>
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" v-model="appSettings.soundEnabled">
+                  Enable Sound
+                </label>
+              </div>
+              <div class="setting-item">
+                <label>Notification Position</label>
+                <select v-model="appSettings.notificationPosition">
+                  <option value="top-right">Top Right</option>
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="top-left">Top Left</option>
+                  <option value="bottom-left">Bottom Left</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-group">
+              <h4>Quick Actions</h4>
+              <div class="quick-actions-grid">
+                <label v-for="action in allQuickActions" 
+                       :key="action.id"
+                       class="quick-action-item">
+                  <input type="checkbox" 
+                         v-model="appSettings.quickActions" 
+                         :value="action.id"
+                         @change="updateQuickActions">
+                  <i :class="action.icon"></i>
+                  <span>{{ action.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template #footer>
+          <button @click="showQuickSettings = false" class="btn-cancel">Cancel</button>
+          <button @click="saveSettings" class="btn-save">Save Settings</button>
+        </template>
+      </modal>
+
+      <!-- Enhanced Logout Modal -->
+      <modal v-if="showLogoutModal" @close="showLogoutModal = false" size="sm">
+        <template #header>
+          <div class="modal-icon warning">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <h3>Confirm Sign Out</h3>
+        </template>
+        <template #body>
+          <p>You're about to sign out of your admin session. Any unsaved changes will be lost.</p>
+          <div class="logout-options" v-if="activeSessions > 1">
+            <label>
+              <input type="radio" v-model="logoutOption" value="current">
+              Sign out this session only
+            </label>
+            <label>
+              <input type="radio" v-model="logoutOption" value="all">
+              Sign out all sessions ({{ activeSessions }})
+            </label>
+          </div>
+        </template>
+        <template #footer>
+          <button @click="showLogoutModal = false" class="btn-cancel">Cancel</button>
+          <button @click="logout" class="btn-confirm">Sign Out</button>
+        </template>
+      </modal>
+
+      <!-- Session Timeout Warning -->
+      <modal v-if="showSessionWarning" @close="extendSession" persistent>
+        <template #header>
+          <div class="modal-icon warning">
+            <i class="fas fa-clock"></i>
+          </div>
+          <h3>Session About to Expire</h3>
+        </template>
+        <template #body>
+          <p>Your session will expire in {{ sessionTimeoutCountdown }} seconds due to inactivity.</p>
+          <progress :value="sessionTimeoutCountdown" max="60"></progress>
+        </template>
+        <template #footer>
+          <button @click="logout" class="btn-cancel">Sign Out Now</button>
+          <button @click="extendSession" class="btn-confirm">Continue Working</button>
+        </template>
+      </modal>
+
+      <!-- Floating Action Button -->
+      <div class="fab-container" v-if="fabActions.length">
+        <button class="fab-main" @click="toggleFAB">
+          <i class="fas fa-plus"></i>
+        </button>
+        <transition-group name="fab-item">
+          <button v-for="action in visibleFABActions" 
+                  :key="action.id"
+                  @click="handleFABAction(action)"
+                  class="fab-action"
+                  :class="action.type"
+                  :style="{ 'bottom': `${60 + (index * 55)}px` }"
+                  :title="action.label">
+            <i :class="action.icon"></i>
+            <span class="fab-label">{{ action.label }}</span>
+          </button>
+        </transition-group>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import { PerfectScrollbar } from 'vue3-perfect-scrollbar'
+import ModelDisplayPage from '@/components/ModelDisplayPage.vue'
+import DashboardPage from './DashboardPage.vue'
+import UsersPage from './UsersPage.vue'
+import SettingsPage from './SettingsPage.vue'
+import { reactive, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useStore } from 'vuex'
+import { debounce } from 'lodash'
+
+export default {
+  name: 'AppLayout', // Added component name for clarity
+  components: { 
+    PerfectScrollbar,
+    ModelDisplayPage,
+    DashboardPage,
+    UsersPage,
+    SettingsPage
+  },
+  
+  setup() {
+    const router = useRouter()
+    const route = useRoute()
+    const store = useStore()
+
+    // State
+    const state = reactive({
+      isSidebarCollapsed: false,
+      sidebarOpen: false,
+      sidebarHover: false,
+      currentTab: 'dashboard',
+      darkMode: false,
+      rtlMode: false,
+      searchQuery: '',
+      searchFocused: false,
+      searchHistory: [],
+      searchFilter: {
+        type: 'all',
+        time: 'anytime'
+      },
+      notificationsOpen: false,
+      activeNotificationTab: 'all',
+      profileMenuOpen: false,
+      showLogoutModal: false,
+      showQuickSettings: false,
+      showSessionWarning: false,
+      sessionTimeoutCountdown: 60,
+      inactivityTimer: null,
+      logoutTimer: null,
+      logoutOption: 'current',
+      fabOpen: false,
+      quickActionActive: null,
+      adminProfile: {
+        picture: '',
+        username: 'Admin',
+        email: 'admin@example.com',
+        role: 'Super Admin',
+        status: 'online',
+        isOnline: true
+      },
+      defaultAvatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+      systemStatus: 'healthy',
+      systemResources: {
+        cpu: 35,
+        memory: 58,
+        disk: 22
+      },
+      appSettings: {
+        theme: 'light',
+        density: 'normal',
+        sidebarStyle: 'default',
+        notificationsEnabled: true,
+        soundEnabled: true,
+        notificationPosition: 'top-right',
+        quickActions: ['new-user', 'new-report', 'quick-search']
+      },
+      currentPageTitle: 'Dashboard',
+      pageActions: [],
+      contentTabs: [],
+      activeContentTab: null,
+      breadcrumbActions: []
+    })
+
+    // Menu Items with 3-level structure
+    const menuItems = computed(() => [
+      {
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: 'fas fa-tachometer-alt',
+        path: '/dashboard',
+        badge: null,
+        permission: 'view_dashboard'
+      },
+      {
+        id: 'users',
+        label: 'User Management',
+        icon: 'fas fa-users',
+        path: '/users',
+        badge: { value: 3, type: 'warning' },
+        permission: 'view_users',
+        children: [
+          {
+            id: 'all-users',
+            label: 'All Users',
+            icon: 'fas fa-user-friends',
+            path: '/users/all',
+            badge: null,
+            permission: 'view_users'
+          },
+          {
+            id: 'roles',
+            label: 'Roles & Permissions',
+            icon: 'fas fa-user-shield',
+            path: '/users/roles',
+            badge: null,
+            permission: 'view_roles',
+            children: [
+              {
+                id: 'roles-list',
+                label: 'Roles List',
+                icon: 'fas fa-list',
+                path: '/users/roles/list',
+                permission: 'view_roles'
+              },
+              {
+                id: 'permissions',
+                label: 'Permissions Matrix',
+                icon: 'fas fa-key',
+                path: '/users/roles/permissions',
+                permission: 'view_permissions'
+              }
+            ]
+          },
+          {
+            id: 'activity',
+            label: 'User Activity',
+            icon: 'fas fa-history',
+            path: '/users/activity',
+            badge: { value: 'New', type: 'info' },
+            permission: 'view_activity'
+          }
+        ]
+      },
+      {
+        id: 'content',
+        label: 'Content Management',
+        icon: 'fas fa-file-alt',
+        path: '/content',
+        badge: null,
+        permission: 'view_content',
+        children: [
+          {
+            id: 'pages',
+            label: 'Pages',
+            icon: 'fas fa-file',
+            path: '/content/pages',
+            permission: 'view_pages'
+          },
+          {
+            id: 'media',
+            label: 'Media Library',
+            icon: 'fas fa-images',
+            path: '/content/media',
+            badge: { value: '15+', type: 'info' },
+            permission: 'view_media'
+          }
+        ]
+      },
+      {
+        id: 'system',
+        label: 'System',
+        icon: 'fas fa-cogs',
+        path: '/system',
+        badge: null,
+        permission: 'view_system',
+        children: [
+          {
+            id: 'settings',
+            label: 'Settings',
+            icon: 'fas fa-sliders-h',
+            path: '/system/settings',
+            permission: 'view_settings'
+          },
+          {
+            id: 'logs',
+            label: 'System Logs',
+            icon: 'fas fa-clipboard-list',
+            path: '/system/logs',
+            badge: { value: '!', type: 'danger' },
+            permission: 'view_logs'
+          },
+          {
+            id: 'backup',
+            label: 'Backup & Restore',
+            icon: 'fas fa-database',
+            path: '/system/backup',
+            permission: 'view_backup'
+          }
+        ]
+      },
+      {
+        id: 'reports',
+        label: 'Reports',
+        icon: 'fas fa-chart-bar',
+        path: '/reports',
+        badge: { value: 2, type: 'info' },
+        permission: 'view_reports'
+      }
+    ])
+
+    // Filter menu items based on permissions
+    const filteredMenuItems = computed(() => {
+      return menuItems.value.filter(item => {
+        return store.getters.hasPermission(item.permission)
+      }).map(item => {
+        if (item.children) {
+          return {
+            ...item,
+            children: item.children.filter(child => {
+              return store.getters.hasPermission(child.permission)
+            }).map(child => {
+              if (child.children) {
+                return {
+                  ...child,
+                  children: child.children.filter(grandChild => {
+                    return store.getters.hasPermission(grandChild.permission)
+                  })
+                }
+              }
+              return child
+            })
+          }
+        }
+        return item
+      })
+    })
+
+    // Quick Actions
+    const quickActions = computed(() => [
+      {
+        id: 'new-user',
+        label: 'New User',
+        icon: 'fas fa-user-plus',
+        handler: () => router.push('/users/new')
+      },
+      {
+        id: 'new-report',
+        label: 'Create Report',
+        icon: 'fas fa-chart-pie',
+        handler: () => router.push('/reports/new')
+      },
+      {
+        id: 'quick-search',
+        label: 'Quick Search/ontheside',
+        icon: 'fas fa-search',
+        handler: () => {
+          state.searchFocused = true
+          document.querySelector('.search-input').focus()
+        }
+      },
+      {
+        id: 'refresh',
+        label: 'Refresh',
+        icon: 'fas fa-sync-alt',
+        handler: () => window.location.reload()
+      }
+    ].filter(action => state.appSettings.quickActions.includes(action.id)))
+
+    // All possible quick actions for settings
+    const allQuickActions = computed(() => [
+      ...quickActions.value,
+      {
+        id: 'new-content',
+        label: 'New Content',
+        icon: 'fas fa-file-alt'
+      },
+      {
+        id: 'quick-settings',
+        label: 'Quick Settings',
+        icon: 'fas fa-cog'
+      },
+      {
+        id: 'notifications',
+        label: 'Notifications',
+        icon: 'fas fa-bell'
+      }
+    ])
+
+    // FAB Actions
+    const fabActions = computed(() => [
+      {
+        id: 'new-user',
+        label: 'New User',
+        icon: 'fas fa-user-plus',
+        type: 'primary',
+        handler: () => router.push('/users/new')
+      },
+      {
+        id: 'new-content',
+        label: 'New Content',
+        icon: 'fas fa-file-alt',
+        type: 'secondary',
+        handler: () => router.push('/content/new')
+      },
+      {
+        id: 'new-report',
+        label: 'New Report',
+        icon: 'fas fa-chart-bar',
+        type: 'info',
+        handler: () => router.push('/reports/new')
+      },
+      {
+        id: 'quick-note',
+        label: 'Quick Note',
+        icon: 'fas fa-sticky-note',
+        type: 'warning',
+        handler: () => router.push('/notes/new')
+      }
+    ])
+
+    const visibleFABActions = computed(() => {
+      return state.fabOpen ? fabActions.value : []
+    })
+
+    // Notifications
+    const notifications = computed(() => [
+      {
+        id: 1,
+        title: 'New user registration',
+        message: 'John Doe has registered as a new user',
+        icon: 'fas fa-user-plus',
+        time: new Date(Date.now() - 120000),
+        read: false,
+        source: 'User Module',
+        type: 'user',
+        actions: true
+      },
+      {
+        id: 2,
+        title: 'System update available',
+        message: 'New version v2.3.5 is ready to install',
+        icon: 'fas fa-download',
+        time: new Date(Date.now() - 3600000),
+        read: false,
+        source: 'System',
+        type: 'system',
+        actions: true
+      },
+      {
+        id: 3,
+        title: 'Security alert',
+        message: 'Unusual login attempt detected from new device',
+        icon: 'fas fa-shield-alt',
+        time: new Date(Date.now() - 86400000),
+        read: true,
+        source: 'Security',
+        type: 'security',
+        actions: true
+      },
+      {
+        id: 4,
+        title: 'Backup completed',
+        message: 'System backup completed successfully',
+        icon: 'fas fa-database',
+        time: new Date(Date.now() - 172800000),
+        read: true,
+        source: 'Backup',
+        type: 'system',
+        actions: false
+      }
+    ])
+
+    const notificationTabs = computed(() => [
+      { id: 'all', label: 'All', count: notifications.value.length },
+      { id: 'unread', label: 'Unread', count: unreadNotifications.value },
+      { id: 'user', label: 'Users', count: notifications.value.filter(n => n.type === 'user').length },
+      { id: 'system', label: 'System', count: notifications.value.filter(n => n.type === 'system').length }
+    ])
+
+    const filteredNotifications = computed(() => {
+      if (state.activeNotificationTab === 'all') {
+        return notifications.value
+      } else if (state.activeNotificationTab === 'unread') {
+        return notifications.value.filter(n => !n.read)
+      } else {
+        return notifications.value.filter(n => n.type === state.activeNotificationTab)
+      }
+    })
+
+    const unreadNotifications = computed(() => {
+      return notifications.value.filter(n => !n.read).length
+    })
+
+    // Breadcrumbs
+    const breadcrumbs = computed(() => {
+      const matched = route.matched.filter(r => r.meta && r.meta.title)
+      return matched.map(r => ({
+        path: r.path,
+        title: r.meta.title
+      }))
+    })
+
+    // Current tab component
+    const currentTabComponent = computed(() => {
+      switch (state.currentTab) {
+        case 'dashboard': return DashboardPage
+        case 'users': return UsersPage
+        case 'settings': return SettingsPage
+        default: return DashboardPage
+      }
+    })
+
+    // System status
+    const systemStatusMessage = computed(() => {
+      switch (state.systemStatus) {
+        case 'healthy': return 'All systems operational'
+        case 'warning': return 'Minor issues detected'
+        case 'critical': return 'Critical issues detected'
+        default: return 'Status unknown'
+      }
+    })
+
+    const getStatusIcon = computed(() => {
+      switch (state.systemStatus) {
+        case 'healthy': return 'fas fa-check-circle'
+        case 'warning': return 'fas fa-exclamation-triangle'
+        case 'critical': return 'fas fa-times-circle'
+        default: return 'fas fa-question-circle'
+      }
+    })
+
+    // Logo images based on theme
+    const logoImage = computed(() => {
+      return state.darkMode 
+        ? '/images/logo-white.png' 
+        : '/images/logo-dark.png'
+    })
+
+    const logoIcon = computed(() => {
+      return state.darkMode 
+        ? '/images/logo-icon-white.png' 
+        : '/images/logo-icon-dark.png'
+    })
+
+    // Methods
+    const toggleSidebar = () => {
+      state.isSidebarCollapsed = !state.isSidebarCollapsed
+      localStorage.setItem('sidebarCollapsed', state.isSidebarCollapsed)
+    }
+
+    const toggleSidebarMobile = () => {
+      state.sidebarOpen = !state.sidebarOpen
+    }
+
+    const toggleDarkMode = () => {
+      state.darkMode = !state.darkMode
+      document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : 'light')
+      localStorage.setItem('darkMode', state.darkMode)
+    }
+
+    const toggleRTLMode = () => {
+      state.rtlMode = !state.rtlMode
+      document.documentElement.setAttribute('dir', state.rtlMode ? 'rtl' : 'ltr')
+      localStorage.setItem('rtlMode', state.rtlMode)
+    }
+
+    const toggleNotifications = () => {
+      state.notificationsOpen = !state.notificationsOpen
+      if (state.notificationsOpen) {
+        // Mark notifications as read when opened
+        notifications.value.forEach(n => n.read = true)
+      }
+    }
+
+    const toggleProfileMenu = () => {
+      state.profileMenuOpen = !state.profileMenuOpen
+    }
+
+    const toggleFAB = () => {
+      state.fabOpen = !state.fabOpen
+    }
+
+    const handleMenuItemClick = (item) => {
+      if (hasChildren(item)) {
+        item.isOpen = !item.isOpen
+      } else {
+        router.push(item.path)
+        state.currentTab = item.id
+        if (window.innerWidth < 992) {
+          state.sidebarOpen = false
+        }
+      }
+    }
+
+    const handleChildClick = (child, parent) => {
+      if (hasGrandChildren(child)) {
+        child.isOpen = !child.isOpen
+      } else {
+        router.push(child.path)
+        state.currentTab = parent.id
+        if (window.innerWidth < 992) {
+          state.sidebarOpen = false
+        }
+      }
+    }
+
+    const handleGrandChildClick = (grandChild, child, parent) => {
+      router.push(grandChild.path)
+      state.currentTab = parent.id
+      if (window.innerWidth < 992) {
+        state.sidebarOpen = false
+      }
+    }
+
+    const handleMenuHover = (item) => {
+      if (state.isSidebarCollapsed && !item.isOpen) {
+        item.hovered = true
+      }
+    }
+
+    const hasChildren = (item) => {
+      return item.children && item.children.length > 0
+    }
+
+    const hasGrandChildren = (child) => {
+      return child.children && child.children.length > 0
+    }
+
+    const getMenuItemClasses = (item) => {
+      return {
+        'active': isActive(item),
+        'open': item.isOpen,
+        'hovered': item.hovered,
+        'has-children': hasChildren(item)
+      }
+    }
+
+    const getChildItemClasses = (child) => {
+      return {
+        'active': isActive(child),
+        'open': child.isOpen,
+        'has-children': hasGrandChildren(child)
+      }
+    }
+
+    const getGrandChildItemClasses = (grandChild) => {
+      return {
+        'active': isActive(grandChild)
+      }
+    }
+
+    const isActive = (item) => {
+      return route.path.startsWith(item.path)
+    }
+
+    const getIconStyle = (item) => {
+      if (item.iconColor) {
+        return { color: item.iconColor }
+      }
+      return {}
+    }
+
+    const performSearch = debounce(() => {
+      if (state.searchQuery.trim()) {
+        // Add to search history if not already present
+        if (!state.searchHistory.some(item => item.query === state.searchQuery)) {
+          state.searchHistory.unshift({
+            query: state.searchQuery,
+            filter: { ...state.searchFilter },
+            time: new Date()
+          })
+          
+          // Keep only last 5 searches
+          if (state.searchHistory.length > 5) {
+            state.searchHistory.pop()
+          }
+        }
+        
+        // Emit search event to current component
+        console.log('Search performed:', state.searchQuery, state.searchFilter)
+      }
+    }, 500)
+
+    const handleSearchInput = () => {
+      performSearch()
+    }
+
+    const applyRecentSearch = (item) => {
+      state.searchQuery = item.query
+      state.searchFilter = { ...item.filter }
+      performSearch()
+    }
+
+    const removeSearchHistory = (index) => {
+      state.searchHistory.splice(index, 1)
+    }
+
+    const setNotificationTab = (tab) => {
+      state.activeNotificationTab = tab
+    }
+
+    const markAllAsRead = () => {
+      notifications.value.forEach(n => n.read = true)
+    }
+
+    const handleNotificationClick = (notification) => {
+      if (notification.type === 'user') {
+        router.push('/users')
+      } else if (notification.type === 'system') {
+        router.push('/system')
+      }
+      state.notificationsOpen = false
+    }
+
+    const handleNotificationAction = (notification, action) => {
+      if (action === 'dismiss') {
+        const index = notifications.value.findIndex(n => n.id === notification.id)
+        if (index !== -1) {
+          notifications.value.splice(index, 1)
+        }
+      } else if (action === 'action') {
+        console.log('Notification action triggered:', notification)
+      }
+    }
+
+    const viewAllNotifications = () => {
+      router.push('/notifications')
+      state.notificationsOpen = false
+    }
+
+    const openNotificationSettings = () => {
+      state.showQuickSettings = true
+      state.notificationsOpen = false
+    }
+
+    const triggerFileInput = () => {
+      document.querySelector('.profile-input').click()
+    }
+
+    const onProfilePicChange = (e) => {
+      const file = e.target.files[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          state.adminProfile.picture = event.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+      state.profileMenuOpen = false
+    }
+
+    const navigateToProfile = () => {
+      router.push('/profile')
+      state.profileMenuOpen = false
+    }
+
+    const openActivityLog = () => {
+      router.push('/activity')
+      state.profileMenuOpen = false
+    }
+
+    const updateUserStatus = () => {
+      state.adminProfile.isOnline = state.adminProfile.status !== 'offline'
+    }
+
+    const confirmLogout = () => {
+      state.showLogoutModal = true
+      state.profileMenuOpen = false
+    }
+
+    const logout = () => {
+      console.log(`Logging out ${state.logoutOption} session(s)`)
+      router.push('/login')
+      state.showLogoutModal = false
+    }
+
+    const openQuickSettings = () => {
+      state.showQuickSettings = true
+    }
+
+    const saveSettings = () => {
+      localStorage.setItem('appSettings', JSON.stringify(state.appSettings))
+      applyThemeSettings()
+      state.showQuickSettings = false
+    }
+
+    const applyThemeSettings = () => {
+      if (state.appSettings.theme === 'dark') {
+        state.darkMode = true
+      } else if (state.appSettings.theme === 'light') {
+        state.darkMode = false
+      } else {
+        state.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      
+      document.body.className = state.appSettings.density
+    }
+
+    const updateQuickActions = () => {
+      // Quick actions are already computed based on appSettings.quickActions
+    }
+
+    const handleQuickAction = (action) => {
+      state.quickActionActive = action.id
+      setTimeout(() => state.quickActionActive = null, 300)
+      action.handler()
+    }
+
+    const handleFABAction = (action) => {
+      action.handler()
+      state.fabOpen = false
+    }
+
+    const updatePageTitle = (title) => {
+      state.currentPageTitle = title
+    }
+
+    const updatePageActions = (actions) => {
+      state.pageActions = actions
+    }
+
+    const updateContentTabs = (tabs) => {
+      state.contentTabs = tabs
+      if (tabs.length && !state.activeContentTab) {
+        state.activeContentTab = tabs[0].id
+      }
+    }
+
+    const setContentTab = (tabId) => {
+      state.activeContentTab = tabId
+    }
+
+    const handlePageAction = (action) => {
+      console.log('Page action:', action)
+    }
+
+    const handleBreadcrumbAction = (action) => {
+      console.log('Breadcrumb action:', action)
+    }
+
+    const updateSearchResults = (results) => {
+      console.log('Search results updated:', results)
+    }
+
+    const resetInactivityTimer = () => {
+      clearTimeout(state.inactivityTimer)
+      clearTimeout(state.logoutTimer)
+      
+      state.inactivityTimer = setTimeout(() => {
+        state.showSessionWarning = true
+        startLogoutCountdown()
+      }, 15 * 60 * 1000)
+    }
+
+    const startLogoutCountdown = () => {
+      state.sessionTimeoutCountdown = 60
+      state.logoutTimer = setInterval(() => {
+        state.sessionTimeoutCountdown--
+        if (state.sessionTimeoutCountdown <= 0) {
+          logout()
+        }
+      }, 1000)
+    }
+
+    const extendSession = () => {
+      state.showSessionWarning = false
+      clearInterval(state.logoutTimer)
+      resetInactivityTimer()
+    }
+
+    const formatTime = (date) => {
+      const now = new Date()
+      const diff = now - date
+      
+      if (diff < 60000) {
+        return 'Just now'
+      } else if (diff < 3600000) {
+        return `${Math.floor(diff / 60000)}m ago`
+      } else if (diff < 86400000) {
+        return `${Math.floor(diff / 3600000)}h ago`
+      } else {
+        return date.toLocaleDateString()
+      }
+    }
+
+    // Initialize
+    onMounted(() => {
+      const savedSidebarState = localStorage.getItem('sidebarCollapsed')
+      if (savedSidebarState !== null) {
+        state.isSidebarCollapsed = savedSidebarState === 'true'
+      }
+      
+      const savedDarkMode = localStorage.getItem('darkMode')
+      if (savedDarkMode !== null) {
+        state.darkMode = savedDarkMode === 'true'
+      }
+      
+      const savedRTLMode = localStorage.getItem('rtlMode')
+      if (savedRTLMode !== null) {
+        state.rtlMode = savedRTLMode === 'true'
+      }
+      
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        state.appSettings = JSON.parse(savedSettings)
+      }
+      
+      document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : 'light')
+      document.documentElement.setAttribute('dir', state.rtlMode ? 'rtl' : 'ltr')
+      
+      resetInactivityTimer()
+      
+      window.addEventListener('mousemove', resetInactivityTimer)
+      window.addEventListener('keypress', resetInactivityTimer)
+      window.addEventListener('scroll', resetInactivityTimer)
+      window.addEventListener('click', resetInactivityTimer)
+      
+      const matched = route.matched.find(r => r.meta && r.meta.module)
+      if (matched) {
+        state.currentTab = matched.meta.module
+      }
+    })
+
+    onBeforeUnmount(() => {
+      clearTimeout(state.inactivityTimer)
+      clearTimeout(state.logoutTimer)
+      window.removeEventListener('mousemove', resetInactivityTimer)
+      window.removeEventListener('keypress', resetInactivityTimer)
+      window.removeEventListener('scroll', resetInactivityTimer)
+      window.removeEventListener('click', resetInactivityTimer)
+    })
+
+    // Watch route changes
+watch(() => route.path, (newPath) => {
+  console.log('Route changed to:', newPath);
+  const matched = route.matched.find(r => r.meta && r.meta.module)
+  if (matched) {
+    state.currentTab = matched.meta.module
+  }
+})
+
+
+    return {
+      ...state,
+      menuItems,
+      filteredMenuItems,
+      quickActions,
+      allQuickActions,
+      fabActions,
+      visibleFABActions,
+      notifications,
+      notificationTabs,
+      filteredNotifications,
+      unreadNotifications,
+      breadcrumbs,
+      currentTabComponent,
+      systemStatusMessage,
+      getStatusIcon,
+      logoImage,
+      logoIcon,
+      toggleSidebar,
+      toggleSidebarMobile,
+      toggleDarkMode,
+      toggleRTLMode,
+      toggleNotifications,
+      toggleProfileMenu,
+      toggleFAB,
+      handleMenuItemClick,
+      handleChildClick,
+      handleGrandChildClick,
+      handleMenuHover,
+      hasChildren,
+      hasGrandChildren,
+      getMenuItemClasses,
+      getChildItemClasses,
+      getGrandChildItemClasses,
+      isActive,
+      getIconStyle,
+      performSearch,
+      handleSearchInput,
+      applyRecentSearch,
+      removeSearchHistory,
+      setNotificationTab,
+      markAllAsRead,
+      handleNotificationClick,
+      handleNotificationAction,
+      viewAllNotifications,
+      openNotificationSettings,
+      triggerFileInput,
+      onProfilePicChange,
+      navigateToProfile,
+      openActivityLog,
+      updateUserStatus,
+      confirmLogout,
+      logout,
+      openQuickSettings,
+      saveSettings,
+      applyThemeSettings,
+      updateQuickActions,
+      handleQuickAction,
+      handleFABAction,
+      updatePageTitle,
+      updatePageActions,
+      updateContentTabs,
+      setContentTab,
+      handlePageAction,
+      handleBreadcrumbAction,
+      updateSearchResults,
+      extendSession,
+      formatTime
+    }
+  }
+}
+</script>
+<style>
+/* Base Styles */
+:root {
+  --primary-color: #4361ee;
+  --primary-light: #e6f0fd;
+  --secondary-color: #3f37c9;
+  --success-color: #4cc9f0;
+  --info-color: #4895ef;
+  --warning-color: #f8961e;
+  --danger-color: #f72585;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --gray-color: #6c757d;
+  --gray-light: #e9ecef;
+  --border-color: #dee2e6;
+  --sidebar-width: 250px;
+  --sidebar-collapsed-width: 70px;
+  --navbar-height: 60px;
+  --transition-speed: 0.3s;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--dark-color);
+  background-color: #f5f7fb;
+  overflow-x: hidden;
+}
+
+/* Layout Structure */
+.admin-dashboard {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  transition: all var(--transition-speed) ease;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: white;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+  transition: all var(--transition-speed) ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+}
+
+.sidebar-collapsed .sidebar {
+  width: var(--sidebar-collapsed-width);
+}
+
+.main-container {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  transition: all var(--transition-speed) ease;
+}
+
+.sidebar-collapsed .main-container {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+.content {
+  padding: 20px;
+  margin-top: var(--navbar-height);
+}
+
+/* Sidebar Styles */
+.sidebar-header {
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--navbar-height);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.toggle-sidebar {
+  background: none;
+  border: none;
+  color: var(--gray-color);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.toggle-sidebar:hover {
+  color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--dark-color);
+}
+
+.logo-image {
+  height: 30px;
+  margin-right: 10px;
+}
+
+.logo-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.logo-primary {
+  color: var(--primary-color);
+}
+
+.logo-secondary {
+  color: var(--gray-color);
+}
+
+.logo-collapsed-image {
+  height: 30px;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.sidebar-menu {
+  list-style: none;
+}
+
+.sidebar-menu li {
+  position: relative;
+  margin: 5px 0;
+}
+
+.menu-item-wrapper {
+  position: relative;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  color: var(--gray-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 0 30px 30px 0;
+  margin-right: 15px;
+}
+
+.menu-item:hover {
+  color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.menu-item i {
+  font-size: 1rem;
+  margin-right: 10px;
+  width: 20px;
+  text-align: center;
+}
+
+.menu-item span {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+  color: var(--gray-color);
+}
+
+.rotated {
+  transform: rotate(90deg);
+}
+
+/* Active Menu Item */
+.sidebar-menu li.active > .menu-item-wrapper > .menu-item {
+  color: white;
+  background: var(--primary-color);
+  font-weight: 500;
+}
+
+.sidebar-menu li.active > .menu-item-wrapper > .menu-item i,
+.sidebar-menu li.active > .menu-item-wrapper > .menu-item .dropdown-arrow {
+  color: white;
+}
+
+/* Submenu Styles */
+.submenu {
+  list-style: none;
+  padding-left: 20px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+
+.sidebar-menu li.open > .submenu {
+  max-height: 1000px;
+}
+
+.submenu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px 10px 35px;
+  color: var(--gray-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 0 30px 30px 0;
+  margin-right: 15px;
+}
+
+.submenu-item:hover {
+  color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.submenu-item i {
+  font-size: 0.9rem;
+  margin-right: 10px;
+  width: 20px;
+  text-align: center;
+}
+
+.submenu-item span {
+  flex: 1;
+}
+
+.level-1 .submenu-item.active {
+  color: var(--primary-color);
+  font-weight: 500;
+  background: rgba(67, 97, 238, 0.1);
+}
+
+.level-2 .submenu-item {
+  padding-left: 50px;
+  font-size: 0.9rem;
+}
+
+.level-2 .submenu-item.active {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* Badges */
+.menu-badge {
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.menu-badge.info {
+  background: var(--info-color);
+  color: white;
+}
+
+.menu-badge.warning {
+  background: var(--warning-color);
+  color: white;
+}
+
+.menu-badge.danger {
+  background: var(--danger-color);
+  color: white;
+}
+
+.menu-badge.success {
+  background: var(--success-color);
+  color: white;
+}
+
+/* Tooltips */
+.menu-tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--dark-color);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.menu-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 5px solid var(--dark-color);
+}
+
+.sidebar-menu li:hover .menu-tooltip {
+  opacity: 1;
+  visibility: visible;
+  left: calc(100% + 10px);
+}
+
+.tooltip-badge {
+  font-size: 0.6rem;
+  padding: 2px 4px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-left: 5px;
+}
+
+.tooltip-badge.info {
+  background: var(--info-color);
+}
+
+.tooltip-badge.warning {
+  background: var(--warning-color);
+}
+
+.tooltip-badge.danger {
+  background: var(--danger-color);
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+.system-status {
+  margin-bottom: 15px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.status-icon {
+  margin-right: 8px;
+  font-size: 0.7rem;
+}
+
+.status-text {
+  flex: 1;
+}
+
+.status-indicator.healthy {
+  color: var(--success-color);
+}
+
+.status-indicator.warning {
+  color: var(--warning-color);
+}
+
+.status-indicator.critical {
+  color: var(--danger-color);
+}
+
+.resource-usage {
+  font-size: 0.8rem;
+}
+
+.usage-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.usage-label {
+  width: 35px;
+  font-weight: 500;
+}
+
+.usage-bar {
+  flex: 1;
+  height: 6px;
+  margin: 0 8px;
+  border-radius: 3px;
+  background: var(--gray-light);
+  overflow: hidden;
+}
+
+.usage-bar::-webkit-progress-bar {
+  background: var(--gray-light);
+  border-radius: 3px;
+}
+
+.usage-bar::-webkit-progress-value {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.usage-value {
+  width: 35px;
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--gray-color);
+}
+
+.quick-settings {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  color: var(--gray-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-settings:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.quick-settings i {
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+/* Navbar Styles */
+.navbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--sidebar-width);
+  height: var(--navbar-height);
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 900;
+  transition: all var(--transition-speed) ease;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-collapsed .navbar {
+  left: var(--sidebar-collapsed-width);
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-toggle-sidebar {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--gray-color);
+  font-size: 1.2rem;
+  margin-right: 15px;
+  cursor: pointer;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.breadcrumb-link {
+  color: var(--gray-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--primary-color);
+}
+
+.breadcrumb-current {
+  color: var(--dark-color);
+  font-weight: 500;
+}
+
+.separator {
+  color: var(--gray-color);
+  font-size: 0.7rem;
+  margin: 0 8px;
+}
+
+.breadcrumb-actions {
+  margin-left: 15px;
+  display: flex;
+}
+
+.breadcrumb-action {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.breadcrumb-action i {
+  margin-right: 5px;
+  font-size: 0.8rem;
+}
+
+.breadcrumb-action.primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.breadcrumb-action.primary:hover {
+  background: var(--secondary-color);
+}
+
+.breadcrumb-action.secondary {
+  background: var(--gray-light);
+  color: var(--dark-color);
+}
+
+.breadcrumb-action.secondary:hover {
+  background: #d1d7e0;
+}
+
+/* Nav Right */
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.nav-item {
+  margin-left: 15px;
+  position: relative;
+}
+
+.nav-icon {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-color);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-icon:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.notification-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--danger-color);
+  color: white;
+  font-size: 0.6rem;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Quick Access Toolbar */
+.quick-access-toolbar {
+  display: flex;
+  margin-right: 15px;
+}
+
+.quick-action {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-color);
+  transition: all 0.2s ease;
+  position: relative;
+  margin-right: 5px;
+}
+
+.quick-action:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.quick-action.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.action-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--danger-color);
+  color: white;
+  font-size: 0.6rem;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Search Container */
+.search-container {
+  position: relative;
+  margin-right: 15px;
+  width: 200px;
+  transition: all 0.3s ease;
+}
+
+.search-container.focused {
+  width: 250px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-color);
+  font-size: 0.9rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 15px 8px 35px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  background: var(--light-color);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.search-filters {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 300px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  margin-top: 5px;
+  z-index: 1000;
+}
+
+.filter-section {
+  margin-bottom: 15px;
+}
+
+.filter-section h4 {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  color: var(--gray-color);
+}
+
+.filter-section ul {
+  list-style: none;
+}
+
+.filter-section ul li {
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.filter-section ul li:hover {
+  color: var(--primary-color);
+}
+
+.filter-section ul li i {
+  margin-right: 8px;
+  font-size: 0.8rem;
+  color: var(--gray-color);
+}
+
+.filter-section ul li span {
+  flex: 1;
+}
+
+.remove-search {
+  background: none;
+  border: none;
+  color: var(--gray-color);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.remove-search:hover {
+  color: var(--danger-color);
+}
+
+.filter-options {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-select {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: var(--light-color);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Theme Toggle */
+.theme-icon-wrapper {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.theme-icon-wrapper i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: all 0.3s ease;
+}
+
+.theme-icon-wrapper i.fa-sun {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+.theme-icon-wrapper i.fa-moon {
+  opacity: 0;
+  transform: rotate(-90deg);
+}
+
+.theme-icon-wrapper.dark i.fa-sun {
+  opacity: 0;
+  transform: rotate(90deg);
+}
+
+.theme-icon-wrapper.dark i.fa-moon {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+/* Notifications Dropdown */
+.notifications-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 350px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
+  z-index: 1000;
+}
+
+.notifications-header {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notifications-header h3 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+}
+
+.header-actions button {
+  background: none;
+  border: none;
+  color: var(--gray-color);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-left: 5px;
+}
+
+.header-actions button:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.notifications-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 15px;
+}
+
+.notifications-tabs button {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 5px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  position: relative;
+  color: var(--gray-color);
+}
+
+.notifications-tabs button.active {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.notifications-tabs button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-color);
+}
+
+.notifications-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notifications-list ul {
+  list-style: none;
+}
+
+.notifications-list li {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.notifications-list li.unread {
+  background: rgba(67, 97, 238, 0.05);
+}
+
+.notifications-list li:hover {
+  background: var(--primary-light);
+}
+
+.notification-content {
+  display: flex;
+}
+
+.notification-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.notification-details {
+  flex: 1;
+}
+
+.notification-title {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 3px;
+}
+
+.notification-message {
+  font-size: 0.8rem;
+  color: var(--gray-color);
+  margin-bottom: 5px;
+}
+
+.notification-meta {
+  display: flex;
+  font-size: 0.7rem;
+  color: var(--gray-color);
+}
+
+.notification-time {
+  margin-right: 10px;
+}
+
+.notification-actions {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.notification-actions button {
+  background: none;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-color);
+  transition: all 0.2s ease;
+}
+
+.notification-actions button:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.notification-actions button.action-primary {
+  color: var(--primary-color);
+}
+
+.notification-actions button.action-primary:hover {
+  background: rgba(67, 97, 238, 0.1);
+}
+
+.notification-actions button.action-dismiss:hover {
+  color: var(--danger-color);
+  background: rgba(247, 37, 133, 0.1);
+}
+
+.notifications-footer {
+  padding: 10px 15px;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.view-all {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.view-all:hover {
+  background: var(--primary-light);
+}
+
+/* Profile Menu */
+.profile-menu {
+  position: relative;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.avatar-wrapper {
+  position: relative;
+}
+
+.profile-pic {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.active-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.active-status.online {
+  background: var(--success-color);
+}
+
+.active-status.away {
+  background: var(--warning-color);
+}
+
+.active-status.busy {
+  background: var(--danger-color);
+}
+
+.active-status.offline {
+  background: var(--gray-color);
+}
+
+.profile-details {
+  margin-left: 10px;
+  margin-right: 5px;
+  text-align: left;
+}
+
+.profile-name {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.profile-role {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--gray-color);
+}
+
+.profile-arrow {
+  font-size: 0.7rem;
+  color: var(--gray-color);
+  transition: transform 0.2s ease;
+}
+
+.profile-menu.open .profile-arrow {
+  transform: rotate(180deg);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 280px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.profile-header {
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  background: var(--primary-light);
+}
+
+.avatar-wrapper.large {
+  margin-right: 15px;
+}
+
+.avatar-wrapper.large .profile-pic {
+  width: 50px;
+  height: 50px;
+}
+
+.avatar-wrapper.large .active-status {
+  width: 12px;
+  height: 12px;
+}
+
+.profile-info h4 {
+  font-size: 1rem;
+  margin-bottom: 3px;
+}
+
+.profile-info p {
+  font-size: 0.8rem;
+  color: var(--gray-color);
+  margin-bottom: 3px;
+}
+
+.profile-email {
+  font-size: 0.7rem;
+  color: var(--gray-color);
+}
+
+.status-selector {
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+}
+
+.status-selector label {
+  font-size: 0.8rem;
+  margin-right: 10px;
+  color: var(--gray-color);
+}
+
+.status-selector select {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: var(--light-color);
+}
+
+.status-selector select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.profile-actions {
+  list-style: none;
+}
+
+.profile-actions li {
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.profile-actions li:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.profile-actions li i {
+  margin-right: 10px;
+  font-size: 0.9rem;
+  width: 20px;
+  text-align: center;
+}
+
+.profile-actions li.divider {
+  padding: 0;
+  height: 1px;
+  background: var(--border-color);
+  margin: 5px 0;
+  cursor: default;
+}
+
+.profile-actions li.divider:hover {
+  background: var(--border-color);
+}
+
+/* Content Styles */
+.content-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.page-title h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.page-actions {
+  display: flex;
+}
+
+.page-action {
+  display: flex;
+  align-items: center;
+  padding: 8px 15px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.page-action i {
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+.page-action.primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.page-action.primary:hover {
+  background: var(--secondary-color);
+}
+
+.page-action.secondary {
+  background: var(--gray-light);
+  color: var(--dark-color);
+}
+
+.page-action.secondary:hover {
+  background: #d1d7e0;
+}
+
+.content-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.content-tabs button {
+  padding: 10px 15px;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--gray-color);
+  cursor: pointer;
+  position: relative;
+  margin-right: 5px;
+}
+
+.content-tabs button.active {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.content-tabs button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-color);
+}
+
+.tab-badge {
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  margin-left: 5px;
+}
+
+.content-body {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  min-height: calc(100vh - 180px);
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.sm .modal-content {
+  max-width: 400px;
+}
+
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+}
+
+.modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  font-size: 1.2rem;
+}
+
+.modal-icon.warning {
+  background: rgba(248, 150, 30, 0.1);
+  color: var(--warning-color);
+}
+
+.modal-header h3 {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.modal-body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-cancel {
+  padding: 8px 15px;
+  background: var(--gray-light);
+  border: none;
+  border-radius: 4px;
+  color: var(--dark-color);
+  cursor: pointer;
+  margin-right: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #d1d7e0;
+}
+
+.btn-confirm {
+  padding: 8px 15px;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm:hover {
+  background: var(--secondary-color);
+}
+
+.btn-save {
+  padding: 8px 20px;
+  background: var(--success-color);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-save:hover {
+  background: #3aa8d8;
+}
+
+/* Settings Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.settings-group {
+  background: var(--light-color);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.settings-group h4 {
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+  color: var(--gray-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.setting-item {
+  margin-bottom: 15px;
+}
+
+.setting-item label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+.setting-item input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.setting-item select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.setting-item select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.quick-action-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.quick-action-item:hover {
+  background: var(--primary-light);
+}
+
+.quick-action-item i {
+  margin-right: 8px;
+  width: 20px;
+  text-align: center;
+  color: var(--gray-color);
+}
+
+/* FAB Styles */
+.fab-container {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 100;
+}
+
+.fab-main {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 101;
+}
+
+.fab-main:hover {
+  background: var(--secondary-color);
+  transform: scale(1.05);
+}
+
+.fab-main i {
+  font-size: 1.2rem;
+}
+
+.fab-action {
+  position: absolute;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+
+.fab-action.primary {
+  background: var(--primary-color);
+}
+
+.fab-action.secondary {
+  background: var(--gray-color);
+}
+
+.fab-action.info {
+  background: var(--info-color);
+}
+.fab-action.success {
+  background: var(--success-color);
+}
+
+.fab-action.warning {
+  background: var(--warning-color);
+}
+
+.fab-action.danger {
+  background: var(--danger-color);
+}
+
+.fab-container.open .fab-action {
+  opacity: 1;
+  visibility: visible;
+}
+
+.fab-action:nth-child(2) {
+  transform: translateY(-60px);
+}
+
+.fab-action:nth-child(3) {
+  transform: translateY(-110px);
+}
+
+.fab-action:nth-child(4) {
+  transform: translateY(-160px);
+}
+
+.fab-action:nth-child(5) {
+  transform: translateY(-210px);
+}
+
+.fab-action:hover {
+  transform: scale(1.1);
+}
+
+.fab-action i {
+  font-size: 1rem;
+}
+
+.fab-tooltip {
+  position: absolute;
+  right: 50px;
+  background: var(--dark-color);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.fab-action:hover .fab-tooltip {
+  opacity: 1;
+  visibility: visible;
+  right: 55px;
+}
+
+.fab-tooltip::before {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid var(--dark-color);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .sidebar {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .main-container {
+    margin-left: var(--sidebar-collapsed-width);
+  }
+
+  .navbar {
+    left: var(--sidebar-collapsed-width);
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .menu-item span {
+    display: none;
+  }
+
+  .menu-item i {
+    margin-right: 0;
+  }
+
+  .sidebar-nav {
+    padding: 10px;
+  }
+
+  .menu-item {
+    justify-content: center;
+    padding: 12px;
+    margin-right: 0;
+  }
+
+  .submenu {
+    display: none;
+  }
+
+  .sidebar-menu li:hover .menu-tooltip {
+    opacity: 1;
+    visibility: visible;
+    left: calc(100% + 10px);
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .main-container {
+    margin-left: 0;
+  }
+
+  .navbar {
+    left: 0;
+  }
+
+  .mobile-toggle-sidebar {
+    display: block;
+  }
+
+  .search-container {
+    width: 150px;
+  }
+
+  .search-container.focused {
+    width: 200px;
+  }
+
+  .notifications-dropdown,
+  .profile-dropdown {
+    width: 90%;
+    right: 5%;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fab-container {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .fab-main {
+    width: 48px;
+    height: 48px;
+  }
+
+  .fab-action {
+    width: 36px;
+    height: 36px;
+  }
+
+  .fab-action:nth-child(2) {
+    transform: translateY(-50px);
+  }
+
+  .fab-action:nth-child(3) {
+    transform: translateY(-95px);
+  }
+
+  .fab-action:nth-child(4) {
+    transform: translateY(-140px);
+  }
+
+  .fab-action:nth-child(5) {
+    transform: translateY(-185px);
+  }
+}
+
+@media (max-width: 576px) {
+  .page-title h2 {
+    font-size: 1.2rem;
+  }
+
+  .page-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .page-action {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .content-tabs {
+    flex-wrap: wrap;
+  }
+
+  .content-tabs button {
+    flex: 1 0 45%;
+    margin-bottom: 10px;
+  }
+
+  .breadcrumbs {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .breadcrumb-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .search-container {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .search-container.focused {
+    width: 100%;
+  }
+
+  .nav-right {
+    gap: 10px;
+  }
+
+  .nav-item {
+    margin-left: 5px;
+  }
+
+  .profile-details {
+    display: none;
+  }
+
+  .profile-arrow {
+    display: none;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --light-color: #2c2f33;
+    --dark-color: #e9ecef;
+    --gray-light: #3a3d41;
+    --border-color: #44474b;
+    --primary-light: #3a3f5c;
+  }
+
+  body {
+    background-color: #212529;
+    color: var(--dark-color);
+  }
+
+  .sidebar,
+  .navbar,
+  .content-body,
+  .modal-content,
+  .notifications-dropdown,
+  .profile-dropdown,
+  .search-filters,
+  .settings-group {
+    background: #2c2f33;
+  }
+
+  .sidebar {
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .navbar {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .content-body {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .menu-item:hover,
+  .submenu-item:hover,
+  .quick-settings:hover,
+  .quick-action:hover,
+  .nav-icon:hover,
+  .profile-actions li:hover,
+  .quick-action-item:hover,
+  .notifications-list li:hover {
+    background: var(--primary-light);
+  }
+
+  .search-input {
+    background: var(--gray-light);
+  }
+
+  .setting-item select {
+    background: var(--gray-light);
+  }
+
+  .status-selector select {
+    background: var(--gray-light);
+  }
+
+  .notification-icon {
+    background: var(--primary-light);
+  }
+
+  .modal-icon.warning {
+    background: rgba(248, 150, 30, 0.2);
+  }
+
+  .profile-header {
+    background: var(--primary-light);
+  }
+}
+
+/* Accessibility */
+:focus {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notifications-dropdown,
+.profile-dropdown,
+.search-filters,
+.modal {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+</style>

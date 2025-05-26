@@ -3,7 +3,7 @@
     <div class="register-card">
       <!-- Branding Section -->
       <div class="branding">
-        <i class="fas fa-chart-pie logo-icon"></i>
+        <i class="fas fa-chart-pie"></i>
         <h1>Customer Segmentation</h1>
         <p>Advanced Analytics Platform</p>
       </div>
@@ -112,6 +112,7 @@
         <!-- Submit Button -->
         <button type="submit" class="register-btn" :disabled="isLoading">
           <span v-if="!isLoading">Create Account</span>
+          <span v-if="!isLoading" class="arrow-icon">→</span>
           <div v-else class="spinner"></div>
         </button>
 
@@ -199,85 +200,118 @@ export default {
 </script>
 
 <style scoped lang="scss">
-$primary: #4a6cf7;
-$secondary: #2d3748;
-$accent: #ed64a6;
-$background: #f7fafc;
-$text: #2d3748;
-$error: #e53e3e;
-$border: #e2e8f0;
+// Consistent Color Palette
+$primary: #4CAF50; // Green from UserLoginPage.vue
+$secondary: #1e293b; // Dark gray for text and headers
+$accent: #10b981; // Emerald green for secondary actions
+$background: #f8fafc; // Light gray background
+$text: #334155; // Slate gray for body text
+$error: #ef4444; // Red for error states
+$border: #e2e8f0; // Light gray for inputs and cards
+$white: #ffffff; // Pure white for cards and text
+$disabled: #cccccc; // Gray for disabled state from UserLoginPage.vue
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-size-base: 1rem;
+$font-size-sm: 0.875rem;
+$font-size-lg: 1.125rem;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// Spacing
+$spacing-unit: 1rem;
+$spacing-xs: $spacing-unit * 0.25;
+$spacing-sm: $spacing-unit * 0.5;
+$spacing-md: $spacing-unit;
+$spacing-lg: $spacing-unit * 1.5;
+$spacing-xl: $spacing-unit * 2;
+
+// Border Radius
+$border-radius-sm: 6px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-pill: 50px; // From UserLoginPage.vue
+
+// Shadows
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.1);
 
 .register-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, $background 0%, darken($background, 5%) 100%);
-  padding: 1rem;
+  background: linear-gradient(135deg, $background 0%, darken($background, 3%) 100%);
+  padding: $spacing-md;
 }
 
 .register-card {
   width: 100%;
-  max-width: 420px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-width: 440px;
+  background: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
   overflow: hidden;
 }
 
 .branding {
-  padding: 2rem;
+  padding: $spacing-xl;
   background: $primary;
   text-align: center;
-  color: white;
+  color: $white;
 
   .logo-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+    font-size: 2.75rem;
+    margin-bottom: $spacing-sm;
   }
 
   h1 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin: 0 0 0.25rem;
+    font-size: 1.875rem;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    margin: 0 0 $spacing-xs;
   }
 
   p {
-    font-size: 0.9rem;
-    opacity: 0.9;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-normal;
+    opacity: 0.85;
   }
 }
 
 .register-form {
-  padding: 2rem;
+  padding: $spacing-xl;
 }
 
 .form-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: $spacing-lg;
 
   h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: $text;
-    margin-bottom: 0.25rem;
+    font-size: 1.625rem;
+    font-weight: $font-weight-bold;
+    color: $secondary;
+    margin-bottom: $spacing-xs;
   }
 
   p {
-    font-size: 0.9rem;
-    color: lighten($text, 20%);
+    font-size: $font-size-sm;
+    color: lighten($text, 15%);
   }
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: $spacing-lg;
 
   label {
     display: block;
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
     color: $text;
-    margin-bottom: 0.5rem;
+    margin-bottom: $spacing-sm;
   }
 }
 
@@ -286,36 +320,43 @@ $border: #e2e8f0;
 
   .input-icon {
     position: absolute;
-    left: 1rem;
+    left: $spacing-md;
     top: 50%;
     transform: translateY(-50%);
-    color: lighten($text, 30%);
+    color: lighten($text, 25%);
+    font-size: $font-size-sm;
   }
 
   input {
     width: 100%;
-    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    padding: $spacing-sm $spacing-md $spacing-sm $spacing-xl;
     border: 1px solid $border;
-    border-radius: 8px;
-    font-size: 0.95rem;
+    border-radius: $border-radius-md;
+    font-size: $font-size-base;
+    font-family: $font-family;
     transition: all 0.2s ease;
 
     &:focus {
       outline: none;
       border-color: $primary;
-      box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+      box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+    }
+
+    &::placeholder {
+      color: lighten($text, 40%);
     }
   }
 
   .toggle-password {
     position: absolute;
-    right: 1rem;
+    right: $spacing-md;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: lighten($text, 30%);
+    color: lighten($text, 25%);
     cursor: pointer;
+    font-size: $font-size-sm;
 
     &:hover {
       color: $primary;
@@ -324,7 +365,7 @@ $border: #e2e8f0;
 }
 
 .form-options {
-  margin: 1.5rem 0;
+  margin: $spacing-lg 0;
 }
 
 .checkbox-container {
@@ -346,35 +387,37 @@ $border: #e2e8f0;
   }
 
   .checkmark {
-    width: 1rem;
-    height: 1rem;
+    width: 1.125rem;
+    height: 1.125rem;
     border: 1px solid $border;
-    border-radius: 4px;
-    margin-right: 0.5rem;
+    border-radius: $border-radius-sm;
+    margin-right: $spacing-sm;
     position: relative;
+    transition: all 0.2s ease;
 
     &::after {
       content: '';
       display: none;
       position: absolute;
-      left: 3px;
-      top: 1px;
-      width: 4px;
-      height: 8px;
-      border: solid white;
+      left: 4px;
+      top: 2px;
+      width: 5px;
+      height: 9px;
+      border: solid $white;
       border-width: 0 2px 2px 0;
       transform: rotate(45deg);
     }
   }
 
   .checkbox-label {
-    font-size: 0.9rem;
+    font-size: $font-size-sm;
     color: $text;
   }
 
   .terms-link {
     color: $primary;
     text-decoration: none;
+    font-weight: $font-weight-medium;
 
     &:hover {
       text-decoration: underline;
@@ -383,36 +426,44 @@ $border: #e2e8f0;
 }
 
 .register-btn {
-  width: 100%;
-  padding: 0.875rem;
-  background: $primary;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  border-radius: $border-radius-pill;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: $primary;
+  color: $white;
+  border: none;
+  margin-top: $spacing-md;
 
   &:hover:not(:disabled) {
-    background: darken($primary, 10%);
+    background: #388E3C; // Darker green from UserLoginPage.vue
+    transform: translateY(-2px);
   }
 
   &:disabled {
-    background: lighten($primary, 20%);
+    background: $disabled;
     cursor: not-allowed;
   }
 }
 
+.arrow-icon {
+  margin-left: 8px;
+  font-size: $font-size-base;
+}
+
 .spinner {
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: $white;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -423,13 +474,13 @@ $border: #e2e8f0;
 
 .login-link {
   text-align: center;
-  font-size: 0.9rem;
-  color: lighten($text, 20%);
-  margin-top: 1.5rem;
+  font-size: $font-size-sm;
+  color: lighten($text, 15%);
+  margin-top: $spacing-lg;
 
   a {
     color: $primary;
-    font-weight: 500;
+    font-weight: $font-weight-medium;
     text-decoration: none;
 
     &:hover {
@@ -440,31 +491,47 @@ $border: #e2e8f0;
 
 .back-link {
   position: absolute;
-  top: 1.5rem;
-  left: 1.5rem;
+  top: $spacing-lg;
+  left: $spacing-lg;
   color: $primary;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $spacing-xs;
+  transition: color 0.2s ease;
 
   &:hover {
+    color: darken($primary, 10%);
     text-decoration: underline;
+  }
+
+  i {
+    font-size: $font-size-sm;
   }
 }
 
 @media (max-width: 480px) {
+  .register-container {
+    padding: $spacing-sm;
+  }
+
   .register-card {
-    margin: 1rem;
+    margin: $spacing-sm;
+    max-width: 100%;
   }
 
   .branding {
-    padding: 1.5rem;
+    padding: $spacing-lg;
   }
 
   .register-form {
-    padding: 1.5rem;
+    padding: $spacing-lg;
+  }
+
+  .form-header h2 {
+    font-size: 1.375rem;
   }
 }
 </style>

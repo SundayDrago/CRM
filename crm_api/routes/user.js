@@ -26,7 +26,7 @@ const authenticateToken = (req, res, next) => {
     if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
     try {
-        const decoded = jwt.verify(token, "your_jwt_secret");
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
         req.user = decoded;
         if (req.user.isAdmin) {
             return res.status(403).json({ message: "Access denied. Not a user route." });
@@ -36,6 +36,7 @@ const authenticateToken = (req, res, next) => {
         res.status(403).json({ message: "Invalid token" });
     }
 };
+
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -190,6 +191,8 @@ router.get("/setup-account", async (req, res) => {
 
 router.post("/setup-account", async (req, res) => {
     const { token, tempPassword, newPassword, confirmPassword } = req.body;
+    console.log('POST /setup-account received:', { token, tempPassword, newPassword, confirmPassword });
+    console.log('Using JWT_SECRET:', process.env.JWT_SECRET || 'your_jwt_secret');
     if (!token || !tempPassword || !newPassword || !confirmPassword) {
         return res.status(400).json({ message: "All fields are required" });
     }
@@ -198,11 +201,13 @@ router.post("/setup-account", async (req, res) => {
     }
 
     try {
-        const decoded = jwt.verify(token, "your_jwt_secret");
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+        console.log('Decoded JWT:', decoded);
         const result = await queryPromise(
             "SELECT * FROM users WHERE email = ? AND temp_token = ?",
             [decoded.email, token]
         );
+        console.log('Database query result:', result);
 
         if (!result.length || new Date() > new Date(result[0].token_expires_at)) {
             return res.status(400).json({ message: "Invalid or expired token" });
@@ -219,10 +224,10 @@ router.post("/setup-account", async (req, res) => {
         );
         res.status(200).json({ message: "Account setup complete. You can now log in." });
     } catch (error) {
+        console.error('POST /setup-account error:', error.message);
         handleServerError(res, error);
     }
 });
-
 // Password reset routes
 router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;

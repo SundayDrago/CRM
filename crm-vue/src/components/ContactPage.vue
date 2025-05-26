@@ -9,30 +9,36 @@
       <form @submit.prevent="submitForm" class="contact-form">
         <div class="form-group">
           <label for="name">Your Name</label>
-          <input type="text" id="name" v-model="name" placeholder="John Doe" required>
-          <span class="input-icon"><i class="fas fa-user"></i></span>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" id="name" v-model="name" placeholder="John Doe" required>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="email">Email Address</label>
-          <input type="email" id="email" v-model="email" placeholder="john@example.com" required>
-          <span class="input-icon"><i class="fas fa-envelope"></i></span>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="email" v-model="email" placeholder="john@example.com" required>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="message">Your Message</label>
-          <textarea id="message" v-model="message" placeholder="How can we help you?" required></textarea>
-          <span class="input-icon"><i class="fas fa-pen"></i></span>
+          <div class="input-wrapper">
+            <i class="fas fa-pen input-icon"></i>
+            <textarea id="message" v-model="message" placeholder="How can we help you?" required></textarea>
+          </div>
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="submit-btn">
+          <button type="submit" class="submit-btn" :disabled="isSubmitting">
             <span>Send Message</span>
-            <i class="fas fa-paper-plane"></i>
+            <span class="arrow-icon" v-if="!isSubmitting">→</span>
+            <div v-else class="spinner"></div>
           </button>
           <button type="button" class="cancel-btn" @click="goBack">
             <span>Cancel</span>
-            <i class="fas fa-times"></i>
           </button>
         </div>
       </form>
@@ -101,259 +107,271 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Base Styles */
-:root {
-  --primary-color: #4361ee;
-  --primary-hover: #3a56d4;
-  --danger-color: #f72585;
-  --danger-hover: #e5177b;
-  --text-color: #2b2d42;
-  --text-light: #8d99ae;
-  --bg-color: #f8f9fa;
-  --card-bg: #ffffff;
-  --border-radius: 12px;
-  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  --transition: all 0.3s ease;
+<style scoped lang="scss">
+// Consistent Color Palette
+$primary: #4CAF50; // Green from UserLoginPage.vue
+$secondary: #1e293b; // Dark gray for headers
+$accent: #10b981; // Emerald green for secondary actions
+$background: #f8fafc; // Light gray background
+$text: #334155; // Slate gray for body text
+$error: #ef4444; // Red for error states
+$border: #e2e8f0; // Light gray for borders
+$white: #ffffff; // White for cards
+$disabled: #cccccc; // Gray for disabled state
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-size-base: 1rem;
+$font-size-sm: 0.875rem;
+$font-size-lg: 1.125rem;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// Spacing
+$spacing-unit: 1rem;
+$spacing-xs: $spacing-unit * 0.25;
+$spacing-sm: $spacing-unit * 0.5;
+$spacing-md: $spacing-unit;
+$spacing-lg: $spacing-unit * 1.5;
+$spacing-xl: $spacing-unit * 2;
+
+// Border Radius
+$border-radius-sm: 6px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-pill: 50px;
+
+// Shadows
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.1);
+
+// Animation
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: var(--text-color);
-  line-height: 1.6;
-}
-
-/* Contact Container */
 .contact-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  padding: 2rem;
-  background-color: var(--bg-color);
-  background-image: radial-gradient(circle at 10% 20%, rgba(91, 173, 254, 0.1) 0%, rgba(245, 245, 245, 0.1) 90%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $background 0%, darken($background, 3%) 100%);
+  padding: $spacing-md;
 }
 
 .contact-card {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
   width: 100%;
   max-width: 580px;
+  background: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
   overflow: hidden;
-  transform: translateY(0);
-  transition: var(--transition);
-}
-
-.contact-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .contact-header {
-  padding: 2.5rem 2.5rem 1.5rem;
+  padding: $spacing-xl;
   text-align: center;
-  background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-  color: white;
 }
 
 .contact-header h1 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: 2.25rem;
+  font-weight: $font-weight-bold;
+  color: $secondary;
+  margin-bottom: $spacing-sm;
 }
 
 .subtitle {
-  font-size: 1rem;
-  opacity: 0.9;
-  font-weight: 400;
+  font-size: $font-size-base;
+  color: $text;
+  line-height: 1.6;
 }
 
-/* Contact Form */
 .contact-form {
-  padding: 2rem 2.5rem;
+  padding: $spacing-xl;
 }
 
 .form-group {
-  position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: $spacing-lg;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: var(--text-color);
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $text;
+  margin-bottom: $spacing-sm;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: $spacing-md;
+  top: 50%;
+  transform: translateY(-50%);
+  color: lighten($text, 25%);
+  font-size: $font-size-sm;
 }
 
 .form-group input,
 .form-group textarea {
   width: 100%;
-  padding: 0.8rem 1rem 0.8rem 2.5rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: var(--transition);
-  background-color: #f9fafb;
+  padding: $spacing-sm $spacing-md $spacing-sm $spacing-xl;
+  border: 1px solid $border;
+  border-radius: $border-radius-md;
+  font-size: $font-size-base;
+  font-family: $font-family;
+  transition: all 0.2s ease;
+  background: $white;
+
+  &:focus {
+    outline: none;
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+  }
+
+  &::placeholder {
+    color: lighten($text, 40%);
+  }
 }
 
 .form-group textarea {
   min-height: 150px;
   resize: vertical;
+  padding-top: $spacing-md;
 }
 
-.input-icon {
-  position: absolute;
-  left: 1rem;
-  top: 2.4rem;
-  color: var(--text-light);
-  font-size: 1rem;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-  background-color: white;
-}
-
-/* Buttons */
 .form-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
 }
 
 .submit-btn,
 .cancel-btn {
-  flex: 1;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: var(--transition);
+  padding: 0.75rem 1.5rem;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  border-radius: $border-radius-pill;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .submit-btn {
-  background-color: var(--primary-color);
-  color: rgb(5, 3, 3);
-  border: 1px solid;
-  position: relative;
+  background: $primary;
+  color: $white;
+  border: none;
+
+  &:hover:not(:disabled) {
+    background: #388E3C; // Darker green from UserLoginPage.vue
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    background: $disabled;
+    cursor: not-allowed;
+  }
 }
 
-.submit-btn:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
-}
-
-.submit-btn:disabled {
-  background-color: #a0a0a0;
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
-.submit-btn.loading::after {
-  content: "";
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s linear infinite;
+.arrow-icon {
   margin-left: 8px;
+  font-size: $font-size-base;
+}
+
+.spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: $white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .cancel-btn {
-  background-color: white;
-  color: var(--danger-color);
-  border: 1px solid #e0e0e0;
+  background: $border;
+  color: $text;
+  border: none;
+
+  &:hover {
+    background: darken($border, 10%);
+    transform: translateY(-2px);
+  }
 }
 
-.cancel-btn:hover {
-  background-color: #fef2f2;
-  color: var(--danger-hover);
-  border-color: #fecaca;
-}
-
-/* Contact Info */
 .contact-info {
-  padding: 1.5rem 2.5rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #eee;
+  padding: $spacing-lg;
+  background: lighten($background, 2%);
+  border-top: 1px solid $border;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  color: var(--text-light);
-  font-size: 0.9rem;
+  gap: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $text;
 }
 
 .info-item i {
-  font-size: 1rem;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  color: $primary;
+  font-size: $font-size-base;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-.contact-card {
-  animation: fadeIn 0.6s ease-out;
-}
-
-/* Responsive Design */
 @media (max-width: 768px) {
   .contact-container {
-    padding: 1rem;
+    padding: $spacing-sm;
+  }
+
+  .contact-card {
+    max-width: 100%;
   }
 
   .contact-header,
   .contact-form {
-    padding: 1.5rem;
+    padding: $spacing-lg;
   }
 
   .contact-header h1 {
-    font-size: 1.8rem;
+    font-size: 1.875rem;
   }
 
   .form-actions {
     flex-direction: column;
   }
+
+  .submit-btn,
+  .cancel-btn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
-  .contact-header {
-    padding: 1.5rem 1rem;
-  }
-
-  .contact-form {
-    padding: 1.5rem 1rem;
-  }
-
+  .contact-header,
+  .contact-form,
   .contact-info {
-    padding: 1rem;
+    padding: $spacing-md;
+  }
+
+  .contact-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: $font-size-sm;
   }
 }
 </style>

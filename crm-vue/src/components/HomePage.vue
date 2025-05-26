@@ -1,4 +1,6 @@
+```vue
 <template>
+  <Analytics />
   <div class="landing-page">
     <!-- Gradient Background Hero Section -->
     <section class="hero-section">
@@ -35,7 +37,7 @@
               src="@/assets/dashboard-preview.png"
               alt="Customer segmentation dashboard"
               class="dashboard-preview floating"
-            >
+            />
           </div>
         </div>
       </div>
@@ -58,8 +60,8 @@
         <p class="section-subtitle">Everything you need to turn customer data into business growth</p>
       </div>
       <div class="features-container">
-        <div 
-          v-for="(feature, index) in features" 
+        <div
+          v-for="(feature, index) in features"
           :key="index"
           class="feature-card"
           :style="{ '--delay': index * 0.1 + 's' }"
@@ -73,46 +75,67 @@
     </section>
 
     <!-- Stats Section -->
-<!-- Stats Section -->
-<section class="stats-section">
-  <div class="stat-item">
-    <div class="stat-number" ref="stat1">Loading...</div>
-    <div class="stat-label">Most Purchased Category</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-number" ref="stat2">Loading...</div>
-    <div class="stat-label">Best Region</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-number" ref="stat3">Loading...</div>
-    <div class="stat-label">Accuracy Level</div>
-  </div>
-</section>
+    <section class="stats-section">
+      <div v-if="isLoading" class="loading">Loading statistics...</div>
+      <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
+      <div v-else class="stats-container">
+        <div class="stat-item">
+          <div class="stat-number">{{ mostPurchasedCategory }}</div>
+          <div class="stat-label">Most Purchased Category</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ bestRegionPercentage }}</div>
+          <div class="stat-label">Best Region</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Model Accuracy</div>
+          <canvas ref="stat3" id="stat3-canvas" width="200" height="200"></canvas>
+        </div>
+      </div>
+    </section>
 
+    <!-- Graphs Section (Model-Driven Visualizations) -->
+    <section v-if="graphs && graphs.length" class="graphs-section">
+      <div class="section-intro">
+        <h2>Model Insights <span class="underline">Powered by AI</span></h2>
+        <p class="section-subtitle">Visualize customer segments and clustering performance</p>
+      </div>
+      <div class="graphs-container">
+        <div v-for="graph in graphs" :key="graph.filename" class="graph-card">
+          <h3>{{ graph.title }}</h3>
+          <img :src="graph.url" :alt="graph.title" class="graph-image" @error="handleImageError(graph.url)" />
+        </div>
+      </div>
+    </section>
 
-    <!-- Testimonials Section with Slider Effect -->
-    <div class="team-content">
-    <h2>Our Team Members</h2>
-
-  <div class="team-member">
-    <img src="@/assets/img-3.jpg" alt="Member One" class="member-avatar">
-    <div class="member-info">
-      <h2 class="member-name">Geriga Sunday Drago</h2>
-      <p class="member-skills"><strong>Skills:</strong> Frontend Development, UI/UX Design</p>
-      <p class="member-contribution"><strong>Contribution:</strong> Designed and implemented the user interface, ensuring responsive and accessible layouts using Vue.js and SCSS.</p>
-    </div>
-  </div>
-
-  <div class="team-member">
-    <img src="@/assets/img-2.jpg" alt="Member Two" class="member-avatar">
-    <div class="member-info">
-      <h2 class="member-name">Akoldou Samuel Wel</h2>
-      <p class="member-skills"><strong>Skills:</strong> Backend Development, Database Management</p>
-      <p class="member-contribution"><strong>Contribution:</strong> Developed REST APIs with Node.js and Express, handled database integration with MySQL, and implemented secure authentication.</p>
-    </div>
-  </div>
-</div>
-
+    <!-- Team Section -->
+    <section class="team-content">
+      <h2>Our Team Members</h2>
+      <div class="team-members-container">
+        <div class="team-member">
+          <img src="@/assets/img-3.jpg" alt="Member One" class="member-img" />
+          <div class="member-info">
+            <h2 class="member-name">Geriga Sunday Drago</h2>
+            <p class="member-skills">
+              <strong>Skills:</strong> Frontend Development, UI/UX Design, Backend (FLASKAPI), ML Model
+            </p>
+            <p class="member-contribution">
+              <strong>Contribution:</strong> Designed and implemented the user interface, ensuring responsive and accessible layouts using Vue.js and SCSS.
+            </p>
+          </div>
+        </div>
+        <div class="team-member">
+          <img src="@/assets/img-2.jpg" alt="Member Two" class="member-img" />
+          <div class="member-info">
+            <h2 class="member-name">Akoldou Samuel Wel</h2>
+            <p class="member-skills"><strong>Skills:</strong> Backend Development, Database Management</p>
+            <p class="member-contribution">
+              <strong>Contribution:</strong> Developed REST APIs with Node.js and Express, handled database integration with MySQL, and implemented secure authentication.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- CTA Section with Parallax Effect -->
     <section class="cta-section">
@@ -134,34 +157,34 @@
           <div class="logo">CustomerSeg</div>
           <p>Intelligent customer segmentation for the modern enterprise</p>
           <div class="social-links">
-            <a href="#"><i class="fab fa-twitter"></i></a>
-            <a href="#"><i class="fab fa-linkedin"></i></a>
-            <a href="#"><i class="fab fa-facebook"></i></a>
+            <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
           </div>
         </div>
         <div class="footer-links">
-          <div class="link-group">
+          <div class="links-group">
             <h4>Product</h4>
             <router-link to="/features">Features</router-link>
             <router-link to="/pricing">Pricing</router-link>
             <router-link to="/integrations">Integrations</router-link>
           </div>
-          <div class="link-group">
+          <div class="links-group">
             <h4>Resources</h4>
-            <router-link to="/blog">Blog</router-link>
+            <a href="https://blog-vue-app-bse25-36.vercel.app" target="_blank" rel="noopener noreferrer">Blog</a>
             <router-link to="/webinars">Webinars</router-link>
             <router-link to="/docs">Documentation</router-link>
           </div>
-          <div class="link-group">
-            <h4>Company</h4>
+          <div class="links-group">
+            <h4>Connect</h4>
             <router-link to="/about-us">About Us</router-link>
             <router-link to="/careers">Careers</router-link>
-            <router-link to="/contact-us">Contact</router-link>
+            <router-link to="/contact">Contact</router-link>
           </div>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© 2025 CustomerSeg. All rights reserved.</p>
+        <p>&copy; 2025 CustomerGroup. All rights reserved.</p>
         <div class="legal-links">
           <router-link to="/privacy">Privacy Policy</router-link>
           <router-link to="/terms">Terms of Service</router-link>
@@ -172,109 +195,227 @@
 </template>
 
 <script setup>
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { ref, onMounted } from 'vue';
+import { Analytics } from '@vercel/analytics/vue';
 import axios from 'axios';
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 
 const router = useRouter();
-const isAdmin = ref(false);
 const isAuthenticated = ref(false);
+const isAdmin = ref(false);
+const isLoading = ref(true);
+const errorMessage = ref(null);
+const mostPurchasedCategory = ref('Loading...');
+const bestRegionPercentage = ref('Loading...');
+const stat3 = ref(null);
+const graphs = ref([]);
+let silhouetteScore = 0; // Store for chart rendering
 
-// Check authentication status
-onMounted(async () => {
-  try {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      const response = await axios.get('/admin/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      isAuthenticated.value = true;
-      isAdmin.value = response.data.isAdmin;
-    }
-    animateStats();
-  } catch (error) {
-    console.error('Auth check failed:', error);
-    localStorage.removeItem('authToken');
-  }
-});
+// Handle image loading errors
+const handleImageError = (url) => {
+  console.error('Failed to load image:', url);
+  errorMessage.value = errorMessage.value || 'Failed to load one or more graphs';
+};
 
-// Refs for DOM elements
-const stat1 = ref(null); // Most Purchased Category
-const stat2 = ref(null); // Best Region (as percentage)
-const stat3 = ref(null); // Accuracy Level
-
-// Animate function
-const animate = (element, finalValue, suffix = '', duration = 2000) => {
-  const start = 0;
+// Animate percentage
+const animatePercentage = (targetValue) => {
+  const finalValue = parseFloat(targetValue) || 0;
+  let current = 0;
+  const duration = 2000;
   const increment = finalValue / (duration / 16);
-  let current = start;
   const timer = setInterval(() => {
     current += increment;
     if (current >= finalValue) {
       clearInterval(timer);
       current = finalValue;
     }
-    element.textContent = Math.floor(current) + suffix;
+    bestRegionPercentage.value = `${Math.round(current * 10) / 10}%`;
   }, 16);
-}
-
-// Fetch and apply backend stats
-const animateStats = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/query');
-    const data = await response.json();
-
-    // Most Purchased Category
-    const category = data.most_purchased_category || 'Unknown';
-    stat1.value.textContent = category;
-
-    // Best Region (percentage)
-    const percentage = parseFloat(data.percentage?.replace('%', '') || 0);
-    animate(stat2.value, percentage, '%');
-
-    // Accuracy Level (use average_spending here)
-    const accuracy = parseFloat(data.average_spending || 0);
-    animate(stat3.value, accuracy, '');
-  } catch (error) {
-    console.error('Failed to fetch stats:', error);
-  }
 };
 
-onMounted(() => {
-  animateStats();
+// Watch for percentage changes
+watch(
+  () => bestRegionPercentage.value,
+  (newValue) => {
+    if (newValue !== 'Loading...' && newValue !== '0%') {
+      animatePercentage(newValue.replace('%', ''));
+    }
+  }
+);
+
+// Render chart
+const renderChart = () => {
+  if (!stat3.value) {
+    console.error('Chart canvas not found. stat3:', stat3.value);
+    errorMessage.value = 'Chart canvas not found';
+    return;
+  }
+  console.log('Rendering Chart.js with silhouetteScore:', silhouetteScore);
+  new Chart(stat3.value, {
+    type: 'doughnut',
+    data: {
+      labels: ['Accuracy', 'Remaining'],
+      datasets: [
+        {
+          data: [silhouetteScore, Math.max(100 - silhouetteScore, 0)],
+          backgroundColor: ['#4CAF50', '#E0E0E0'],
+          borderColor: ['#4CAF50', '#E0E0E0'],
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      cutout: '80%',
+      plugins: {
+        title: {
+          display: true,
+          text: `Metric Score: ${Math.round(silhouetteScore)}%`,
+          font: { size: 16 },
+        },
+        legend: { display: false },
+      },
+    },
+  });
+};
+
+// Fetch stats and graphs
+const fetchStatsAndGraphs = async () => {
+  isLoading.value = true;
+  errorMessage.value = null;
+
+  // Fetch /api/query
+  try {
+    console.log('Fetching /api/query...');
+    const queryResponse = await axios.get('/query', { params: { region: 'All' } });
+    console.log('/api/query response:', JSON.stringify(queryResponse.data, null, 2));
+    const queryData = queryResponse.data;
+    mostPurchasedCategory.value = queryData.most_purchased_category || queryData.most_frequent_category || 'No Category Data';
+    const percentage = parseFloat((queryData.percentage || '0').replace('%', '')) || 0;
+    bestRegionPercentage.value = percentage > 0 ? `${percentage.toFixed(1)}%` : 'No Region Data';
+    console.log('Set mostPurchasedCategory:', mostPurchasedCategory.value);
+    console.log('Set bestRegionPercentage:', bestRegionPercentage.value);
+  } catch (error) {
+    console.error('/api/query error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      code: error.code,
+    });
+    mostPurchasedCategory.value = 'No Data Available';
+    bestRegionPercentage.value = '0%';
+    errorMessage.value = error.response?.data?.error || error.message || 'Failed to fetch query data';
+  }
+
+  // Fetch /model-metrics
+  try {
+    console.log('Fetching /model-metrics...');
+    const modelResponse = await axios.get('/model-metrics');
+    console.log('/model-metrics response:', JSON.stringify(modelResponse.data, null, 2));
+    silhouetteScore = (modelResponse.data?.silhouette_score || 0) * 100;
+    await nextTick();
+    renderChart();
+  } catch (error) {
+    console.error('/model-metrics error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      code: error.code,
+    });
+    errorMessage.value = error.response?.data?.error || error.message || 'Failed to fetch model metrics';
+  }
+
+  // Fetch /graphs
+  try {
+    console.log('Fetching /graphs...');
+    const graphsResponse = await axios.get('/graphs');
+    console.log('/graphs response:', JSON.stringify(graphsResponse.data, null, 2));
+    graphs.value = (graphsResponse.data.graphs || []).map((graph) => ({
+      ...graph,
+      url: graph.type === 'file' ? `http://127.0.0.1:5000${graph.url}` : graph.url,
+      title: graph.title || graph.filename.replace(/\.[^/.]+$/, '').replace(/[_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    }));
+    console.log('Set graphs:', JSON.stringify(graphs.value, null, 2));
+  } catch (error) {
+    console.error('/graphs error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      code: error.code,
+    });
+    graphs.value = [];
+    errorMessage.value = error.response?.data?.error || error.message || 'Failed to fetch graphs';
+  }
+
+  isLoading.value = false;
+  console.log('fetchStatsAndGraphs completed. State:', {
+    mostPurchasedCategory: mostPurchasedCategory.value,
+    bestRegionPercentage: bestRegionPercentage.value,
+    errorMessage: errorMessage.value,
+    graphs: graphs.value,
+  });
+};
+
+// Check authentication and fetch stats
+onMounted(async () => {
+  console.log('Component mounted, checking canvas:', stat3.value);
+  try {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      const response = await axios.get('/api/admin/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      isAuthenticated.value = true;
+      isAdmin.value = response.data.isAdmin;
+      console.log('Auth check successful:', { isAdmin: isAdmin.value, isAuthenticated: isAuthenticated.value });
+    }
+  } catch (error) {
+    console.error('Auth check failed:', error.message);
+    localStorage.removeItem('authToken');
+  }
+  await fetchStatsAndGraphs();
+});
+
+// Watch for canvas availability
+watch(stat3, (newVal) => {
+  if (newVal && silhouetteScore > 0) {
+    console.log('stat3 canvas available, rendering chart');
+    renderChart();
+  }
 });
 
 // Features data
 const features = [
-  { 
-    title: "AI-Powered Segmentation", 
-    description: "Our machine learning algorithms automatically identify meaningful customer groups based on behavior patterns." 
+  {
+    title: 'AI-Powered Segmentation',
+    description: 'Our machine learning algorithms automatically identify meaningful customer groups based on behavior patterns.',
   },
-  { 
-    title: "Real-Time Analytics", 
-    description: "Get up-to-the-minute insights with our interactive dashboards and reporting tools." 
+  {
+    title: 'Real-Time Analytics',
+    description: 'Get up-to-the-minute insights with our interactive dashboards and reporting tools.',
   },
-  { 
-    title: "Predictive Scoring", 
-    description: "Identify high-value customers and predict churn before it happens with our advanced scoring system." 
+  {
+    title: 'Predictive Scoring',
+    description: 'Identify high-value customers and predict churn before it happens with our advanced scoring system.',
   },
-  { 
-    title: "Campaign Automation", 
-    description: "Launch targeted campaigns that automatically adjust based on segment performance and engagement." 
+  {
+    title: 'Campaign Automation',
+    description: 'Launch targeted campaigns that automatically adjust based on segment performance and engagement.',
   },
-  { 
-    title: "Cross-Channel Integration", 
-    description: "Seamlessly connect with your existing CRM, email, and advertising platforms." 
+  {
+    title: 'Cross-Channel Integration',
+    description: 'Seamlessly connect with your existing CRM, email, and advertising platforms.',
   },
-  { 
-    title: "Custom Reporting", 
-    description: "Create tailored reports that highlight exactly the metrics that matter to your business." 
-  }
+  {
+    title: 'Custom Reporting',
+    description: 'Create tailored reports that highlight exactly the metrics that matter to your business.',
+  },
 ];
 
 const featureIcons = ['🧠', '📊', '🔮', '⚡', '🔄', '📈'];
 
-// Login redirection based on authentication status
+// Navigation functions
 const showLoginPrompt = () => {
   if (isAuthenticated.value && isAdmin.value) {
     router.push('/admin');
@@ -294,600 +435,209 @@ const navigateToGetStarted = () => {
 };
 </script>
 
-
-<style scoped lang="scss">
-/* Color Variables */
-:root {
-  --primary: #6c5ce7;
-  --primary-dark: #5649c0;
-  --secondary: #00cec9;
-  --accent: #fd79a8;
-  --dark: #2d3436;
-  --light: #f5f6fa;
-  --gray: #636e72;
-  --white: #ffffff;
-  --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-}
-
-/* Base Styles */
+<style scoped>
 .landing-page {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--dark);
-  line-height: 1.6;
-  overflow-x: hidden;
-}
-
-h1, h2, h3, h4 {
-  font-weight: 800;
-  margin: 0 0 1rem;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
-}
-
-h1 {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-}
-
-h2 {
-  font-size: clamp(2rem, 4vw, 3rem);
-  position: relative;
-  display: inline-block;
-  
-  .underline {
-    position: relative;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -5px;
-      left: 0;
-      width: 100%;
-      height: 8px;
-      background: var(--accent);
-      z-index: -1;
-      opacity: 0.3;
-      border-radius: 4px;
-    }
-  }
-}
-
-p {
-  margin: 0 0 1.5rem;
-  color: var(--gray);
-  font-size: 1.1rem;
-  line-height: 1.7;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  background: #f5f7fa;
 }
 
 /* Hero Section */
 .hero-section {
   position: relative;
-  padding: 120px 5% 180px;
-  color: var(--white);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  
-  .gradient-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--gradient);
-    z-index: -2;
-  }
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('@/assets/hero-pattern.jpg') center/cover;
-    opacity: 0.05;
-    z-index: -1;
-  }
+  padding: 0 20px;
+}
+
+.gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(33, 150, 243, 0.2));
+  z-index: 1;
 }
 
 .hero-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  width: 100%;
 }
 
 .hero-content {
   display: flex;
   align-items: center;
-  gap: 60px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 40px;
 }
 
 .hero-text {
   flex: 1;
-  
-  h1 {
-    position: relative;
-    margin-bottom: 2rem;
-    
-    .gradient-text {
-      background: linear-gradient(90deg, var(--white) 0%, var(--secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .highlight-circle {
-      position: absolute;
-      top: -15px;
-      right: -30px;
-      width: 60px;
-      height: 60px;
-      background: var(--accent);
-      border-radius: 50%;
-      z-index: -1;
-      opacity: 0.3;
-    }
-  }
-  
-  .subtitle {
-    font-size: clamp(1.1rem, 2vw, 1.5rem);
-    max-width: 600px;
-    margin-bottom: 3rem;
-    color: rgba(70, 68, 68, 0.9);
-  }
+  min-width: 300px;
+}
+
+.hero-text h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #4CAF50, #2196F3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.highlight-circle {
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 80px;
+  height: 20px;
+  background: rgba(76, 175, 80, 0.3);
+  border-radius: 50%;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: #555;
+  margin-bottom: 30px;
+  max-width: 500px;
 }
 
 .cta-buttons {
   display: flex;
-  gap: 20px;
-  
-  .btn-icon {
-    margin-right: 8px;
-  }
+  gap: 15px;
 }
 
-.hero-image {
-  flex: 1;
-  position: relative;
-  
-  .dashboard-preview {
-    width: 100%;
-    max-width: 700px;
-    border-radius: 20px;
-    box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    position: relative;
-    z-index: 1;
-    
-    &.floating {
-      animation: float 6s ease-in-out infinite;
-    }
-  }
-}
-
-.floating-cards {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  
-  .card {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    padding: 20px;
-    width: 160px;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
-    
-    .card-icon {
-      font-size: 1.8rem;
-      margin-bottom: 10px;
-    }
-    
-    p {
-      font-size: 0.9rem;
-      color: var(--white);
-      margin: 0;
-      line-height: 1.4;
-    }
-    
-    &.card-1 {
-      top: -20px;
-      left: -40px;
-      animation: float 4s ease-in-out infinite;
-    }
-    
-    &.card-2 {
-      bottom: -20px;
-      right: -40px;
-      animation: float 4s ease-in-out infinite 0.5s;
-    }
-  }
-}
-
-.scrolling-brands {
-  position: absolute;
-  bottom: 40px;
-  left: 0;
-  width: 100%;
-  overflow: hidden;
-  
-  .brands-track {
-    display: flex;
-    align-items: center;
-    gap: 40px;
-    animation: scroll 30s linear infinite;
-    white-space: nowrap;
-    
-    span {
-      color: rgba(255, 255, 255, 0.7);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-size: 0.8rem;
-    }
-  }
-  
-  .brand-logo {
-    color: var(--white);
-    font-weight: 700;
-    font-size: 1.2rem;
-    opacity: 0.8;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      opacity: 1;
-    }
-  }
-}
-
-/* Features Section */
-.features-section {
-  padding: 120px 5%;
-  background: var(--light);
-  position: relative;
-  
-  .section-intro {
-    text-align: center;
-    max-width: 800px;
-    margin: 0 auto 80px;
-    
-    .section-subtitle {
-      font-size: 1.2rem;
-      color: var(--gray);
-    }
-  }
-}
-
-.features-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.feature-card {
-  background: var(--white);
-  border-radius: 16px;
-  padding: 40px 30px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform: translateY(20px);
-  opacity: 0;
-  animation: fadeInUp 0.6s forwards;
-  animation-delay: var(--delay);
-  position: relative;
-  overflow: hidden;
-  
-  &:hover {
-    transform: translateY(-10px) !important;
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
-    
-    .feature-arrow {
-      transform: translateX(5px);
-      opacity: 1;
-    }
-  }
-  
-  .feature-icon {
-    font-size: 2.5rem;
-    margin-bottom: 20px;
-  }
-  
-  h3 {
-    font-size: 1.4rem;
-    margin-bottom: 15px;
-    color: var(--dark);
-  }
-  
-  p {
-    font-size: 1rem;
-    color: var(--gray);
-    margin-bottom: 25px;
-  }
-  
-  .feature-arrow {
-    font-size: 1.5rem;
-    color: var(--primary);
-    transition: all 0.3s ease;
-    opacity: 0;
-  }
-}
-
-/* Stats Section */
-.stats-section {
+.primary-btn, .secondary-btn {
   display: flex;
-  justify-content: center;
-  gap: 60px;
-  padding: 80px 5%;
-  background: var(--white);
-  
-  .stat-item {
-    text-align: center;
-    
-    .stat-number {
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      font-weight: 800;
-      color: var(--primary);
-      margin-bottom: 10px;
-    }
-    
-    .stat-label {
-      font-size: 1.1rem;
-      color: var(--gray);
-      font-weight: 500;
-    }
-  }
-}
-
-/* Team Section */
-.team-content {
-  padding: 120px 5%;
-  background: var(--light);
-
-  h2 {
-    text-align: center;
-    margin-bottom: 60px;
-    font-size: 2.5rem;
-    color: var(--dark);
-  }
-}
-
-.team-member {
-  background: var(--white);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
-  margin: 30px auto;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-
-  .member-avatar {
-    width: 200px;
-    height: 200px;
-    border-radius: 100%;
-    object-fit: cover;
-    border: 3px solid var(--primary);
-    margin-bottom: 20px;
-  }
-
-  .member-info {
-    .member-name {
-      font-weight: 700;
-      font-size: 1.5rem;
-      color: var(--dark);
-      margin-bottom: 10px;
-    }
-
-    .member-skills,
-    .member-contribution {
-      font-size: 1rem;
-      color: var(--gray);
-      margin-bottom: 10px;
-      line-height: 1.6;
-
-      strong {
-        color: var(--dark);
-      }
-    }
-  }
-}
-
-
-/* CTA Section */
-.cta-section {
-  padding: 160px 5%;
-  position: relative;
-  color: var(--white);
-  text-align: center;
-  overflow: hidden;
-  
-  .parallax-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('@/assets/cta-bg.png') center/cover fixed;
-    z-index: -2;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(241, 235, 235, 0.7);
-      z-index: -1;
-    }
-  }
-  
-  .cta-content {
-    max-width: 800px;
-    margin: 0 auto;
-    position: relative;
-    
-    h2 {
-      font-size: clamp(2rem, 4vw, 3rem);
-      margin-bottom: 1.5rem;
-      color: var(--white);
-    }
-    
-    p {
-      font-size: 1.3rem;
-      color: rgba(244, 237, 237, 0.9);
-      margin-bottom: 2.5rem;
-    }
-  }
-}
-
-.cta-button {
-  background: var(--accent);
-  color: var(--white);
-  border: none;
-  padding: 18px 40px;
-  font-size: 1.1rem;
+  padding: 12px 24px;
+  font-size: 1rem;
   font-weight: 600;
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: inline-flex;
+}
+
+.primary-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+}
+
+.primary-btn:hover {
+  background: #388E3C;
+  transform: translateY(-2px);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #4CAF50;
+  border: 2px solid #4CAF50;
+}
+
+.secondary-btn:hover {
+  background: #4CAF50;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  margin-right: 8px;
+}
+
+.hero-image {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+}
+
+.floating-cards {
+  position: absolute;
+  top: 20px;
+  left: -20px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 10px 30px -10px rgba(236, 104, 148, 0.5);
-  
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 40px -10px rgba(236, 102, 169, 0.6);
-    
-    .arrow-icon {
-      transform: translateX(5px);
-    }
-  }
-  
-  .arrow-icon {
-    transition: all 0.3s ease;
-  }
+  margin-bottom: 15px;
 }
 
-/* Footer */
-.main-footer {
-  background: var(--dark);
-  color: var(--white);
-  padding: 100px 5% 40px;
+.card-1 {
+  transform: translateX(-20px);
 }
 
-.footer-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  gap: 80px;
+.card-2 {
+  transform: translateX(20px);
 }
 
-.footer-brand {
-  flex: 1;
-  
-  .logo {
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin-bottom: 20px;
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  p {
-    color: rgba(9, 7, 7, 0.7);
-    margin-bottom: 30px;
-  }
+.card-icon {
+  font-size: 1.5rem;
 }
 
-.social-links {
-  display: flex;
-  gap: 20px;
-  
-  a {
-    color: rgba(5, 4, 4, 0.7);
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      color: var(--white);
-      transform: translateY(-3px);
-    }
-  }
+.card p {
+  font-size: 0.9rem;
+  color: #333;
 }
 
-.footer-links {
-  flex: 2;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
+.dashboard-preview {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
-.link-group {
-  h4 {
-    color: var(--white);
-    margin-bottom: 20px;
-    font-size: 1.1rem;
-  }
-  
-  a {
-    display: block;
-    color: rgba(5, 4, 4, 0.7);
-    margin-bottom: 12px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      color: var(--white);
-      transform: translateX(5px);
-    }
-  }
+.floating {
+  animation: float 3s ease-in-out infinite;
 }
 
-.footer-bottom {
-  max-width: 1200px;
-  margin: 60px auto 0;
-  padding-top: 30px;
-  border-top: 1px solid rgba(4, 3, 3, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  
-  p {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.9rem;
-    margin: 0;
-  }
-}
-
-.legal-links {
-  display: flex;
-  gap: 20px;
-  
-  a {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      color: var(--white);
-    }
-  }
-}
-
-/* Animations */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+  50% { transform: translateY(-10px); }
+}
+
+.scrolling-brands {
+  background: #fff;
+  padding: 20px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.brands-track {
+  display: inline-block;
+  animation: scroll 20s linear infinite;
+}
+
+.brands-track span {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4CAF50;
+  margin-right: 30px;
+}
+
+.brand-logo {
+  display: inline-block;
+  font-size: 1rem;
+  color: #333;
+  margin: 0 30px;
 }
 
 @keyframes scroll {
@@ -895,66 +645,426 @@ p {
   100% { transform: translateX(-50%); }
 }
 
+/* Features Section */
+.features-section {
+  padding: 80px 20px;
+  background: #fff;
+  text-align: center;
+}
+
+.section-intro {
+  max-width: 800px;
+  margin: 0 auto 40px;
+}
+
+.section-intro h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.underline {
+  position: relative;
+}
+
+.underline::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #4CAF50;
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.features-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: #f9f9f9;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.6s ease-out forwards;
+  animation-delay: var(--delay);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.feature-card p {
+  font-size: 1rem;
+  color: #666;
+}
+
+.feature-arrow {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-size: 1.5rem;
+  color: #4CAF50;
+}
+
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Stats Section */
+.stats-section {
+  padding: 80px 20px;
+  background: #f5f7fa;
+  text-align: center;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stat-item {
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #4CAF50;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: #666;
+}
+
+canvas {
+  margin: 0 auto;
+}
+
+/* Graphs Section */
+.graphs-section {
+  padding: 80px 20px;
+  background: #fff;
+  text-align: center;
+}
+
+.graphs-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.graph-card {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.graph-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+}
+
+.graph-image {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Team Section */
+.team-content {
+  padding: 80px 20px;
+  background: #f5f7fa;
+  text-align: center;
+}
+
+.team-content h2 {
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+}
+
+.team-members-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.team-member {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.member-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 20px;
+}
+
+.member-info {
+  text-align: left;
+}
+
+.member-name {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.member-skills, .member-contribution {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+/* CTA Section */
+.cta-section {
+  position: relative;
+  padding: 80px 20px;
+  text-align: center;
+  color: white;
+  overflow: hidden;
+}
+
+.parallax-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('@/assets/cta-bg.jpg') no-repeat center center/cover;
+  z-index: -1;
+  transform: translateZ(0);
+}
+
+.cta-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.cta-content h2 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.cta-content p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+}
+
+.cta-button {
+  background: #4CAF50;
+  color: white;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cta-button:hover {
+  background: #388E3C;
+  transform: translateY(-2px);
+}
+
+.arrow-icon {
+  margin-left: 10px;
+}
+
+/* Footer */
+.main-footer {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 60px 20px 20px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  gap: 20px;
+}
+
+.footer-brand {
+  flex: 1;
+  min-width: 250px;
+}
+
+.footer-brand .logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.footer-brand p {
+  font-size: 1rem;
+  color: #aaa;
+  margin-bottom: 20px;
+}
+
+.social-links a {
+  color: #aaa;
+  font-size: 1.2rem;
+  margin-right: 15px;
+  transition: color 0.3s ease;
+}
+
+.social-links a:hover {
+  color: #4CAF50;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  flex: 2;
+}
+
+.links-group {
+  min-width: 150px;
+}
+
+.links-group h4 {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+}
+
+.links-group a {
+  display: block;
+  color: #aaa;
+  font-size: 1rem;
+  margin-bottom: 10px;
+  transition: color 0.3s ease;
+}
+
+.links-group a:hover {
+  color: #4CAF50;
+}
+
+.footer-bottom {
+  border-top: 1px solid #333;
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.legal-links a {
+  color: #aaa;
+  margin-left: 20px;
+  transition: color 0.3s ease;
+}
+
+.legal-links a:hover {
+  color: #4CAF50;
+}
+
+/* Loading and Error States */
+.loading {
+  font-size: 1.2rem;
+  color: #4CAF50;
+  text-align: center;
+  padding: 20px;
+}
+
+.error {
+  font-size: 1.2rem;
+  color: #f44336;
+  text-align: center;
+  padding: 20px;
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .hero-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
+  .hero-text h1 {
+    font-size: 2.5rem;
+  }
+
+  .cta-buttons {
+    justify-content: center;
+  }
+
+  .hero-image {
+    margin-top: 20px;
+  }
+
+  .features-container, .stats-container, .graphs-container, .team-members-container {
+    grid-template-columns: 1fr;
+  }
+
   .footer-content {
     flex-direction: column;
-    gap: 40px;
   }
-  
-  .footer-links {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
 
-@media (max-width: 768px) {
-  .stats-section {
-    flex-direction: column;
-    gap: 40px;
-  }
-  
-  .testimonial {
-    padding: 40px 30px;
-  }
-  
-  .footer-bottom {
+  .footer-links {
     flex-direction: column;
     gap: 20px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 10px;
     text-align: center;
   }
-}
 
-@media (max-width: 480px) {
-  .cta-buttons {
-    flex-direction: column;
-  }
-  
-  .features-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .footer-links {
-    grid-template-columns: 1fr;
-  }
-  
-  .testimonial-author {
-    flex-direction: column;
+  .legal-links a {
+    margin: 0 10px;
   }
 }
 </style>
+```

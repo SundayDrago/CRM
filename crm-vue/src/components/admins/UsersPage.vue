@@ -1,14 +1,14 @@
 <template>
-  <div class="users-page">
+  <div class="users-page" :class="mode">
     <!-- Toast Notifications -->
-    <div v-if="toast.show" class="toast" :class="toast.type">
+    <div v-if="toast.show" class="toast" :class="[toast.type, mode]">
       <span>{{ toast.message }}</span>
       <button class="close-toast" @click="toast.show = false">&times;</button>
     </div>
 
     <!-- Confirmation Dialog -->
     <div v-if="showDeleteConfirmation" class="confirmation-dialog-overlay">
-      <div class="confirmation-dialog">
+      <div class="confirmation-dialog" :class="mode">
         <h3>Confirm Deletion</h3>
         <p>Are you sure you want to delete this user? This action cannot be undone.</p>
         <div class="dialog-buttons">
@@ -30,47 +30,50 @@
         <button class="invite-user" @click="showInviteUserModal">
           <span class="icon"><i class="fas fa-user-plus"></i></span> Invite Users
         </button>
+        <button class="mode-toggle" @click="toggleMode">
+          <span class="icon"><i :class="modeIcon"></i></span> {{ modeText }}
+        </button>
       </div>
     </div>
 
     <!-- Users Table -->
     <div class="table-container">
-  <table>
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Username</th>
-      <th>Email</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr v-for="user in filteredUsers" :key="user.id">
-      <td data-label="ID">{{ user.id }}</td>
-      <td data-label="Username">{{ user.username }}</td>
-      <td data-label="Email">{{ user.email }}</td>
-      <td data-label="Status">
-        <span :class="['status', user.status.toLowerCase()]">{{ user.status }}</span>
-      </td>
-      <td data-label="Actions" class="actions">
-        <button class="edit-button" @click="editUser(user)">Edit</button>
-        <button class="delete-button" @click="initiateDelete(user.id)">Delete</button>
-      </td>
-    </tr>
-    <tr v-if="!filteredUsers.length && !isLoading">
-      <td colspan="5" class="no-data">No users found.</td>
-    </tr>
-    <tr v-if="isLoading">
-      <td colspan="5" class="loading">Loading users...</td>
-    </tr>
-  </tbody>
-</table>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in filteredUsers" :key="user.id">
+            <td data-label="ID">{{ user.id }}</td>
+            <td data-label="Username">{{ user.username }}</td>
+            <td data-label="Email">{{ user.email }}</td>
+            <td data-label="Status">
+              <span :class="['status', user.status.toLowerCase()]">{{ user.status }}</span>
+            </td>
+            <td data-label="Actions" class="actions">
+              <button class="edit-button" @click="editUser(user)">Edit</button>
+              <button class="delete-button" @click="initiateDelete(user.id)">Delete</button>
+            </td>
+          </tr>
+          <tr v-if="!filteredUsers.length && !isLoading">
+            <td colspan="5" class="no-data">No users found.</td>
+          </tr>
+          <tr v-if="isLoading">
+            <td colspan="5" class="loading">Loading users...</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Modal for Edit/Invite User -->
     <div v-if="showEditUserForm || showInviteUserForm" class="modal-overlay">
-      <div class="modal">
+      <div class="modal" :class="mode">
         <h3>{{ modalTitle }}</h3>
         <form @submit.prevent="handleFormSubmit">
           <div class="form-group">
@@ -134,15 +137,9 @@ export default {
       // Delete confirmation
       showDeleteConfirmation: false,
       userToDelete: null,
+      // Dark/Light mode
+      mode: 'light',
     };
-  },
-  watch: {
-    searchQuery(newQuery) {
-      this.search(newQuery);
-    },
-    users() {
-      this.search(this.searchQuery);
-    },
   },
   computed: {
     modalTitle() {
@@ -153,9 +150,39 @@ export default {
       if (this.isEditing) return 'Update';
       return 'Send Invitation';
     },
+    modeIcon() {
+      return this.mode === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    },
+    modeText() {
+      return this.mode === 'dark' ? 'Light Mode' : 'Dark Mode';
+    },
+  },
+  watch: {
+    searchQuery(newQuery) {
+      this.search(newQuery);
+    },
+    users() {
+      this.search(this.searchQuery);
+    },
+  },
+  mounted() {
+    // Check for saved mode preference
+    const savedMode = localStorage.getItem('modePreference');
+    if (savedMode) {
+      this.mode = savedMode;
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      this.mode = prefersDark ? 'dark' : 'light';
+    }
+    this.fetchUsers();
   },
   methods: {
-      viewAdminStats() {
+    toggleMode() {
+      this.mode = this.mode === 'light' ? 'dark' : 'light';
+      localStorage.setItem('modePreference', this.mode);
+    },
+    viewAdminStats() {
       this.$router.push('/dashboard/admin-stats');
     },
     viewUserStats() {
@@ -182,9 +209,29 @@ export default {
     async proceedDelete() {
       try {
         const token = localStorage.getItem('authToken');
-        await axios.delete(`http://localhost:5000/api/admin/users/${this.userToDelete}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const userToDelete = this.users.find(user => user.id === this.userToDelete);
+
+        // First send the deletion notification email
+        try {
+          await axios.post(
+            'http://localhost:5000/api/admin/users/send-notification',
+            {
+              email: userToDelete.email,
+              type: 'account_deleted'
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } catch (emailError) {
+          console.error('Failed to send deletion notification email:', emailError);
+          // Don't fail the deletion if email fails
+        }
+
+        // Then proceed with the deletion
+        await axios.delete(
+          `http://localhost:5000/api/admin/users/${this.userToDelete}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
         this.users = this.users.filter(user => user.id !== this.userToDelete);
         this.search(this.searchQuery);
         this.showToast('User deleted successfully!');
@@ -293,43 +340,6 @@ export default {
       this.successMessage = '';
       try {
         const token = localStorage.getItem('authToken');
-        await axios.put(
-          `http://localhost:5000/api/admin/users/${this.form.id}`,
-          {
-            username: this.form.username,
-            email: this.form.email,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const index = this.users.findIndex(u => u.id === this.form.id);
-        this.users[index] = { ...this.form };
-        this.search(this.searchQuery);
-
-        this.showToast('User updated successfully!');
-        setTimeout(() => {
-          this.showEditUserForm = false;
-          this.isSubmitting = false;
-        }, 1500);
-      } catch (error) {
-        this.errorMessage = error.response?.data?.message || 'Failed to update user. Please try again.';
-        console.error('Error updating user:', error);
-        this.isSubmitting = false;
-      }
-    },
-    cancel() {
-      this.showEditUserForm = false;
-      this.showInviteUserForm = false;
-      this.isSubmitting = false;
-      this.errorMessage = '';
-      this.successMessage = '';
-    },
-  },
-     async updateUser() {
-      this.isSubmitting = true;
-      this.errorMessage = '';
-      this.successMessage = '';
-      try {
-        const token = localStorage.getItem('authToken');
         const oldUserData = this.users.find(u => u.id === this.form.id);
 
         await axios.put(
@@ -380,59 +390,36 @@ export default {
         this.isSubmitting = false;
       }
     },
-
-    async proceedDelete() {
-      try {
-        const token = localStorage.getItem('authToken');
-        const userToDelete = this.users.find(user => user.id === this.userToDelete);
-
-        // First send the deletion notification email
-        try {
-          await axios.post(
-            'http://localhost:5000/api/admin/users/send-notification',
-            {
-              email: userToDelete.email,
-              type: 'account_deleted'
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } catch (emailError) {
-          console.error('Failed to send deletion notification email:', emailError);
-          // Don't fail the deletion if email fails
-        }
-
-        // Then proceed with the deletion
-        await axios.delete(
-          `http://localhost:5000/api/admin/users/${this.userToDelete}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        this.users = this.users.filter(user => user.id !== this.userToDelete);
-        this.search(this.searchQuery);
-        this.showToast('User deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        this.showToast('Failed to delete user. Please try again.', 'error');
-      } finally {
-        this.showDeleteConfirmation = false;
-        this.userToDelete = null;
-      }
+    cancel() {
+      this.showEditUserForm = false;
+      this.showInviteUserForm = false;
+      this.isSubmitting = false;
+      this.errorMessage = '';
+      this.successMessage = '';
     },
-  mounted() {
-    this.fetchUsers();
   },
 };
 </script>
 
 <style scoped>
-/* Mobile-First Base Styles */
+/* Base Styles */
 .users-page {
   padding: clamp(8px, 2vw, 12px);
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
   max-width: 1400px;
   margin: 0 auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.users-page.light {
+  background-color: #f5f7fa;
+  color: #2c3e50;
+}
+
+.users-page.dark {
+  background-color: #1a1a2e;
+  color: #e6e6e6;
 }
 
 .header {
@@ -447,8 +434,15 @@ export default {
 h1 {
   font-size: clamp(1.25rem, 3.5vw, 1.5rem);
   font-weight: 700;
-  color: #2c3e50;
   margin: 0;
+}
+
+.users-page.light h1 {
+  color: #2c3e50;
+}
+
+.users-page.dark h1 {
+  color: #e6e6e6;
 }
 
 .header-buttons {
@@ -459,8 +453,8 @@ h1 {
 }
 
 .stats-button,
-.invite-user {
-  background: #4361ee;
+.invite-user,
+.mode-toggle {
   color: white;
   border: none;
   padding: clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 12px);
@@ -472,21 +466,33 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: clamp(6px, 1.5vw, 8px);
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   min-height: 40px;
   width: 100%;
 }
 
 .stats-button {
-  background: #34495e;
+  background: #4a6fa5;
 }
 
 .stats-button:hover {
-  background: #2c3e50;
+  background: #3a5a80;
+}
+
+.invite-user {
+  background: #5cb85c;
 }
 
 .invite-user:hover {
-  background: #3b54d9;
+  background: #4cae4c;
+}
+
+.mode-toggle {
+  background: #6c757d;
+}
+
+.mode-toggle:hover {
+  background: #5a6268;
 }
 
 .icon {
@@ -494,10 +500,18 @@ h1 {
 }
 
 .table-container {
-  background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
+  transition: background-color 0.3s ease;
+}
+
+.users-page.light .table-container {
+  background: white;
+}
+
+.users-page.dark .table-container {
+  background: #16213e;
 }
 
 table {
@@ -511,19 +525,40 @@ td {
   padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px);
   text-align: left;
   font-size: clamp(0.7rem, 1.8vw, 0.75rem);
+}
+
+.users-page.light th,
+.users-page.light td {
   color: #2c3e50;
 }
 
+.users-page.dark th,
+.users-page.dark td {
+  color: #e6e6e6;
+}
+
 th {
-  background: #34495e;
+  background: #4a6fa5;
   color: white;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+.users-page.dark th {
+  background: #0f3460;
+}
+
 td {
-  border-bottom: 1px solid #ecf0f1;
+  border-bottom: 1px solid;
+}
+
+.users-page.light td {
+  border-bottom-color: #ecf0f1;
+}
+
+.users-page.dark td {
+  border-bottom-color: #2a3a5e;
 }
 
 td.email {
@@ -540,17 +575,17 @@ td.email {
 }
 
 .status.pending {
-  background: #f1c40f;
+  background: #f0ad4e;
   color: #fff;
 }
 
 .status.active {
-  background: #2ecc71;
+  background: #5cb85c;
   color: #fff;
 }
 
 .status.inactive {
-  background: #95a5a6;
+  background: #6c757d;
   color: #fff;
 }
 
@@ -567,36 +602,45 @@ td.email {
   cursor: pointer;
   font-size: clamp(0.65rem, 1.5vw, 0.7rem);
   font-weight: 500;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   min-height: 40px;
   min-width: 60px;
 }
 
 .edit-button {
-  background: #2ecc71;
+  background: #5cb85c;
   color: white;
 }
 
 .edit-button:hover {
-  background: #27ae60;
+  background: #4cae4c;
 }
 
 .delete-button {
-  background: #e74c3c;
+  background: #d9534f;
   color: white;
 }
 
 .delete-button:hover {
-  background: #c0392b;
+  background: #c9302c;
 }
 
 .no-data,
 .loading {
   text-align: center;
-  color: #7f8c8d;
   padding: clamp(12px, 3vw, 16px);
   font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   font-style: italic;
+}
+
+.users-page.light .no-data,
+.users-page.light .loading {
+  color: #7f8c8d;
+}
+
+.users-page.dark .no-data,
+.users-page.dark .loading {
+  color: #a8a8a8;
 }
 
 .modal-overlay {
@@ -613,18 +657,27 @@ td.email {
 }
 
 .modal {
-  background: white;
   padding: clamp(8px, 2vw, 10px);
   border-radius: 8px;
   width: 100%;
   max-width: clamp(240px, 90vw, 280px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.users-page.light .modal {
+  background: white;
+  color: #2c3e50;
+}
+
+.users-page.dark .modal {
+  background: #16213e;
+  color: #e6e6e6;
 }
 
 .modal h3 {
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 600;
-  color: #2c3e50;
   margin-bottom: clamp(6px, 1.5vw, 8px);
   text-align: center;
 }
@@ -637,29 +690,60 @@ label {
   display: block;
   font-size: clamp(0.7rem, 1.5vw, 0.75rem);
   font-weight: 500;
-  color: #34495e;
   margin-bottom: clamp(4px, 1vw, 6px);
+}
+
+.users-page.light label {
+  color: #34495e;
+}
+
+.users-page.dark label {
+  color: #e6e6e6;
 }
 
 input {
   width: 100%;
   padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px);
-  border: 1px solid #dcdcdc;
+  border: 1px solid;
   border-radius: 6px;
   font-size: clamp(0.7rem, 1.5vw, 0.75rem);
-  color: #2c3e50;
   box-sizing: border-box;
+  transition: all 0.3s ease;
 }
 
-input:focus {
-  border-color: #3498db;
+.users-page.light input {
+  border-color: #dcdcdc;
+  color: #2c3e50;
+  background: white;
+}
+
+.users-page.dark input {
+  border-color: #3a4a6e;
+  color: #e6e6e6;
+  background: #0f3460;
+}
+
+.users-page.light input:focus {
+  border-color: #4a6fa5;
+  outline: none;
+}
+
+.users-page.dark input:focus {
+  border-color: #5cb85c;
   outline: none;
 }
 
 .info-text {
   font-size: clamp(0.65rem, 1.5vw, 0.7rem);
-  color: #7f8c8d;
   margin-top: clamp(4px, 1vw, 6px);
+}
+
+.users-page.light .info-text {
+  color: #7f8c8d;
+}
+
+.users-page.dark .info-text {
+  color: #a8a8a8;
 }
 
 .form-buttons {
@@ -677,44 +761,44 @@ input:focus {
   font-size: clamp(0.7rem, 1.5vw, 0.75rem);
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   min-height: 40px;
   width: 100%;
 }
 
 .submit-button {
-  background: #3498db;
+  background: #4a6fa5;
   color: white;
 }
 
 .submit-button:hover:not(:disabled) {
-  background: #2980b9;
+  background: #3a5a80;
 }
 
 .cancel-button {
-  background: #95a5a6;
+  background: #6c757d;
   color: white;
 }
 
 .cancel-button:hover:not(:disabled) {
-  background: #7f8c8d;
+  background: #5a6268;
 }
 
 .submit-button:disabled,
 .cancel-button:disabled {
-  background: #bdc3c7;
+  background: #95a5a6;
   cursor: not-allowed;
 }
 
 .error-message {
-  color: #e74c3c;
+  color: #d9534f;
   font-size: clamp(0.65rem, 1.5vw, 0.7rem);
   text-align: center;
   margin-top: clamp(4px, 1vw, 6px);
 }
 
 .success-message {
-  color: #2ecc71;
+  color: #5cb85c;
   font-size: clamp(0.65rem, 1.5vw, 0.7rem);
   text-align: center;
   margin-top: clamp(4px, 1vw, 6px);
@@ -738,11 +822,11 @@ input:focus {
 }
 
 .toast.success {
-  background: #2ecc71;
+  background: #5cb85c;
 }
 
 .toast.error {
-  background: #e74c3c;
+  background: #d9534f;
 }
 
 .close-toast {
@@ -774,27 +858,43 @@ input:focus {
 }
 
 .confirmation-dialog {
-  background: white;
   padding: clamp(8px, 2vw, 10px);
   border-radius: 8px;
   width: 100%;
   max-width: clamp(240px, 90vw, 280px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.users-page.light .confirmation-dialog {
+  background: white;
+  color: #2c3e50;
+}
+
+.users-page.dark .confirmation-dialog {
+  background: #16213e;
+  color: #e6e6e6;
 }
 
 .confirmation-dialog h3 {
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 600;
-  color: #2c3e50;
   margin-bottom: clamp(6px, 1.5vw, 8px);
   text-align: center;
 }
 
 .confirmation-dialog p {
-  color: #7f8c8d;
   font-size: clamp(0.7rem, 1.5vw, 0.75rem);
   margin-bottom: clamp(6px, 1.5vw, 8px);
   line-height: 1.4;
+}
+
+.users-page.light .confirmation-dialog p {
+  color: #7f8c8d;
+}
+
+.users-page.dark .confirmation-dialog p {
+  color: #a8a8a8;
 }
 
 .dialog-buttons {
@@ -805,38 +905,38 @@ input:focus {
 
 .confirm-button {
   padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px);
-  background: #e74c3c;
+  background: #d9534f;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: clamp(0.7rem, 1.5vw, 0.75rem);
   font-weight: 500;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   min-height: 40px;
   width: 100%;
 }
 
 .confirm-button:hover {
-  background: #c0392b;
+  background: #c9302c;
 }
 
 .cancel-button:not(.form-buttons .cancel-button) {
   padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px);
-  background: #95a5a6;
+  background: #6c757d;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: clamp(0.7rem, 1.5vw, 0.75rem);
   font-weight: 500;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   min-height: 40px;
   width: 100%;
 }
 
 .cancel-button:hover:not(.form-buttons .cancel-button) {
-  background: #7f8c8d;
+  background: #5a6268;
 }
 
 /* Animations */
@@ -875,7 +975,8 @@ input:focus {
   }
 
   .stats-button,
-  .invite-user {
+  .invite-user,
+  .mode-toggle {
     padding: clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px);
     font-size: clamp(0.8rem, 2vw, 0.85rem);
   }
@@ -1004,7 +1105,6 @@ input:focus {
     min-height: 40px;
   }
 }
-
 /* Desktop (≥769px) */
 @media (min-width: 769px) {
   .users-page {
@@ -1020,35 +1120,37 @@ input:focus {
   }
 
   h1 {
-    font-size: clamp(1.75rem, 4vw, 2rem);
+    font-size: clamp(1.75rem, 3vw, 2rem);
+    white-space: nowrap;
   }
 
   .header-buttons {
     flex-direction: row;
+    justify-content: flex-end;
+    gap: clamp(12px, 2vw, 16px);
     width: auto;
-    gap: clamp(12px, 2.5vw, 16px);
   }
 
   .stats-button,
-  .invite-user {
-    padding: clamp(10px, 2vw, 12px) clamp(16px, 3.5vw, 20px);
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
-    min-width: 120px;
+  .invite-user,
+  .mode-toggle {
+    padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 16px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
     width: auto;
   }
 
   .icon {
-    font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+    font-size: clamp(1rem, 1.5vw, 1.1rem);
   }
 
   table {
-    min-width: 0;
+    min-width: 100%;
   }
 
   th,
   td {
-    padding: clamp(12px, 2.5vw, 16px) clamp(16px, 3.5vw, 20px);
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
+    padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
   }
 
   td.email {
@@ -1056,125 +1158,187 @@ input:focus {
   }
 
   .status {
-    padding: clamp(4px, 1vw, 6px) clamp(8px, 2vw, 10px);
-    font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+    padding: clamp(4px, 0.8vw, 6px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(0.8rem, 1.2vw, 0.85rem);
+  }
+
+  .actions {
+    gap: clamp(8px, 1.5vw, 12px);
   }
 
   .edit-button,
   .delete-button {
-    padding: clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px);
-    font-size: clamp(0.8rem, 2vw, 0.85rem);
+    padding: clamp(6px, 1.2vw, 8px) clamp(10px, 1.8vw, 14px);
+    font-size: clamp(0.8rem, 1.2vw, 0.85rem);
     min-width: 80px;
   }
 
   .no-data,
   .loading {
-    padding: clamp(24px, 4vw, 30px);
-    font-size: clamp(0.9rem, 2vw, 0.95rem);
+    padding: clamp(20px, 3vw, 24px);
+    font-size: clamp(0.9rem, 1.2vw, 1rem);
   }
 
   .modal {
-    padding: clamp(20px, 3.5vw, 24px);
+    padding: clamp(16px, 3vw, 24px);
     max-width: clamp(400px, 50vw, 500px);
   }
 
   .modal h3 {
-    font-size: clamp(1.25rem, 3vw, 1.5rem);
-    margin-bottom: clamp(12px, 3vw, 16px);
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    margin-bottom: clamp(12px, 2vw, 16px);
   }
 
   .form-group {
-    margin-bottom: clamp(12px, 3vw, 16px);
+    margin-bottom: clamp(12px, 2vw, 16px);
   }
 
   label {
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
-    margin-bottom: clamp(8px, 2vw, 10px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
+    margin-bottom: clamp(8px, 1.5vw, 12px);
   }
 
   input {
-    padding: clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px);
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
+    padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
   }
 
   .info-text {
-    font-size: clamp(0.8rem, 2vw, 0.85rem);
+    font-size: clamp(0.8rem, 1.2vw, 0.85rem);
   }
 
   .form-buttons {
-    gap: clamp(12px, 3vw, 16px);
-    margin-top: clamp(12px, 3vw, 16px);
+    gap: clamp(12px, 2vw, 16px);
+    margin-top: clamp(16px, 2.5vw, 20px);
   }
 
   .submit-button,
   .cancel-button {
-    padding: clamp(10px, 2.5vw, 12px) clamp(16px, 3.5vw, 20px);
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
+    padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
     min-width: 120px;
   }
 
   .error-message,
   .success-message {
-    font-size: clamp(0.8rem, 2vw, 0.85rem);
-    margin-top: clamp(10px, 2.5vw, 12px);
+    font-size: clamp(0.8rem, 1.2vw, 0.85rem);
+    margin-top: clamp(12px, 2vw, 16px);
   }
 
   .confirmation-dialog {
-    padding: clamp(20px, 3.5vw, 24px);
-    max-width: clamp(400px, 50vw, 450px);
+    padding: clamp(16px, 3vw, 24px);
+    max-width: clamp(400px, 50vw, 500px);
   }
 
   .confirmation-dialog h3 {
-    font-size: clamp(1.25rem, 3vw, 1.5rem);
-    margin-bottom: clamp(10px, 2.5vw, 12px);
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    margin-bottom: clamp(12px, 2vw, 16px);
   }
 
   .confirmation-dialog p {
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
-    margin-bottom: clamp(12px, 3vw, 16px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
+    margin-bottom: clamp(12px, 2vw, 16px);
   }
 
   .dialog-buttons {
-    gap: clamp(12px, 3vw, 16px);
+    gap: clamp(12px, 2vw, 16px);
   }
 
   .confirm-button,
   .cancel-button:not(.form-buttons .cancel-button) {
-    padding: clamp(10px, 2.5vw, 12px) clamp(16px, 3.5vw, 20px);
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
+    padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
     min-width: 120px;
   }
 
   .toast {
-    bottom: auto;
-    top: clamp(16px, 3vw, 20px);
-    right: clamp(16px, 3vw, 20px);
-    left: auto;
-    width: clamp(240px, 50vw, 300px);
-    padding: clamp(12px, 3vw, 16px) clamp(16px, 3.5vw, 20px);
-    font-size: clamp(0.85rem, 2vw, 0.9rem);
+    width: clamp(280px, 30vw, 350px);
+    padding: clamp(12px, 1.5vw, 14px) clamp(16px, 2vw, 20px);
+    font-size: clamp(0.85rem, 1.2vw, 0.9rem);
   }
 
   .close-toast {
-    font-size: clamp(1.25rem, 3vw, 1.5rem);
+    font-size: clamp(1.25rem, 1.8vw, 1.5rem);
     min-width: 44px;
     min-height: 44px;
   }
 }
 
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
+/* Large Desktop (≥1200px) */
+@media (min-width: 1200px) {
+  .users-page {
+    max-width: 1400px;
+  }
+
+  .header {
+    margin-bottom: clamp(32px, 3vw, 48px);
+  }
+
+  .header-buttons {
+    gap: clamp(16px, 1.5vw, 20px);
+  }
+
+  table {
+    min-width: 1000px;
+  }
+
+  .modal {
+    max-width: 500px;
+  }
+
+  .confirmation-dialog {
+    max-width: 500px;
+  }
+}
+
+/* Accessibility Focus Styles */
+button:focus,
+input:focus,
+select:focus {
+  outline: 2px solid #4a6fa5;
+  outline-offset: 2px;
+}
+
+.users-page.dark button:focus,
+.users-page.dark input:focus,
+.users-page.dark select:focus {
+  outline-color: #5cb85c;
+}
+
+/* Print Styles */
+@media print {
+  .users-page {
+    padding: 0;
+    background: white !important;
+    color: black !important;
+  }
+
+  .header-buttons,
+  .actions,
   .toast,
-  .modal,
-  .confirmation-dialog,
-  .submit-button,
-  .cancel-button,
-  .edit-button,
-  .delete-button,
-  .confirm-button,
-  .stats-button,
-  .invite-user {
-    transition: none;
+  .confirmation-dialog-overlay,
+  .modal-overlay {
+    display: none !important;
+  }
+
+  .table-container {
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  table {
+    border: 1px solid #ddd;
+  }
+
+  th {
+    background: #f1f1f1 !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  td {
+    border-bottom: 1px solid #ddd !important;
   }
 }
 </style>

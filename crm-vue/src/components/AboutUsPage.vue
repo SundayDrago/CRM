@@ -76,7 +76,10 @@
     <section class="cta-section">
       <h2>Ready to Transform Your Business?</h2>
       <p>Join thousands of companies leveraging our platform to gain a competitive edge.</p>
-      <router-link to="/register" class="cta-btn">Get Started</router-link>
+      <router-link to="/register" class="cta-btn">
+        <span>Get Started</span>
+        <span class="arrow-icon">→</span>
+      </router-link>
     </section>
 
     <!-- Back to Home Link -->
@@ -94,24 +97,17 @@ export default {
       teamMembers: [
         {
           id: 1,
-          name: "Dr. Sarah Chen",
-          title: "Chief Data Scientist",
-          bio: "Leads our AI research with over 15 years in machine learning.",
-          avatar: "/assets/team/sarah-chen.jpg",
+          name: "Geriga Sunday Drago",
+          title: "Project Leader",
+          bio: "Guides the team with strategic vision and expertise in data analytics.",
+          avatar: require("@/assets/img-3.jpg"),
         },
         {
           id: 2,
-          name: "Michael Rodriguez",
-          title: "Head of Product",
-          bio: "Drives product innovation with a focus on user experience.",
-          avatar: "/assets/team/michael-rodriguez.jpg",
-        },
-        {
-          id: 3,
-          name: "Priya Patel",
-          title: "Lead Engineer",
-          bio: "Architects our scalable analytics infrastructure.",
-          avatar: "/assets/team/priya-patel.jpg",
+          name: "Akoldou Samuel Wel",
+          title: "Project Coordinator & Developer",
+          bio: "Coordinates project efforts and builds robust system features.",
+          avatar: require("@/assets/img-2.jpg"),
         },
       ],
     };
@@ -120,44 +116,84 @@ export default {
 </script>
 
 <style scoped lang="scss">
-$primary: #4a6cf7;
-$secondary: #2d3748;
-$accent: #ed64a6;
-$background: #f7fafc;
-$text: #2d3748;
-$error: #e53e3e;
-$border: #e2e8f0;
+// Consistent Color Palette
+$primary: #4CAF50; // Green from UserLoginPage.vue
+$secondary: #1e293b; // Dark gray for headers
+$accent: #10b981; // Emerald green for secondary actions
+$background: #f8fafc; // Light gray background
+$text: #334155; // Slate gray for body text
+$error: #ef4444; // Red for error states
+$border: #e2e8f0; // Light gray for borders
+$white: #ffffff; // White for cards
+$disabled: #cccccc; // Gray for disabled state
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-size-base: 1rem;
+$font-size-sm: 0.875rem;
+$font-size-lg: 1.125rem;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// Spacing
+$spacing-unit: 1rem;
+$spacing-xs: $spacing-unit * 0.25;
+$spacing-sm: $spacing-unit * 0.5;
+$spacing-md: $spacing-unit;
+$spacing-lg: $spacing-unit * 1.5;
+$spacing-xl: $spacing-unit * 2;
+
+// Border Radius
+$border-radius-sm: 6px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-pill: 50px;
+
+// Shadows
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.1);
+
+// Animation
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .about-us-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, $background 0%, darken($background, 5%) 100%);
-  padding: 2rem;
+  background: linear-gradient(135deg, $background 0%, darken($background, 3%) 100%);
+  padding: $spacing-xl;
   position: relative;
 }
 
 .hero-section {
   text-align: center;
-  padding: 4rem 1rem;
-  background: $primary;
-  color: white;
-  border-radius: 12px;
-  margin-bottom: 3rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: $spacing-xl;
+  background: $white;
+  border-radius: $border-radius-lg;
+  margin-bottom: $spacing-xl;
+  box-shadow: $shadow-lg;
+  animation: fadeInUp 0.6s ease-out;
 
   .hero-icon {
     font-size: 3rem;
-    margin-bottom: 1.5rem;
+    color: $primary;
+    margin-bottom: $spacing-lg;
   }
 
   h1 {
     font-size: 2.5rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+    font-weight: $font-weight-bold;
+    color: $secondary;
+    margin-bottom: $spacing-sm;
   }
 
   .hero-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
+    font-size: $font-size-lg;
+    color: $text;
+    line-height: 1.6;
     max-width: 600px;
     margin: 0 auto;
   }
@@ -165,106 +201,113 @@ $border: #e2e8f0;
 
 .section-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: $spacing-xl;
 
   h2 {
     font-size: 2rem;
-    font-weight: 600;
-    color: $text;
-    margin-bottom: 0.5rem;
+    font-weight: $font-weight-bold;
+    color: $secondary;
+    margin-bottom: $spacing-sm;
   }
 
   .section-subtitle {
-    font-size: 1rem;
-    color: lighten($text, 20%);
+    font-size: $font-size-base;
+    color: $text;
+    line-height: 1.6;
   }
 }
 
 .overview-section {
   max-width: 800px;
-  margin: 0 auto 3rem;
-  padding: 2rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  margin: 0 auto $spacing-xl;
+  padding: $spacing-lg;
+  background: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  animation: fadeInUp 0.8s ease-out;
 
   p {
-    font-size: 1rem;
-    color: lighten($text, 10%);
+    font-size: $font-size-base;
+    color: $text;
     line-height: 1.6;
-    margin-bottom: 1rem;
+    margin-bottom: $spacing-md;
   }
 }
 
 .mission-section {
   max-width: 1000px;
-  margin: 0 auto 3rem;
+  margin: 0 auto $spacing-xl;
 }
 
 .mission-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
+  gap: $spacing-lg;
 }
 
 .mission-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
+  background: $white;
+  padding: $spacing-lg;
+  border-radius: $border-radius-md;
   text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  box-shadow: $shadow-md;
+  transition: all 0.3s ease;
+  animation: fadeInUp 1s ease-out;
 
   &:hover {
-    transform: translateY(-5px);
+    transform: scale(1.05);
+    box-shadow: $shadow-lg;
   }
 
   .card-icon {
     font-size: 2rem;
     color: $primary;
-    margin-bottom: 1rem;
+    margin-bottom: $spacing-md;
   }
 
   h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: $text;
-    margin-bottom: 0.5rem;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $secondary;
+    margin-bottom: $spacing-sm;
   }
 
   p {
-    font-size: 0.95rem;
-    color: lighten($text, 20%);
+    font-size: $font-size-sm;
+    color: $text;
+    line-height: 1.6;
   }
 }
 
 .team-section {
   max-width: 1000px;
-  margin: 0 auto 3rem;
+  margin: 0 auto $spacing-xl;
 }
 
 .team-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
+  gap: $spacing-lg;
 }
 
 .team-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
+  background: $white;
+  padding: $spacing-lg;
+  border-radius: $border-radius-md;
   text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  box-shadow: $shadow-md;
+  transition: all 0.3s ease;
+  animation: fadeInUp 1.2s ease-out;
 
   &:hover {
-    transform: translateY(-5px);
+    transform: scale(1.05);
+    box-shadow: $shadow-lg;
   }
 
   .team-avatar {
     width: 120px;
     height: 120px;
-    margin: 0 auto 1rem;
+    margin: 0 auto $spacing-md;
     overflow: hidden;
     border-radius: 50%;
     border: 3px solid $primary;
@@ -277,87 +320,110 @@ $border: #e2e8f0;
   }
 
   h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: $text;
-    margin-bottom: 0.25rem;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $secondary;
+    margin-bottom: $spacing-xs;
   }
 
   .team-title {
-    font-size: 0.9rem;
+    font-size: $font-size-sm;
     color: $primary;
-    margin-bottom: 0.5rem;
+    font-weight: $font-weight-medium;
+    margin-bottom: $spacing-sm;
   }
 
   .team-bio {
-    font-size: 0.85rem;
-    color: lighten($text, 20%);
+    font-size: $font-size-sm;
+    color: $text;
+    line-height: 1.6;
   }
 }
 
 .cta-section {
   text-align: center;
-  padding: 3rem 1rem;
-  background: $primary;
-  color: white;
-  border-radius: 12px;
-  margin-bottom: 3rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: $spacing-xl;
+  background: lighten($background, 2%);
+  border-radius: $border-radius-lg;
+  margin-bottom: $spacing-xl;
+  box-shadow: $shadow-lg;
+  animation: fadeInUp 1.4s ease-out;
 
   h2 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    font-weight: $font-weight-bold;
+    color: $secondary;
+    margin-bottom: $spacing-sm;
   }
 
   p {
-    font-size: 1rem;
-    opacity: 0.9;
-    margin-bottom: 1.5rem;
+    font-size: $font-size-base;
+    color: $text;
+    margin-bottom: $spacing-lg;
   }
 
   .cta-btn {
-    display: inline-block;
-    padding: 0.875rem 2rem;
-    background: white;
-    color: $primary;
-    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    background: $primary;
+    color: $white;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
     text-decoration: none;
-    border-radius: 8px;
-    transition: background 0.2s ease;
+    border-radius: $border-radius-pill;
+    transition: all 0.3s ease;
 
     &:hover {
-      background: darken(white, 10%);
+      background: #388E3C; // Darker green from UserLoginPage.vue
+      transform: translateY(-2px);
     }
+  }
+
+  .arrow-icon {
+    margin-left: 8px;
+    font-size: $font-size-base;
   }
 }
 
 .back-link {
   position: absolute;
-  top: 1.5rem;
-  left: 1.5rem;
+  top: $spacing-lg;
+  left: $spacing-lg;
   color: $primary;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $spacing-xs;
+  transition: all 0.2s ease;
 
   &:hover {
+    color: darken($primary, 10%);
     text-decoration: underline;
+  }
+
+  i {
+    font-size: $font-size-sm;
   }
 }
 
 @media (max-width: 768px) {
+  .about-us-container {
+    padding: $spacing-lg;
+  }
+
   .hero-section {
-    padding: 3rem 1rem;
+    padding: $spacing-lg;
 
     h1 {
       font-size: 2rem;
     }
 
     .hero-subtitle {
-      font-size: 1rem;
+      font-size: $font-size-base;
     }
   }
 
@@ -367,20 +433,28 @@ $border: #e2e8f0;
   }
 
   .overview-section {
-    padding: 1.5rem;
+    padding: $spacing-md;
+  }
+
+  .section-header h2 {
+    font-size: 1.75rem;
   }
 }
 
 @media (max-width: 480px) {
   .about-us-container {
-    padding: 1rem;
+    padding: $spacing-md;
   }
 
   .hero-section {
-    padding: 2rem 1rem;
+    padding: $spacing-md;
   }
 
   .section-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .cta-section h2 {
     font-size: 1.5rem;
   }
 }
