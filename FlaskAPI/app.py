@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, render_template 
+from flask import Flask, request, jsonify, send_file, render_template
 import pandas as pd
 import joblib
 import logging
@@ -11,14 +11,14 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 import matplotlib
-matplotlib.use('Agg') 
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.metrics import silhouette_score
 import seaborn as sns
 from io import BytesIO
 import base64
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 CORS(app, resources={
     r"/*": {
         "origins": ["http://localhost:8080", "http://127.0.0.1:8080"],
@@ -26,7 +26,9 @@ CORS(app, resources={
         "allow_headers": ["Content-Type"]
     }
 })
-logging.basicConfig(level=logging.INFO)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Configuration
 MODEL_FILES = {
@@ -64,8 +66,7 @@ REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
 STATIC_IMG_DIR = os.path.join(BASE_DIR, 'static', 'img')
 
 for directory in [REPORTS_DIR, STATIC_IMG_DIR]:
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    os.makedirs(directory, exist_ok=True)
 
 # Load ML artifacts
 def load_artifacts():
@@ -80,6 +81,7 @@ def load_artifacts():
                 encoder.classes_ = np.append(encoder.classes_, 'Unknown')
         return artifacts
     except FileNotFoundError as e:
+        logging.error(f"Model loading failed: {str(e)}")
         raise RuntimeError(f"Model loading failed: {str(e)}")
 
 ml_artifacts = load_artifacts()
@@ -89,20 +91,16 @@ PREPROCESSED_DATA = None
 
 def filter_data_by_criteria(data, criteria, cluster_id=None):
     try:
-        # Initialize with full dataset
         filtered_data = data.copy()
         logging.info(f"Starting with {len(filtered_data)} records")
 
         def apply_single_filter(field, value):
-            """Apply one filter condition"""
             nonlocal filtered_data
             try:
                 original_count = len(filtered_data)
                 
-                # Handle numeric fields (Monthly Income, Average spending, Rate of Satisfaction, Rate of availability of products)
                 if field in ['Monthly Income', 'Average spending', 'Rate of Satisfaction', 'Rate of availability of products']:
                     if isinstance(value, str):
-                        # Clean input value and detect operators
                         value = value.strip()
                         operator = None
                         if value.startswith('<'):
@@ -116,42 +114,35 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                         logging.debug(f"Processing {field} with value: {value}, operator: {operator}")
                         
                         try:
-                            # Convert dataset column to numeric, handling strings or numbers
                             if filtered_data[field].dtype == 'object':
-                                # String column, remove commas and convert to numeric
-                                logging.debug(f"Raw {field} values: {filtered_data[field].head().tolist()}")
                                 numeric_data = pd.to_numeric(
                                     filtered_data[field].str.replace(',', '').str.strip(),
                                     errors='coerce'
                                 )
                             else:
-                                # Already numeric (int/float)
                                 numeric_data = filtered_data[field].astype(float)
                             
-                            # Remove rows where conversion failed (NaN values)
                             original_len = len(filtered_data)
                             filtered_data['numeric_temp'] = numeric_data
                             filtered_data = filtered_data[filtered_data['numeric_temp'].notna()]
                             numeric_data = filtered_data['numeric_temp']
                             logging.debug(f"Rows after NaN removal: {original_len} → {len(filtered_data)}")
                             
-                            # Apply filter based on operator
                             if operator == '<':
                                 threshold = float(value)
                                 filtered_data = filtered_data[numeric_data < threshold]
                             elif operator == '>':
                                 threshold = float(value)
                                 filtered_data = filtered_data[numeric_data > threshold]
-                            elif '-' in value:  # Handle range (e.g., '50000-1000000')
+                            elif '-' in value:
                                 low, high = map(float, value.split('-'))
                                 filtered_data = filtered_data[
                                     (numeric_data >= low) & (numeric_data <= high)
                                 ]
-                            else:  # Handle single value (e.g., '50000')
+                            else:
                                 target_value = float(value)
                                 filtered_data = filtered_data[numeric_data == target_value]
                             
-                            # Drop temporary column
                             filtered_data = filtered_data.drop(columns=['numeric_temp'])
                         
                         except ValueError as e:
@@ -161,19 +152,17 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                             logging.error(f"Unexpected error processing {field}: value='{value}', error={str(e)}")
                             return False
                 
-                # Handle Age ranges
                 elif field == 'Age':
                     if '-' in value:
                         low, high = map(int, value.split('-'))
                         filtered_data = filtered_data[
                             filtered_data['Age'].str.match(f"^{low}-{high}$", na=False)
                         ]
-                    else:  # Single age value
+                    else:
                         filtered_data = filtered_data[
                             filtered_data['Age'].astype(str).str.strip() == value.strip()
                         ]
                 
-                # Handle all other categorical fields (Gender, Region, Categories, etc.)
                 else:
                     filtered_data = filtered_data[
                         filtered_data[field].astype(str).str.strip().str.lower() == value.strip().lower()
@@ -186,12 +175,9 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                 logging.error(f"Failed to apply {field}={value}: {str(e)}")
                 return False
 
-        # Process criteria
         if isinstance(criteria, str):
-            # Handle comma-separated criteria
             criteria_parts = [part.strip() for part in criteria.split(',') if part.strip()]
             for part in criteria_parts:
-                # Supported fields
                 fields = [
                     'Age', 'Gender', 'Region', 'Monthly Income', 
                     'Average spending', 'Frequency of Shopping(Regular)',
@@ -199,8 +185,6 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                     'Rate of availability of products', 'Internet connection used',
                     'Device to shop'
                 ]
-                
-                # Find which field this part refers to
                 applied = False
                 for field in fields:
                     if part.startswith(field):
@@ -209,12 +193,10 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
                             raise ValueError(f"Invalid criteria format: {part}")
                         applied = True
                         break
-                
                 if not applied:
                     raise ValueError(f"Unrecognized field in criteria: {part}")
         
         elif isinstance(criteria, dict):
-            # Handle dictionary criteria
             for field, value in criteria.items():
                 if not apply_single_filter(field, str(value)):
                     raise ValueError(f"Invalid criteria: {field}={value}")
@@ -222,7 +204,6 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
         else:
             raise ValueError("Criteria must be string or dictionary")
 
-        # Apply cluster filter if specified
         if cluster_id is not None and 'Cluster' in filtered_data.columns:
             filtered_data = filtered_data[filtered_data['Cluster'] == cluster_id]
 
@@ -232,40 +213,72 @@ def filter_data_by_criteria(data, criteria, cluster_id=None):
     except Exception as e:
         logging.error(f"Filtering failed: {str(e)}")
         raise ValueError(f"Failed to filter data: {str(e)}")
-    
+
 def generate_visualizations(df):
-    """Generate visualizations from the dataset; save some to disk and return base64 for heatmap and silhouette"""
     try:
         os.makedirs(STATIC_IMG_DIR, exist_ok=True)
+        # Clear existing PNG files
         for filename in os.listdir(STATIC_IMG_DIR):
             if filename.endswith('.png'):
                 os.remove(os.path.join(STATIC_IMG_DIR, filename))
+                logging.info(f"Removed old image: {filename}")
 
-        # Dictionary to store base64-encoded images for heatmap and silhouette
         base64_images = {}
 
-        # 1. Age Distribution (save to disk)
+        # 1. Age Distribution
         plt.figure(figsize=(10, 6))
         sns.countplot(data=df, x='Age', order=sorted(df['Age'].unique()))
         plt.title('Age Distribution')
+        plt.xlabel('Age Group')
+        plt.ylabel('Number of Customers')
         plt.xticks(rotation=45)
         plt.tight_layout()
-        plt.savefig(os.path.join(STATIC_IMG_DIR, 'age_distribution.png'))
+        plt.savefig(os.path.join(STATIC_IMG_DIR, 'age_distribution.png'), dpi=300)
         plt.close()
+        logging.info("Generated age_distribution.png")
 
-        # 2. Average Spending Distribution (save to disk)
+        # 2. Average Spending Distribution
         plt.figure(figsize=(10, 6))
-        sns.countplot(data=df, x='Average spending',
-                      order=['<50,000', '50,000-100,000', '100,000-200,000', '>200,000'])
+        spending_order = ['<50,000', '50,000-100,000', '100,000-200,000', '>200,000']
+        sns.countplot(data=df, x='Average spending', order=spending_order)
         plt.title('Average Spending Distribution')
+        plt.xlabel('Average Spending (UGX)')
+        plt.ylabel('Number of Customers')
         plt.xticks(rotation=45)
         plt.tight_layout()
-        plt.savefig(os.path.join(STATIC_IMG_DIR, 'avg_spending_distribution.png'))
+        plt.savefig(os.path.join(STATIC_IMG_DIR, 'avg_spending_distribution.png'), dpi=300)
         plt.close()
+        logging.info("Generated avg_spending_distribution.png")
 
-        # 3. Cluster Characteristics (Heatmap, generate in memory)
+        # 3. Region Distribution
+        if 'Region' in df.columns:
+            plt.figure(figsize=(10, 6))
+            sns.countplot(data=df, x='Region')
+            plt.title('Region Distribution')
+            plt.xlabel('Region')
+            plt.ylabel('Number of Customers')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            plt.savefig(os.path.join(STATIC_IMG_DIR, 'region_distribution.png'), dpi=300)
+            plt.close()
+            logging.info("Generated region_distribution.png")
+
+        # 4. Shopping Frequency
+        if 'Frequency of Shopping(Regular)' in df.columns:
+            plt.figure(figsize=(10, 6))
+            freq_order = ['Daily', 'Weekly', 'Monthly', 'Rarely']
+            sns.countplot(data=df, x='Frequency of Shopping(Regular)', order=freq_order)
+            plt.title('Shopping Frequency')
+            plt.xlabel('Shopping Frequency')
+            plt.ylabel('Number of Customers')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            plt.savefig(os.path.join(STATIC_IMG_DIR, 'shopping_frequency.png'), dpi=300)
+            plt.close()
+            logging.info("Generated shopping_frequency.png")
+
+        # 5. Cluster Characteristics (Heatmap, base64)
         if 'Cluster' in df.columns:
-            # Generate cluster statistics
             cluster_stats = df.groupby('Cluster').agg({
                 'Average spending': lambda x: x.map({
                     '<50,000': 1, '50,000-100,000': 2, '100,000-200,000': 3, '>200,000': 4
@@ -278,8 +291,6 @@ def generate_visualizations(df):
                     '<450,000': 1, '450,000-1,000,000': 2, '1,000,000-2,000,000': 3, '>2,000,000': 4
                 }).mean()
             })
-
-            # Create heatmap
             plt.figure(figsize=(12, 8))
             sns.heatmap(
                 cluster_stats.T,
@@ -292,18 +303,15 @@ def generate_visualizations(df):
             plt.title('Average Characteristics by Cluster', pad=20)
             plt.xlabel('Cluster')
             plt.ylabel('Feature')
-
-            # Save to BytesIO and encode as base64
             img = BytesIO()
             plt.savefig(img, format='png', bbox_inches='tight', dpi=300)
             plt.close()
             img.seek(0)
             base64_images['cluster_characteristics'] = base64.b64encode(img.getvalue()).decode('utf-8')
+            logging.info("Generated cluster_characteristics (base64)")
 
-        # 4. Silhouette Analysis (generate in memory)
+        # 6. Silhouette Analysis (base64)
         if 'Cluster' in df.columns:
-            from sklearn.metrics import silhouette_samples, silhouette_score
-            # Recompute scaled features for silhouette analysis
             df_encoded = df.copy()
             for col in CATEGORICAL_COLS:
                 if col in df_encoded.columns:
@@ -314,13 +322,11 @@ def generate_visualizations(df):
                 if col not in X.columns:
                     X[col] = 0
             X_scaled = ml_artifacts['scaler'].transform(X)
-
             silhouette_avg = silhouette_score(X_scaled, df['Cluster'])
             sample_silhouette_values = silhouette_samples(X_scaled, df['Cluster'])
-
             plt.figure(figsize=(10, 6))
             y_lower = 10
-            for i in range(4):  # Assuming 4 clusters
+            for i in range(4):
                 ith_cluster_values = sample_silhouette_values[df['Cluster'] == i]
                 ith_cluster_values.sort()
                 size_cluster_i = ith_cluster_values.shape[0]
@@ -334,34 +340,12 @@ def generate_visualizations(df):
             plt.title(f"Silhouette Analysis (Avg Score: {silhouette_avg:.2f})")
             plt.xlabel("Silhouette Coefficient")
             plt.ylabel("Cluster")
-
-            # Save to BytesIO and encode as base64
             img = BytesIO()
             plt.savefig(img, format='png', bbox_inches='tight', dpi=300)
             plt.close()
             img.seek(0)
             base64_images['silhouette_analysis'] = base64.b64encode(img.getvalue()).decode('utf-8')
-
-        # 5. Region Distribution (save to disk)
-        if 'Region' in df.columns:
-            plt.figure(figsize=(10, 6))
-            sns.countplot(data=df, x='Region')
-            plt.title('Region Distribution')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            plt.savefig(os.path.join(STATIC_IMG_DIR, 'region_distribution.png'))
-            plt.close()
-
-        # 6. Shopping Frequency (save to disk)
-        if 'Frequency of Shopping(Regular)' in df.columns:
-            plt.figure(figsize=(10, 6))
-            sns.countplot(data=df, x='Frequency of Shopping(Regular)',
-                          order=['Daily', 'Weekly', 'Monthly', 'Rarely'])
-            plt.title('Shopping Frequency')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            plt.savefig(os.path.join(STATIC_IMG_DIR, 'shopping_frequency.png'))
-            plt.close()
+            logging.info("Generated silhouette_analysis (base64)")
 
         return True, base64_images
     except Exception as e:
@@ -372,8 +356,7 @@ def load_and_preprocess_data(filepath):
     try:
         data = pd.read_csv(filepath)
         data.columns = [col.strip() for col in data.columns]
-        logging.info("Dataset loaded successfully")
-        logging.info(f"Available columns in dataset: {list(data.columns)}")
+        logging.info(f"Dataset loaded successfully. Columns: {list(data.columns)}")
         return data, preprocess_dataset(data)
     except Exception as e:
         logging.error(f"Error loading dataset: {str(e)}")
@@ -423,7 +406,6 @@ def read_segments():
     try:
         with open(SEGMENTS_FILE, 'r') as f:
             segments = json.load(f)
-        # Validate segments
         valid_segments = []
         for segment in segments:
             if not isinstance(segment, dict):
@@ -450,11 +432,15 @@ IMPLEMENTED_RECOMMENDATIONS = set()
 # Routes
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({'message': 'Customer Segmentation API',
-                    'endpoints': ['/upload', '/segments', '/segments/import', '/segments/model', '/segment',
-                                  '/dashboard', '/dashboard/visual', '/query',
-                                  '/recommendations', '/implement-recommendation', '/reports', '/reports/generate',
-                                  '/graphs', '/graphs/generate']})
+    return jsonify({
+        'message': 'Customer Segmentation API',
+        'endpoints': [
+            '/upload', '/segments', '/segments/import', '/segments/model', '/segment',
+            '/dashboard', '/dashboard/visual', '/query', '/recommendations',
+            '/implement-recommendation', '/reports', '/reports/generate', '/graphs',
+            '/graphs/generate', '/static/img/<filename>'
+        ]
+    })
 
 @app.route('/upload', methods=['POST'])
 def upload_dataset():
@@ -467,13 +453,16 @@ def upload_dataset():
             return jsonify({'error': 'No file selected'}), 400
         file_ext = file.filename.rsplit('.', 1)[-1].lower()
         if file_ext != 'csv':
-            return jsonify({'error': 'Only CSV or JSON files are supported for dataset upload'}), 400
+            return jsonify({'error': 'Only CSV files are supported for dataset upload'}), 400
         file.save(UPLOADED_DATA_PATH)
         RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data(UPLOADED_DATA_PATH)
         if RAW_DATA is None or PREPROCESSED_DATA is None:
             return jsonify({'error': 'Failed to process uploaded dataset'}), 500
-
-        generate_visualizations(RAW_DATA)
+        success, _ = generate_visualizations(RAW_DATA)
+        if not success:
+            logging.error("Failed to generate visualizations after upload")
+            return jsonify({'error': 'Failed to generate visualizations'}), 500
+        logging.info("Dataset uploaded and visualizations generated")
         return jsonify({
             'success': True,
             'message': 'Dataset uploaded and processed successfully',
@@ -490,23 +479,28 @@ def get_available_graphs():
         name_map = {
             'age_distribution.png': 'Age Distribution',
             'avg_spending_distribution.png': 'Average Spending Distribution',
-            'cluster_characteristics': 'Cluster Characteristics',
-            'silhouette_analysis': 'Silhouette Analysis',
             'region_distribution.png': 'Region Distribution',
-            'shopping_frequency.png': 'Shopping Frequency'
+            'shopping_frequency.png': 'Shopping Frequency',
+            'cluster_characteristics': 'Cluster Characteristics',
+            'silhouette_analysis': 'Silhouette Analysis'
         }
+        base_url = "http://127.0.0.1:5000/static/img"
 
         # Add file-based graphs
         if os.path.exists(STATIC_IMG_DIR):
-            graph_files = os.listdir(STATIC_IMG_DIR)
+            graph_files = [f for f in os.listdir(STATIC_IMG_DIR) if f.endswith('.png')]
             for filename in graph_files:
-                if filename.endswith('.png'):
+                file_path = os.path.join(STATIC_IMG_DIR, filename)
+                if os.path.exists(file_path):
                     graphs.append({
                         "title": name_map.get(filename, filename.replace('_', ' ').title().replace('.png', '')),
                         "filename": filename,
-                        "url": f"/static/img/{filename}",
+                        "url": f"{base_url}/{filename}",
                         "type": "file"
                     })
+                    logging.info(f"Added graph: {filename}, URL: {base_url}/{filename}")
+                else:
+                    logging.warning(f"File listed but not found: {file_path}")
 
         # Add base64-encoded graphs if dataset is available
         if RAW_DATA is not None:
@@ -519,9 +513,11 @@ def get_available_graphs():
                         "url": f"data:image/png;base64,{base64_data}",
                         "type": "base64"
                     })
+                    logging.info(f"Added base64 graph: {key}")
 
         if not graphs:
-            return jsonify({"error": "No graphs generated yet"}), 404
+            logging.warning("No graphs found or generated")
+            return jsonify({"error": "No graphs generated yet. Please upload a dataset."}), 404
 
         return jsonify({"graphs": graphs})
     except Exception as e:
@@ -532,12 +528,11 @@ def get_available_graphs():
 def generate_graphs():
     try:
         if RAW_DATA is None:
-            return jsonify({"error": "No dataset available"}), 400
-
+            return jsonify({"error": "No dataset available. Please upload a CSV dataset first."}), 400
         success, _ = generate_visualizations(RAW_DATA)
         if not success:
-            return jsonify({"error": "Failed to generate some graphs"}), 500
-
+            return jsonify({"error": "Failed to generate visualizations"}), 500
+        logging.info("Graphs generated successfully")
         return jsonify({"success": True, "message": "Graphs generated successfully"})
     except Exception as e:
         logging.error(f"Error generating graphs: {str(e)}")
@@ -546,9 +541,14 @@ def generate_graphs():
 @app.route('/static/img/<path:filename>')
 def serve_img(filename):
     try:
-        return send_file(os.path.join(STATIC_IMG_DIR, filename))
+        file_path = os.path.join(STATIC_IMG_DIR, filename)
+        if not os.path.exists(file_path):
+            logging.error(f"Image not found: {file_path}")
+            return jsonify({'error': f"Image {filename} not found"}), 404
+        logging.info(f"Serving image: {file_path}")
+        return send_file(file_path)
     except Exception as e:
-        logging.error(f"Error serving image: {str(e)}")
+        logging.error(f"Error serving image {filename}: {str(e)}")
         return jsonify({'error': str(e)}), 404
 
 @app.route('/dashboard/visual', methods=['GET'])
@@ -558,23 +558,24 @@ def visual_dashboard():
         name_map = {
             'age_distribution.png': 'Age Distribution',
             'avg_spending_distribution.png': 'Average Spending Distribution',
-            'cluster_characteristics': 'Cluster Characteristics',
-            'silhouette_analysis': 'Silhouette Analysis',
             'region_distribution.png': 'Region Distribution',
-            'shopping_frequency.png': 'Shopping Frequency'
+            'shopping_frequency.png': 'Shopping Frequency',
+            'cluster_characteristics': 'Cluster Characteristics',
+            'silhouette_analysis': 'Silhouette Analysis'
         }
+        base_url = "http://127.0.0.1:5000/static/img"
 
-        # Add file-based graphs
         if os.path.exists(STATIC_IMG_DIR):
-            graph_files = os.listdir(STATIC_IMG_DIR)
+            graph_files = [f for f in os.listdir(STATIC_IMG_DIR) if f.endswith('.png')]
             for filename in graph_files:
-                if filename.endswith('.png'):
+                file_path = os.path.join(STATIC_IMG_DIR, filename)
+                if os.path.exists(file_path):
                     graphs.append({
                         "title": name_map.get(filename, filename.replace('_', ' ').title().replace('.png', '')),
-                        "url": f"/static/img/{filename}"
+                        "url": f"{base_url}/{filename}"
                     })
+                    logging.info(f"Added graph to visual dashboard: {filename}")
 
-        # Add base64-encoded graphs if dataset is available
         if RAW_DATA is not None:
             success, base64_images = generate_visualizations(RAW_DATA)
             if success:
@@ -583,6 +584,7 @@ def visual_dashboard():
                         "title": name_map.get(key, key.replace('_', ' ').title()),
                         "url": f"data:image/png;base64,{base64_data}"
                     })
+                    logging.info(f"Added base64 graph to visual dashboard: {key}")
 
         return render_template('dashboard.html', graphs=graphs)
     except Exception as e:
@@ -598,7 +600,6 @@ def import_segments():
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-
         file_ext = file.filename.rsplit('.', 1)[-1].lower()
         if file_ext not in ['csv', 'json']:
             return jsonify({'error': 'Invalid file type. Only CSV and JSON are supported'}), 400
@@ -608,6 +609,9 @@ def import_segments():
             RAW_DATA, PREPROCESSED_DATA = load_and_preprocess_data(UPLOADED_DATA_PATH)
             if RAW_DATA is None or PREPROCESSED_DATA is None:
                 return jsonify({'error': 'Failed to process uploaded CSV dataset'}), 500
+            success, _ = generate_visualizations(RAW_DATA)
+            if not success:
+                logging.error("Failed to generate visualizations after CSV import")
         else:
             json_data = json.load(file)
             if not isinstance(json_data, list):
@@ -649,12 +653,12 @@ def get_segments():
             for i in range(4)
         ]
         custom_segments = read_segments()
-        logging.info(f"Loaded custom segments: {custom_segments}")  # Debug log
         for segment in custom_segments:
-            criteria = segment.get('criteria', 'Unknown criteria')  # Use get with default
+            criteria = segment.get('criteria', 'Unknown criteria')
             filtered_data = filter_data_by_criteria(RAW_DATA.copy(), criteria, None)
             segment['count'] = len(filtered_data)
             segment['source'] = "Custom"
+        logging.info(f"Returning {len(model_segments + custom_segments)} segments")
         return jsonify(model_segments + custom_segments)
     except Exception as e:
         logging.error(f"Error in get_segments: {str(e)}")
@@ -685,7 +689,7 @@ def update_segment(segment_id):
         data = request.get_json()
         if not data or 'criteria' not in data:
             return jsonify({'error': 'Criteria field is required'}), 400
-        new_criteria = data['criteria'] or "Unknown criteria"  # Ensure criteria is not empty
+        new_criteria = data['criteria'] or "Unknown criteria"
         if segment_id <= 4:
             cluster_id = segment_id - 1
             if cluster_id not in CLUSTER_PROFILES:
@@ -742,12 +746,6 @@ def segment_customer():
         if 'name' in data and 'criteria' in data:
             if PREPROCESSED_DATA is None or RAW_DATA is None:
                 return jsonify({'error': 'No dataset uploaded yet. Please upload a CSV dataset first.'}), 400
-            # Log the unique values in the Gender column
-            if 'Gender' in RAW_DATA.columns:
-                unique_genders = RAW_DATA['Gender'].unique().tolist()
-                logging.info(f"Unique values in Gender column: {unique_genders}")
-            else:
-                logging.warning("Gender column not found in RAW_DATA")
             segments = read_segments()
             new_segment = {
                 'id': max([s['id'] for s in segments], default=4) + 1,
@@ -757,7 +755,6 @@ def segment_customer():
                 'createdAt': datetime.now().isoformat()
             }
             filtered_data = filter_data_by_criteria(RAW_DATA.copy(), new_segment['criteria'], None)
-            logging.info(f"Filtered data size for criteria '{new_segment['criteria']}': {len(filtered_data)}")
             new_segment['count'] = len(filtered_data)
             segments.append(new_segment)
             write_segments(segments)
@@ -935,8 +932,6 @@ def get_model_metrics():
     try:
         if RAW_DATA is None or PREPROCESSED_DATA is None:
             return jsonify({'error': 'No dataset uploaded yet'}), 400
-        
-        # Recompute silhouette score
         df_encoded = RAW_DATA.copy()
         for col in CATEGORICAL_COLS:
             if col in df_encoded.columns:
@@ -948,13 +943,11 @@ def get_model_metrics():
                 X[col] = 0
         X_scaled = ml_artifacts['scaler'].transform(X)
         silhouette_avg = silhouette_score(X_scaled, PREPROCESSED_DATA['Cluster'])
-        
         return jsonify({'silhouette_score': silhouette_avg})
     except Exception as e:
         logging.error(f"Error in get_model_metrics: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Update the /query endpoint
 @app.route('/query', methods=['GET'])
 def query_data():
     try:
@@ -969,9 +962,8 @@ def query_data():
         active_filters = {k: v for k, v in filters.items() if v}
         filtered_data = RAW_DATA.copy()
         
-        # Handle region=All case
         if filters.get('Region') == 'All':
-            active_filters.pop('Region', None)  # Treat as no filter for Region
+            active_filters.pop('Region', None)
         else:
             for key, value in active_filters.items():
                 if key not in filtered_data.columns:
@@ -1015,7 +1007,7 @@ def query_data():
                 "most_frequent_category": most_frequent_category,
                 "average_spending": avg_spending,
                 "most_purchased_category": most_frequent_category,
-                "percentage": "100.0%"  # Full dataset
+                "percentage": "100.0%"
             })
         elif len(active_filters) == 1:
             filter_key = list(active_filters.keys())[0]
@@ -1052,7 +1044,7 @@ def query_data():
     except Exception as e:
         logging.error(f"Error in query_data: {str(e)}")
         return jsonify({'error': str(e)}), 500
-    
+
 @app.route('/reports', methods=['GET'])
 def get_reports():
     try:
@@ -1130,4 +1122,4 @@ def generate_pdf_report(filepath, report, customers):
     doc.build(elements)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='127.0.0.1', port=5000)

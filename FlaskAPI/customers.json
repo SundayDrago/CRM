@@ -134,5 +134,13 @@
     "churnRisk": 10,
     "predictedValue": 3000,
     "nextPurchase": "2025-06-10"
+  },
+  {
+    "id": 1017,
+    "name": "Abraham",
+    "segment": "Middle-Aged High Spenders",
+    "churnRisk": 10,
+    "predictedValue": 500,
+    "nextPurchase": "2025-06-09"
   }
 ]

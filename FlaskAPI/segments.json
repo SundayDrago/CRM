@@ -62,5 +62,29 @@
     "source": "Custom",
     "createdAt": "2025-05-26T13:22:57.877658",
     "count": 1666
+  },
+  {
+    "id": 13,
+    "name": "Today",
+    "criteria": "Monthly Income 50000",
+    "source": "Custom",
+    "createdAt": "2025-05-26T20:58:31.206989",
+    "count": 0
+  },
+  {
+    "id": 14,
+    "name": "Todayr",
+    "criteria": "Gender Male",
+    "source": "Custom",
+    "createdAt": "2025-05-26T21:00:17.661860",
+    "count": 3199
+  },
+  {
+    "id": 15,
+    "name": "Age segmentation",
+    "criteria": "Monthly Income 100000-200000",
+    "source": "Custom",
+    "createdAt": "2025-05-27T08:57:03.072373",
+    "count": 0
   }
 ]

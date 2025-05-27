@@ -159,7 +159,7 @@
             aria-label="Refresh data"
           >
             <span v-html="SvgIcons.refresh"></span>
-            <span>Refresh</span>
+            <span>Ref</span>
           </button>
 
           <div class="time-filter">
@@ -971,7 +971,6 @@ $muted-dark: #9ca3af;
     }
   }
 
-  /* Quick Access Section */
   .quick-access {
     padding: 1rem;
     border-top: 1px solid $border;
@@ -1031,7 +1030,6 @@ $muted-dark: #9ca3af;
     }
   }
 
-  /* Segment Health Monitoring */
   .segment-health {
     padding: 1rem;
 
@@ -1196,8 +1194,9 @@ $muted-dark: #9ca3af;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  flex-wrap: wrap;
   gap: 1rem;
+  flex-wrap: nowrap; /* Prevent wrapping unless necessary */
+  padding: 0 1rem;
 
   .search-bar {
     display: flex;
@@ -1206,7 +1205,7 @@ $muted-dark: #9ca3af;
     border: 1px solid $border;
     border-radius: 8px;
     padding: 0.5rem;
-    flex-grow: 1;
+    flex: 1 1 300px; /* Allow search bar to grow but maintain min width */
     max-width: 400px;
     transition: all 0.3s;
 
@@ -1268,7 +1267,8 @@ $muted-dark: #9ca3af;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    flex-wrap: wrap;
+    flex: 0 1 auto; /* Prevent excessive growth */
+    flex-wrap: nowrap; /* Keep items in a single row */
 
     .action-btn {
       display: flex;
@@ -1282,6 +1282,7 @@ $muted-dark: #9ca3af;
       cursor: pointer;
       color: $text;
       transition: all 0.2s;
+      min-width: 40px; /* Ensure buttons don't collapse */
 
       .dark-mode & {
         border-color: $border-dark;
@@ -1306,7 +1307,8 @@ $muted-dark: #9ca3af;
       }
     }
 
-/* Advisory Tools Dropdown - Updated styles */
+    /* Advisory Tools Dropdown */
+/* Advisory Tools Dropdown */
 .advisory-tools {
   position: relative;
 
@@ -1319,9 +1321,29 @@ $muted-dark: #9ca3af;
     font-weight: 500;
     transition: all 0.2s;
     position: relative;
-    padding-right: 2.5rem; /* Make room for arrow */
+    padding-right: 2.5rem;
+    background: none;
+    border: 1px solid $border;
+    color: $text;
+    cursor: pointer;
 
-    /* Dropdown arrow */
+    .dark-mode & {
+      border-color: $border-dark;
+      color: $text-dark;
+    }
+
+    &:hover {
+      background-color: rgba($primary, 0.1);
+      border-color: $primary;
+      color: $primary;
+
+      .dark-mode & {
+        background-color: rgba($primary-dark, 0.1);
+        border-color: $primary-dark;
+        color: $primary-dark;
+      }
+    }
+
     &::after {
       content: '';
       position: absolute;
@@ -1345,7 +1367,6 @@ $muted-dark: #9ca3af;
     }
   }
 
-  /* When dropdown is open */
   &.open {
     .action-btn::after {
       transform: translateY(-50%) rotate(180deg);
@@ -1353,9 +1374,23 @@ $muted-dark: #9ca3af;
   }
 
   .tools-dropdown {
-    /* ... (keep existing dropdown styles) ... */
-    
-    /* Add a small arrow pointing to the button */
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border: 1px solid $border;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 200px;
+    z-index: 100;
+    margin-top: 0.5rem;
+    overflow: hidden;
+
+    .dark-mode & {
+      background-color: $background-dark;
+      border-color: $border-dark;
+    }
+
     &::before {
       content: '';
       position: absolute;
@@ -1374,71 +1409,117 @@ $muted-dark: #9ca3af;
         border-color: $border-dark;
       }
     }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      color: $text;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background-color 0.2s, color 0.2s;
+
+      .dark-mode & {
+        color: $text-dark;
+      }
+
+      &:hover {
+        background-color: rgba($primary, 0.1);
+        color: $primary;
+
+        .dark-mode & {
+          background-color: rgba($primary-dark, 0.1);
+          color: $primary-dark;
+        }
+      }
+
+      .dropdown-icon {
+        width: 20px;
+        height: 20px;
+        color: $muted;
+
+        .dark-mode & {
+          color: $muted-dark;
+        }
+      }
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background-color: $border;
+      margin: 0.5rem 0;
+
+      .dark-mode & {
+        background-color: $border-dark;
+      }
+    }
   }
 }
 
     /* Time Filter */
-/* Time Filter - Updated styles */
-.time-filter {
-  position: relative;
-  
-  select {
-    background-color: white;
-    border: 1px solid $border;
-    border-radius: 8px;
-    padding: 0.6rem 2.25rem 0.6rem 1rem; /* Adjusted right padding */
-    font-size: 0.925rem;
-    color: $text;
-    cursor: pointer;
-    appearance: none;
-    transition: all 0.2s;
-    min-width: 120px; /* Ensures consistent width */
+    .time-filter {
+      position: relative;
 
-    .dark-mode & {
-      background-color: $background-dark;
-      border-color: $border-dark;
-      color: $text-dark;
-    }
+      select {
+        background-color: white;
+        border: 1px solid $border;
+        border-radius: 8px;
+        padding: 0.6rem 2.25rem 0.6rem 1rem;
+        font-size: 0.925rem;
+        color: $text;
+        cursor: pointer;
+        appearance: none;
+        transition: all 0.2s;
+        min-width: 120px;
 
-    /* Custom dropdown arrow */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 1rem;
+        .dark-mode & {
+          background-color: $background-dark;
+          border-color: $border-dark;
+          color: $text-dark;
+        }
 
-    .dark-mode & {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    }
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
 
-    &:hover {
-      border-color: darken($border, 10%);
-      
-      .dark-mode & {
-        border-color: darken($border-dark, 10%);
+        .dark-mode & {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        }
+
+        &:hover {
+          border-color: darken($border, 10%);
+
+          .dark-mode & {
+            border-color: darken($border-dark, 10%);
+          }
+        }
+
+        &:focus {
+          outline: none;
+          border-color: $primary;
+          box-shadow: 0 0 0 2px rgba($primary, 0.2);
+
+          .dark-mode & {
+            border-color: $primary-dark;
+            box-shadow: 0 0 0 2px rgba($primary-dark, 0.2);
+          }
+        }
+      }
+
+      @-moz-document url-prefix() {
+        select {
+          padding-right: 1.75rem;
+          text-indent: 0.01px;
+          text-overflow: '';
+        }
       }
     }
-
-    &:focus {
-      outline: none;
-      border-color: $primary;
-      box-shadow: 0 0 0 2px rgba($primary, 0.2);
-
-      .dark-mode & {
-        border-color: $primary-dark;
-        box-shadow: 0 0 0 2px rgba($primary-dark, 0.2);
-      }
-    }
-  }
-
-  /* For Firefox - ensure arrow is visible */
-  @-moz-document url-prefix() {
-    select {
-      padding-right: 1.75rem;
-      text-indent: 0.01px;
-      text-overflow: '';
-    }
-  }
-}
 
     /* Data Quality Indicator */
     .data-quality {
@@ -1448,6 +1529,7 @@ $muted-dark: #9ca3af;
       font-size: 0.875rem;
       padding: 0.5rem 0.75rem;
       border-radius: 6px;
+      min-width: 100px; /* Ensure consistent size */
 
       &.excellent {
         color: $success;
@@ -1838,6 +1920,46 @@ $muted-dark: #9ca3af;
       }
     }
   }
+
+  /* Responsive Adjustments for Top Bar */
+  @media (max-width: 1024px) {
+    flex-wrap: wrap; /* Allow wrapping on medium screens */
+    justify-content: flex-start;
+
+    .search-bar {
+      flex: 1 1 100%; /* Full width on smaller screens */
+      max-width: none;
+    }
+
+    .top-bar-actions {
+      flex: 1 1 100%;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .search-bar {
+      max-width: 100%;
+    }
+
+    .top-bar-actions {
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .top-bar-actions {
+      .data-quality,
+      .time-filter {
+        display: none; /* Hide on very small screens */
+      }
+    }
+  }
 }
 
 /* Content Wrapper */
@@ -2001,21 +2123,6 @@ $muted-dark: #9ca3af;
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
-  .top-bar {
-    flex-direction: column;
-    align-items: stretch;
-
-    .search-bar {
-      max-width: 100%;
-    }
-
-    .top-bar-actions {
-      justify-content: space-between;
-    }
-  }
-}
-
-@media (max-width: 480px) {
   .main-content {
     padding: 1rem;
   }
@@ -2023,12 +2130,6 @@ $muted-dark: #9ca3af;
   .content-wrapper {
     padding: 1rem;
   }
-
-  .top-bar-actions {
-    .data-quality,
-    .time-filter {
-      display: none;
-    }
-  }
 }
 </style>
+
