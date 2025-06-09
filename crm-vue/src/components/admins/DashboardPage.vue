@@ -202,7 +202,7 @@
               <ul>
                 <li v-for="(value, attr) in getTopAttributes(patterns, 3)" :key="attr">
                   <strong>{{ attr }}:</strong> {{ value }}
-                </li>
+                </li>    
               </ul>
             </div>
           </div>
@@ -340,7 +340,7 @@ export default {
       console.log('Uploading file:', this.file.name, this.file.type);
 
       try {
-        const response = await axios.post('http://localhost:5000/cluster', formData, {
+        const response = await axios.post('http://localhost:8000/cluster', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           timeout: 15000
         });
