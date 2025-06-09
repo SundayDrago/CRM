@@ -179,7 +179,7 @@
             <h4>Connect</h4>
             <router-link to="/about-us">About Us</router-link>
             <router-link to="/careers">Careers</router-link>
-            <router-link to="/contact">Contact</router-link>
+            <router-link to="/contact-us">Contact</router-link>
           </div>
         </div>
       </div>

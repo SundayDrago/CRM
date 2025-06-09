@@ -2,8 +2,8 @@
   <div class="analytics-page">
     <div class="header">
       <div class="header-content">
-        <h1>Customer Analytics Dashboard</h1>
-        <p class="subtitle">Insights from 8,479 customers</p>
+        <h1>Regional Performance Dashboard</h1>
+        <p class="subtitle">Key metrics and regional insights</p>
       </div>
       <div class="time-range">
         <select v-model="timeRange" @change="updateChart">
@@ -37,11 +37,11 @@
     <div class="charts-container">
       <div class="main-chart">
         <div class="chart-header">
-          <h2>Customer Acquisition Trend</h2>
+          <h2>Regional Performance Trends</h2>
           <div class="chart-legend">
-            <span v-for="(source, index) in acquisitionSources" :key="index" class="legend-item">
+            <span v-for="(region, index) in regions" :key="index" class="legend-item">
               <span class="legend-color" :style="{backgroundColor: regionColors[index]}"></span>
-              {{ source }}
+              {{ region }}
             </span>
           </div>
         </div>
@@ -50,7 +50,7 @@
         </div>
       </div>
       <div class="secondary-chart">
-        <h2>Customer Distribution by Region</h2>
+        <h2>Regional Distribution</h2>
         <div class="chart-wrapper">
           <canvas id="trafficChart"></canvas>
         </div>
@@ -59,7 +59,7 @@
 
     <div class="bottom-section">
       <div class="top-regions">
-        <h2>Top Customer Regions</h2>
+        <h2>Top Performing Regions</h2>
         <div class="region-list">
           <div v-for="(region, index) in topRegions" :key="index" class="region-item">
             <div class="region-rank">{{ index + 1 }}</div>
@@ -81,7 +81,7 @@
       </div>
       
       <div class="conversion-card">
-        <h2>Customer Value Funnel</h2>
+        <h2>Conversion Funnel</h2>
         <div class="funnel-container">
           <div v-for="(step, index) in funnelSteps" :key="index" class="funnel-step">
             <div class="step-name">{{ step.name }}</div>
@@ -100,171 +100,171 @@
 <script>
 import { onMounted, ref } from 'vue';
 import Chart from 'chart.js/auto';
+import axios from 'axios';
 
 export default {
   name: 'AnalyticsPage',
   setup() {
     // Reactive state
     const timeRange = ref('30d');
-    const acquisitionSources = ref(['Organic', 'Referral', 'Direct', 'Social']);
+    const regions = ref([]);
     const regionColors = ref(['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b']);
     const funnelColors = ref(['#4e73df', '#36b9cc', '#1cc88a', '#f6c23e']);
-    
-    // Metrics data based on 8,479 customers
-    const metrics = ref([
-      {
-        label: 'Total Customers',
-        value: '8,479',
-        trendValue: '+12.5%',
-        trendIcon: 'fas fa-arrow-up',
-        trendClass: 'positive',
-        icon: 'fas fa-users'
-      },
-      {
-        label: 'Avg. Lifetime Value',
-        value: 'UGX 1,245',
-        trendValue: '+8.2%',
-        trendIcon: 'fas fa-arrow-up',
-        trendClass: 'positive',
-        icon: 'fas fa-dollar-sign'
-      },
-      {
-        label: 'Avg. Purchase Frequency',
-        value: '3.2',
-        trendValue: '+1.8%',
-        trendIcon: 'fas fa-arrow-up',
-        trendClass: 'positive',
-        icon: 'fas fa-shopping-cart'
-      },
-      {
-        label: 'Churn Rate',
-        value: '5.8%',
-        trendValue: '-0.7%',
-        trendIcon: 'fas fa-arrow-down',
-        trendClass: 'negative',
-        icon: 'fas fa-running'
-      }
-    ]);
-
-    // Top regions data
-    const topRegions = ref([
-      {
-        name: 'North America',
-        value: '3,842',
-        change: 8.5,
-        percentage: 45.3
-      },
-      {
-        name: 'Europe',
-        value: '2,567',
-        change: 4.2,
-        percentage: 30.3
-      },
-      {
-        name: 'Asia',
-        value: '1,324',
-        change: 12.7,
-        percentage: 15.6
-      },
-      {
-        name: 'Other',
-        value: '746',
-        change: -2.1,
-        percentage: 8.8
-      }
-    ]);
-
-    // Funnel steps
-    const funnelSteps = ref([
-      { 
-        name: 'Visitors', 
-        value: '42,395', 
-        percentage: 100, 
-        conversion: 100 
-      },
-      { 
-        name: 'Leads', 
-        value: '12,718', 
-        percentage: 30, 
-        conversion: 30 
-      },
-      { 
-        name: 'Trials', 
-        value: '5,087', 
-        percentage: 12, 
-        conversion: 40 
-      },
-      { 
-        name: 'Customers', 
-        value: '8,479', 
-        percentage: 20, 
-        conversion: 60 
-      }
-    ]);
-
-    // Chart data
+    const metrics = ref([]);
+    const topRegions = ref([]);
+    const funnelSteps = ref([]);
     const chartData = ref({
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-      datasets: [
-        {
-          label: 'Organic',
-          data: [420, 580, 720, 890, 1050, 1200, 1380],
-          borderColor: '#4e73df',
-          backgroundColor: 'rgba(78, 115, 223, 0.05)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        },
-        {
-          label: 'Referral',
-          data: [320, 450, 520, 610, 720, 850, 980],
-          borderColor: '#1cc88a',
-          backgroundColor: 'rgba(28, 200, 138, 0.05)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        },
-        {
-          label: 'Direct',
-          data: [280, 380, 450, 520, 590, 670, 750],
-          borderColor: '#f6c23e',
-          backgroundColor: 'rgba(246, 194, 62, 0.05)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        },
-        {
-          label: 'Social',
-          data: [180, 250, 310, 380, 450, 520, 600],
-          borderColor: '#e74a3b',
-          backgroundColor: 'rgba(231, 74, 59, 0.05)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        }
-      ]
+      labels: [],
+      datasets: []
+    });
+    const trafficChartData = ref({
+      labels: [],
+      datasets: []
     });
 
-    const trafficChartData = ref({
-      labels: ['Northern', 'Western', 'Eastern', 'Central'],
-      datasets: [{
-        data: [3842, 2567, 1324, 746],
-        backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b'],
-        hoverBackgroundColor: ['#3a5bbf', '#16a776', '#e0b135', '#d63224'],
-        hoverBorderColor: 'rgba(234, 236, 244, 1)',
-        borderWidth: 0
-      }]
-    });
+    // Backend API base URL
+    const API_BASE_URL = 'http://localhost:5000';
+
+    // Fetch dashboard data
+    const fetchDashboardData = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/dashboard`);
+        const { keyMetrics } = response.data;
+
+        // Map key metrics
+        metrics.value = keyMetrics.map((metric) => ({
+          label: metric.title,
+          value: metric.value,
+          trendValue: `${metric.trend >= 0 ? '+' : ''}${metric.trend}%`,
+          trendIcon: metric.trend >= 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down',
+          trendClass: metric.trend >= 0 ? 'positive' : 'negative',
+          icon: ['fas fa-dollar-sign', 'fas fa-users', 'fas fa-star'][metrics.value.length % 3]
+        }));
+
+        // Fetch region and funnel data
+        await fetchRegionData();
+        await fetchFunnelData();
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
+
+    // Fetch region-specific data using /query endpoint
+    const fetchRegionData = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/query`, {
+          params: { region: 'All' }
+        });
+        const { counts, total, average_spending } = response.data;
+
+        // Update regions
+        regions.value = ['Western', 'Eastern', 'Northern', 'Central']; // Fallback
+        if (counts.region) {
+          regions.value = Object.keys(counts.region);
+        }
+
+        // Map top regions, using average_spending
+        topRegions.value = regions.value.map((region) => {
+          const count = counts.region?.[region] || 0;
+          const regionPercentage = total ? (count / total * 100) : 0;
+          const change = (average_spending / 100000 * (Math.random() * 2 - 1)).toFixed(1); // Simulate trend
+          return {
+            name: region,
+            value: count.toLocaleString(),
+            change,
+            percentage: regionPercentage
+          };
+        }).sort((a, b) => b.percentage - a.percentage);
+
+        // Update traffic chart (Regional Distribution)
+        trafficChartData.value = {
+          labels: regions.value,
+          datasets: [{
+            data: regions.value.map(region => counts.region?.[region] || 0),
+            backgroundColor: regionColors.value,
+            hoverBackgroundColor: regionColors.value.map(color => adjustColor(color, -20)),
+            hoverBorderColor: 'rgba(234, 236, 244, 1)',
+            borderWidth: 0
+          }]
+        };
+
+        // Update main chart (Regional Performance Trends)
+        chartData.value = {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'], // Adjust based on time range
+          datasets: regions.value.map((region, index) => ({
+            label: region,
+            data: Array(7).fill(0).map(() => (counts.region?.[region] || 0) * (0.8 + Math.random() * 0.4)),
+            borderColor: regionColors.value[index],
+            backgroundColor: `rgba(${hexToRgb(regionColors.value[index])}, 0.05)`,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3
+          }))
+        };
+      } catch (error) {
+        console.error('Error fetching region data:', error);
+      }
+    };
+
+    // Fetch funnel data from dataset
+    const fetchFunnelData = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/query`);
+        const { total, counts } = response.data;
+
+        // Define funnel steps based on Average spending
+        const totalVisits = total || 0;
+        const leads = (counts['Average spending']?.['50,000-100,000'] || 0) +
+                      (counts['Average spending']?.['100,000-200,000'] || 0) +
+                      (counts['Average spending']?.['>200,000'] || 0);
+        const opportunities = (counts['Average spending']?.['100,000-200,000'] || 0) +
+                              (counts['Average spending']?.['>200,000'] || 0);
+        const conversions = counts['Average spending']?.['>200,000'] || 0;
+
+        funnelSteps.value = [
+          { name: 'Visits', value: totalVisits.toLocaleString(), percentage: 100, conversion: 100 },
+          { name: 'Leads', value: leads.toLocaleString(), percentage: totalVisits ? (leads / totalVisits * 100) : 0, conversion: totalVisits ? (leads / totalVisits * 100) : 0 },
+          { name: 'Opportunities', value: opportunities.toLocaleString(), percentage: totalVisits ? (opportunities / totalVisits * 100) : 0, conversion: leads ? (opportunities / leads * 100) : 0 },
+          { name: 'Customers', value: conversions.toLocaleString(), percentage: totalVisits ? (conversions / totalVisits * 100) : 0, conversion: opportunities ? (conversions / opportunities * 100) : 0 }
+        ];
+      } catch (error) {
+        console.error('Error fetching funnel data:', error);
+      }
+    };
+
+    // Helper function to adjust color brightness
+    const adjustColor = (hex, amount) => {
+      let usePound = false;
+      if (hex[0] === '#') {
+        hex = hex.slice(1);
+        usePound = true;
+      }
+      const num = parseInt(hex, 16);
+      let r = (num >> 16) + amount;
+      let g = ((num >> 8) & 0x00FF) + amount;
+      let b = (num & 0x0000FF) + amount;
+      r = Math.max(Math.min(255, r), 0);
+      g = Math.max(Math.min(255, g), 0);
+      b = Math.max(Math.min(255, b), 0);
+      return (usePound ? '#' : '') + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    };
+
+    // Helper function to convert hex to RGB
+    const hexToRgb = (hex) => {
+      const num = parseInt(hex.replace('#', ''), 16);
+      return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+    };
 
     // Update chart when time range changes
-    const updateChart = () => {
+    const updateChart = async () => {
       console.log('Time range changed to:', timeRange.value);
-      // In a real app, we would fetch new data based on the time range
+      await fetchRegionData();
+      await fetchFunnelData();
     };
 
     // Initialize charts
     const initializeCharts = () => {
-      // Main chart - Customer Acquisition
+      // Main chart - Regional Performance
       const ctx = document.getElementById('analyticsChart');
       if (ctx) {
         new Chart(ctx, {
@@ -294,7 +294,7 @@ export default {
         });
       }
 
-      // Customer Distribution chart
+      // Regional Distribution chart
       const trafficCtx = document.getElementById('trafficChart');
       if (trafficCtx) {
         new Chart(trafficCtx, {
@@ -302,23 +302,16 @@ export default {
           data: trafficChartData.value,
           options: {
             maintainAspectRatio: false,
-            plugins: { 
-              legend: { 
-                position: 'right',
-                labels: {
-                  usePointStyle: true,
-                  padding: 20
-                }
-              } 
-            },
+            plugins: { legend: { position: 'right' } },
             cutout: '75%'
           }
         });
       }
     };
 
-    // Initialize charts on mount
-    onMounted(() => {
+    // Fetch data and initialize charts on mount
+    onMounted(async () => {
+      await fetchDashboardData();
       initializeCharts();
     });
 
@@ -326,7 +319,7 @@ export default {
       metrics,
       topRegions,
       funnelSteps,
-      acquisitionSources,
+      regions,
       regionColors,
       funnelColors,
       timeRange,

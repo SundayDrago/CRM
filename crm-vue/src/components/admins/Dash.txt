@@ -107,57 +107,119 @@
     <!-- Customer Predictions Section with Form -->
     <section v-if="isDatasetUploaded" class="predictions-section">
       <h2 class="section-title">Individual Customer Predictions</h2>
+
+      <!-- Customer Input Form -->
       <div class="form-container">
-        <button
-          @click="predictAllCustomers"
-          class="predict-all-button"
-          :disabled="predictingAll"
-        >
-          {{ predictingAll ? 'Generating Predictions...' : 'Generate Predictions for All Customers' }}
-        </button>
+        <form @submit.prevent="segmentCustomer" class="segment-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Name:</label>
+              <input v-model="newCustomer.name" type="text" placeholder="e.g., John Doe" required />
+            </div>
+            <div class="form-group">
+              <label>Age:</label>
+              <select v-model="newCustomer.Age" required>
+                <option value="18-24">18-24</option>
+                <option value="25-34">25-34</option>
+                <option value="35-44">35-44</option>
+                <option value="45-54">45-54</option>
+                <option value="55+">55+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Gender:</label>
+              <select v-model="newCustomer.Gender" required>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Monthly Income:</label>
+              <select v-model="newCustomer['Monthly Income']" required>
+                <option value="<450,000">&lt;450,000</option>
+                <option value=">2,000,000">&gt;2,000,000</option>
+                <option value="<50,000">&lt;50,000</option>
+                <option value=">200,000">&gt;200,000</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Average spending:</label>
+<select v-model="newCustomer['Average spending']" required>
+  <option value="<50,000">&lt;50,000</option>
+  <option value="50,000-100,000">50,000-100,000</option>
+  <option value="100,000-200,000">100,000-200,000</option>
+  <option value=">200,000">&gt;200,000</option>
+</select>
+            </div>
+            <div class="form-group">
+              <label>Frequency (Regular):</label>
+              <select v-model="newCustomer['Frequency of Shopping(Regular)']" required>
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Rarely">Rarely</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Satisfaction (1-5):</label>
+              <input v-model.number="newCustomer['Rate of Satisfaction']" type="number" min="1" max="5" required />
+            </div>
+            <div class="form-group">
+              <label>Availability (1-5):</label>
+              <input v-model.number="newCustomer['Rate of availability of products']" type="number" min="1" max="5" required />
+            </div>
+          </div>
+          <button type="submit" class="submit-button">Add & Segment</button>
+        </form>
       </div>
+
+      <!-- Predictions Table -->
       <div class="table-container">
         <table class="predictions-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Segment</th>
-              <th>Churn Risk (%)</th>
-              <th>Predicted Value ($)</th>
-              <th>Next Purchase</th>
+              <th @click="sortCustomers('name')">Customer <span v-if="sortBy === 'name'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+              <th @click="sortCustomers('segment')">Segment <span v-if="sortBy === 'segment'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+              <th @click="sortCustomers('churnRisk')">Churn Risk <span v-if="sortBy === 'churnRisk'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+              <th @click="sortCustomers('predictedValue')">Predicted Value <span v-if="sortBy === 'predictedValue'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+              <th @click="sortCustomers('nextPurchase')">Next Purchase <span v-if="sortBy === 'nextPurchase'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="customer in paginatedPredictions" :key="customer.id">
-              <td>{{ customer.id }}</td>
-              <td>{{ customer.name }}</td>
-              <td>{{ customer.segment }}</td>
-              <td>{{ customer.churnRisk }}</td>
-              <td>{{ customer.predictedValue }}</td>
-              <td>{{ customer.nextPurchase }}</td>
+            <tr v-for="customer in sortedCustomers" :key="customer.id">
+              <td class="customer-name">
+                <span class="name">{{ customer.name }}</span>
+                <span class="customer-id">#{{ customer.id }}</span>
+              </td>
+              <td>
+                <span class="segment-tag" :class="'segment-' + customer.segment.toLowerCase().replace(/[, ]+/g, '-')">
+                  {{ customer.segment }}
+                </span>
+              </td>
+              <td>
+                <div class="risk-meter">
+                  <div class="risk-bar" :style="{ width: customer.churnRisk + '%' }" :class="getRiskClass(customer.churnRisk)"></div>
+                  <span class="risk-value">{{ customer.churnRisk }}%</span>
+                </div>
+              </td>
+              <td class="predicted-value">{{ formatCurrency(customer.predictedValue) }}</td>
+              <td>{{ formatDate(customer.nextPurchase) }}</td>
+              <td>
+                <button @click="viewCustomerDetails(customer)" class="action-button">Details</button>
+              </td>
             </tr>
           </tbody>
         </table>
-      </div>
-      <div class="pagination-controls">
-        <button
-          @click="currentPage = currentPage > 1 ? currentPage - 1 : 1"
-          :disabled="currentPage === 1"
-          class="pagination-button"
-        >
-          Previous
-        </button>
-        <span>Page {{ currentPage }} of {{ totalPages }}</span>
-        <button
-          @click="currentPage = currentPage < totalPages ? currentPage + 1 : totalPages"
-          :disabled="currentPage === totalPages"
-          class="pagination-button"
-        >
-          Next
-        </button>
+        <div class="pagination">
+          <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+        </div>
       </div>
     </section>
+
     <!-- Query Section -->
     <section v-if="isDatasetUploaded" class="query-section">
       <h2 class="section-title">Customer Query</h2>
@@ -441,57 +503,6 @@ export default {
         }
       }
     },
-    async predictAllCustomers() {
-      try {
-        this.predictingAll = true;
-        const response = await axios.post('http://127.0.0.1:5000/predict-all', {
-          filters: this.queryFilters
-        });
-        if (response.data.success) {
-          const newPredictions = response.data.predictions.map(pred => ({
-            id: pred.id,
-            name: pred.name || `Customer ${pred.id}`,
-            segment: pred.description,
-            churnRisk: pred.cluster === 3 ? 50 : pred.cluster === 0 ? 20 : 10,
-            predictedValue: this.estimatePredictedValue(pred.description),
-            nextPurchase: pred.nextPurchase
-          }));
-          // Merge new predictions, avoiding duplicates
-          const existingIds = new Set(this.customerPredictions.map(c => c.id));
-          this.customerPredictions = [
-            ...this.customerPredictions,
-            ...newPredictions.filter(pred => !existingIds.has(pred.id))
-          ];
-          this.showSuccess('Predictions generated successfully for all customers!');
-        } else {
-          this.showError('Failed to generate predictions: ' + response.data.error);
-        }
-      } catch (error) {
-        console.error('Error generating predictions:', error);
-        this.showError('Failed to generate predictions: ' + error.message);
-        if (error.response?.data?.error === 'No dataset uploaded yet. Please upload a CSV dataset first.') {
-          this.isDatasetUploaded = false;
-        }
-      } finally {
-        this.predictingAll = false;
-      }
-    },
-    estimatePredictedValue(description) {
-      const valueMap = {
-        'Young, Moderate-Income Shoppers': 1500,
-        'Affluent Professionals': 5000,
-        'Budget-Conscious Families': 1000,
-        'High-Risk, Low-Value Customers': 500
-      };
-      return valueMap[description] || 1000;
-    },
-    showSuccess(message) {
-      alert(message); // Replace with your notification system
-    },
-    showError(message) {
-      alert(message); // Replace with your notification system
-    },
-
 async fetchGraphs() {
   this.graphsLoading = true;
   this.graphsError = null;
@@ -2135,21 +2146,3 @@ handleImageError(graph) {
   }
 }
 </style>
-
-
-
-@app.route('/segments/<int:segment_id>', methods=['DELETE'])
-def delete_segment(segment_id):
-    try:
-        if segment_id <= 4:
-            return jsonify({'error': 'Cannot delete model-defined segments'}), 403
-        segments = read_segments()
-        segment = next((s for s in segments if s['id'] == segment_id), None)
-        if not segment:
-            return jsonify({'error': f"Segment ID {segment_id} not found"}), 404
-        segments = [s for s in segments if s['id'] != segment_id]
-        write_segments(segments)
-        return jsonify({'message': f"Segment {segment_id} deleted"}), 200
-    except Exception as e:
-        logging.error(f"Error in delete_segment: {str(e)}")
-        return jsonify({'error': str(e)}), 500

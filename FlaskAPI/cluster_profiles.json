@@ -1,0 +1,14 @@
+{
+  "0": {
+    "description": "35-44 Shoppers with <450,000 Income",
+    "traits": "Age: 35-44, Monthly Income: <450,000, Average spending: 50,000-100,000, Frequency of Shopping(Regular): Monthly"
+  },
+  "1": {
+    "description": "35-44 Shoppers with 450,000-1,000,000 Income",
+    "traits": "Age: 35-44, Monthly Income: 450,000-1,000,000, Average spending: 50,000-100,000, Frequency of Shopping(Regular): Monthly"
+  },
+  "2": {
+    "description": "25-34 Shoppers with <450,000 Income, Frequent",
+    "traits": "Age: 25-34, Monthly Income: <450,000, Average spending: 50,000-100,000, Frequency of Shopping(Regular): Daily"
+  }
+}

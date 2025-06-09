@@ -1,2148 +1,1425 @@
 <template>
-  <div class="dashboard">
-    <header class="dashboard-header">
-      <h1>AI-Powered Customer Insights</h1>
-      <p class="subtitle">Powered by predictive analytics and machine learning models</p>
-    </header>
-
-    <!-- Dataset Status and Upload Prompt -->
-    <section v-if="!isDatasetUploaded" class="upload-prompt">
-      <h2 class="section-title">No Dataset Available</h2>
-      <p>Please upload a CSV or JSON dataset to enable predictions and insights.</p>
-      <p class="upload-instruction">Navigate to the <strong>Segments</strong> page to upload a dataset.</p>
-    </section>
-
-    <!-- Controls Section -->
-    <section v-else class="controls-section">
-      <div class="controls">
-        <button @click="refreshData" class="refresh-button">
-          <span class="icon">⟳</span> Refresh Predictions
-        </button>
-        <div class="time-selector">
-          <label for="timeRange">Forecast Period:</label>
-          <select v-model="timeRange" @change="fetchModelData" id="timeRange" class="time-range">
-            <option value="7d">7 Days</option>
-            <option value="30d">30 Days</option>
-            <option value="90d">90 Days</option>
-          </select>
-        </div>
-        <div class="model-info">
-          <span class="model-version">Model v{{ modelVersion }}</span>
-          <span class="accuracy">Accuracy: {{ modelAccuracy }}%</span>
+  <div class="dashboard-container">
+    <!-- Header with Professional Gradient -->
+    <div class="header">
+      <div class="header-content">
+        <h1>Customer Segmentation Analytics</h1>
+        <p class="subtitle">Advanced clustering visualization for data-driven marketing decisions</p>
+      </div>
+      <div class="upload-section">
+        <div class="file-upload-wrapper">
+          <label class="file-upload-label">
+            <input type="file" ref="fileInput" @change="handleFileUpload" accept=".csv,.xlsx" />
+            <span class="file-upload-button">
+              <i class="fas fa-file-import"></i> Import Dataset
+            </span>
+            <span class="file-upload-name">{{ file ? file.name : 'No file selected' }}</span>
+          </label>
+          <button 
+            @click="uploadFile" 
+            :disabled="!file || isUploading"
+            class="upload-button"
+          >
+            <span v-if="!isUploading">
+              <i class="fas fa-chart-pie"></i> Analyze
+            </span>
+            <span v-else>
+              <i class="fas fa-spinner fa-spin"></i> Processing...
+            </span>
+          </button>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Key Predictive Metrics -->
-    <section v-if="isDatasetUploaded" class="metrics-section">
-      <h2 class="section-title">Predictive KPIs</h2>
-      <div class="metrics-grid" v-if="!isLoading">
-        <div class="metric-card" v-for="metric in keyMetrics" :key="metric.title" @click="showMetricDetails(metric)">
-          <div class="metric-header">
-            <h3>{{ metric.title }}</h3>
-            <span class="confidence" :class="getConfidenceClass(metric.confidence)">
-              {{ metric.confidence }}% confidence
-            </span>
-          </div>
-          <div class="metric-value">
-            {{ metric.title === 'Churn Risk' ? metric.value : formatCurrency(parseCurrency(metric.value)) }}
-          </div>
-          <div class="metric-trend">
-            <span class="trend-indicator" :class="{ 'up': metric.trend > 0, 'down': metric.trend < 0 }">
-              {{ metric.trend > 0 ? '↑' : '↓' }} {{ Math.abs(metric.trend) }}%
-            </span>
-            <span class="trend-period">vs previous period</span>
-          </div>
-          <div class="metric-description">{{ metric.shortDescription }}</div>
-        </div>
-      </div>
-      <div v-else class="loading-predictions">
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-indicator">
+      <div class="spinner-container">
         <div class="spinner"></div>
-        <p>Generating predictions from ML model...</p>
+        <p>Processing customer segments...</p>
+        <p class="loading-subtext">This may take a few moments depending on your dataset size</p>
       </div>
-    </section>
+    </div>
 
-    <!-- Actionable Recommendations -->
-    <section v-if="isDatasetUploaded" class="recommendations-section">
-      <h2 class="section-title">AI Recommendations</h2>
-      <div class="recommendations-grid">
-        <div class="recommendation-card" v-for="(rec, index) in recommendations" :key="index">
-          <div class="rec-header">
-            <span class="rec-priority" :class="'priority-' + rec.priority.toLowerCase()">{{ rec.priority }}</span>
-            <h3>{{ rec.title }}</h3>
+    <!-- Main Dashboard Content -->
+    <div v-if="data" class="dashboard-content">
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="card card-primary">
+          <div class="card-icon">
+            <i class="fas fa-users"></i>
           </div>
-          <p class="rec-description">{{ rec.description }}</p>
-          <div class="rec-metrics">
-            <span class="rec-metric">
-              <strong>Impact:</strong> {{ rec.impact }}
-            </span>
-            <span class="rec-metric">
-              <strong>Confidence:</strong> {{ rec.confidence }}%
-            </span>
+          <div class="card-content">
+            <h3>Total Customers</h3>
+            <p class="value">{{ data.rows.toLocaleString() }}</p>
+            <p class="card-trend"><i class="fas fa-arrow-up"></i> 12% from last month</p>
           </div>
-          <button @click="implementRecommendation(rec.id)" class="rec-action">Implement</button>
+        </div>
+        <div class="card card-secondary">
+          <div class="card-icon">
+            <i class="fas fa-boxes"></i>
+          </div>
+          <div class="card-content">
+            <h3>Segments</h3>
+            <p class="value">{{ data.clusters.length }}</p>
+            <p class="card-trend"><i class="fas fa-arrow-down"></i> 3 refined segments</p>
+          </div>
+        </div>
+        <div class="card card-tertiary">
+          <div class="card-icon">
+            <i class="fas fa-tags"></i>
+          </div>
+          <div class="card-content">
+            <h3>Categories</h3>
+            <p class="value">{{ data.categories.length }}</p>
+            <p class="card-trend">Covering all product lines</p>
+          </div>
         </div>
       </div>
-    </section>
 
-    <!-- Model Insights Section -->
-    <section v-if="isDatasetUploaded" class="insights-section">
-      <h2 class="section-title">Model Insights</h2>
-      <div v-if="graphsLoading" class="loading-insights">
-        <div class="spinner"></div>
-        <p>Loading model insights...</p>
-      </div>
-      <div v-else-if="insightGraphs.length === 0" class="no-insights">
-        <p>No insights available. Please ensure a dataset is uploaded and graphs are generated.</p>
-      </div>
-      <div v-else class="insights-grid">
-        <div class="insight-card" v-for="graph in insightGraphs" :key="graph.filename">
-          <h3>{{ graph.title }}</h3>
-          <img :src="graph.url" :alt="graph.title" class="insight-image" @error="handleImageError(graph)" />
-          <p class="insight-description">{{ graph.description }}</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Customer Predictions Section with Form -->
-    <section v-if="isDatasetUploaded" class="predictions-section">
-      <h2 class="section-title">Individual Customer Predictions</h2>
-
-      <!-- Customer Input Form -->
-      <div class="form-container">
-        <form @submit.prevent="segmentCustomer" class="segment-form">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Name:</label>
-              <input v-model="newCustomer.name" type="text" placeholder="e.g., John Doe" required />
-            </div>
-            <div class="form-group">
-              <label>Age:</label>
-              <select v-model="newCustomer.Age" required>
-                <option value="18-24">18-24</option>
-                <option value="25-34">25-34</option>
-                <option value="35-44">35-44</option>
-                <option value="45-54">45-54</option>
-                <option value="55+">55+</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Gender:</label>
-              <select v-model="newCustomer.Gender" required>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Monthly Income:</label>
-              <select v-model="newCustomer['Monthly Income']" required>
-                <option value="<450,000">&lt;450,000</option>
-                <option value=">2,000,000">&gt;2,000,000</option>
-                <option value="<50,000">&lt;50,000</option>
-                <option value=">200,000">&gt;200,000</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Average spending:</label>
-<select v-model="newCustomer['Average spending']" required>
-  <option value="<50,000">&lt;50,000</option>
-  <option value="50,000-100,000">50,000-100,000</option>
-  <option value="100,000-200,000">100,000-200,000</option>
-  <option value=">200,000">&gt;200,000</option>
-</select>
-            </div>
-            <div class="form-group">
-              <label>Frequency (Regular):</label>
-              <select v-model="newCustomer['Frequency of Shopping(Regular)']" required>
-                <option value="Daily">Daily</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Rarely">Rarely</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Satisfaction (1-5):</label>
-              <input v-model.number="newCustomer['Rate of Satisfaction']" type="number" min="1" max="5" required />
-            </div>
-            <div class="form-group">
-              <label>Availability (1-5):</label>
-              <input v-model.number="newCustomer['Rate of availability of products']" type="number" min="1" max="5" required />
-            </div>
+      <!-- Cluster Distribution Section -->
+      <div class="section">
+        <div class="section-header">
+          <h2><i class="fas fa-chart-bar"></i> Segment Distribution</h2>
+          <div class="section-actions">
+            <select v-model="selectedChartType" class="chart-type-selector">
+              <option value="bar">Bar Chart</option>
+              <option value="pie">Pie Chart</option>
+              <option value="donut">Donut Chart</option>
+            </select>
+            <button class="action-button" @click="exportChart('clusterDistribution')">
+              <i class="fas fa-file-export"></i> Export
+            </button>
           </div>
-          <button type="submit" class="submit-button">Add & Segment</button>
-        </form>
+        </div>
+        <div class="chart-container chart-cluster-distribution" ref="clusterDistributionChart"></div>
       </div>
 
-      <!-- Predictions Table -->
-      <div class="table-container">
-        <table class="predictions-table">
-          <thead>
-            <tr>
-              <th @click="sortCustomers('name')">Customer <span v-if="sortBy === 'name'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
-              <th @click="sortCustomers('segment')">Segment <span v-if="sortBy === 'segment'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
-              <th @click="sortCustomers('churnRisk')">Churn Risk <span v-if="sortBy === 'churnRisk'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
-              <th @click="sortCustomers('predictedValue')">Predicted Value <span v-if="sortBy === 'predictedValue'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
-              <th @click="sortCustomers('nextPurchase')">Next Purchase <span v-if="sortBy === 'nextPurchase'" class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="customer in sortedCustomers" :key="customer.id">
-              <td class="customer-name">
-                <span class="name">{{ customer.name }}</span>
-                <span class="customer-id">#{{ customer.id }}</span>
-              </td>
-              <td>
-                <span class="segment-tag" :class="'segment-' + customer.segment.toLowerCase().replace(/[, ]+/g, '-')">
-                  {{ customer.segment }}
+      <!-- Top Segments Section -->
+      <div class="section">
+        <div class="section-header">
+          <h2><i class="fas fa-medal"></i> Key Customer Segments</h2>
+          <div class="section-actions">
+            <button class="action-button" @click="toggleTableView">
+              <i class="fas" :class="tableView ? 'fa-th-large' : 'fa-list'"></i> 
+              {{ tableView ? 'Grid View' : 'Table View' }}
+            </button>
+            <button class="action-button" @click="showSegmentInsights">
+              <i class="fas fa-lightbulb"></i> Insights
+            </button>
+          </div>
+        </div>
+        <div v-if="!tableView" class="top-clusters-grid">
+          <div v-for="(categoryData, category) in data.Top_clusters" :key="category" class="category-card">
+            <div class="category-header">
+              <h3>{{ category }}</h3>
+              <span class="cluster-count">{{ categoryData.length }} segments</span>
+            </div>
+            <div class="cluster-percentages">
+              <div 
+                v-for="(cluster, idx) in categoryData" 
+                :key="idx"
+                class="percentage-bar"
+                :style="{ width: (cluster.percentage * 100) + '%' }"
+                :class="'bar-color-' + (idx % 5)"
+              >
+                <span class="percentage-label">
+                  Segment {{ cluster.cluster }} ({{ (cluster.percentage * 100).toFixed(1) }}%)
                 </span>
-              </td>
-              <td>
-                <div class="risk-meter">
-                  <div class="risk-bar" :style="{ width: customer.churnRisk + '%' }" :class="getRiskClass(customer.churnRisk)"></div>
-                  <span class="risk-value">{{ customer.churnRisk }}%</span>
-                </div>
-              </td>
-              <td class="predicted-value">{{ formatCurrency(customer.predictedValue) }}</td>
-              <td>{{ formatDate(customer.nextPurchase) }}</td>
-              <td>
-                <button @click="viewCustomerDetails(customer)" class="action-button">Details</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="pagination">
-          <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
-          <span>Page {{ currentPage }} of {{ totalPages }}</span>
-          <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Query Section -->
-    <section v-if="isDatasetUploaded" class="query-section">
-      <h2 class="section-title">Customer Query</h2>
-      <div class="query-filters">
-        <div class="form-group">
-          <label for="ageFilter">Age:</label>
-          <select v-model="queryFilters.age" @change="fetchQueryData" id="ageFilter">
-            <option value="">All Ages</option>
-            <option value="18-24">18-24</option>
-            <option value="25-34">25-34</option>
-            <option value="35-44">35-44</option>
-            <option value="45-54">45-54</option>
-            <option value="55+">55+</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="genderFilter">Gender:</label>
-          <select v-model="queryFilters.gender" @change="fetchQueryData" id="genderFilter">
-            <option value="">All Genders</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="regionFilter">Region:</label>
-          <select v-model="queryFilters.region" @change="fetchQueryData" id="regionFilter">
-            <option value="">All Regions</option>
-            <option value="Central">Central</option>
-            <option value="Eastern">Eastern</option>
-            <option value="Western">Western</option>
-            <option value="Northern">Northern</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="spendingFilter">Spending:</label>
-<select v-model="queryFilters.spending" @change="fetchQueryData" id="spendingFilter">
-  <option value="">All Spending</option>
-  <option value="<50,000">&lt;50,000</option>
-  <option value="50,000-100,000">50,000-100,000</option>
-  <option value="100,000-200,000">100,000-200,000</option>
-  <option value=">200,000">&gt;200,000</option>
-</select>
-        </div>
-        <button @click="resetFilters" class="reset-button">Reset Filters</button>
-      </div>
-
-      <div v-if="queryLoading" class="query-loading">
-        <div class="spinner"></div>
-        <p>Loading customer data...</p>
-      </div>
-
-      <div v-else-if="queryData" class="query-results">
-        <div class="chart-container">
-          <canvas id="queryChart"></canvas>
-        </div>
-        <div class="query-summary-card">
-          <h3 class="query-total">
-            <strong>Total Customers:</strong> {{ queryData?.total || 0 }}
-          </h3>
-          <div v-if="activeFilterCount === 1 && queryData" class="query-details">
-            <h4 class="query-filter-title">
-              Details for {{ queryData.filter_key }}: {{ queryData.filter_value }}
-            </h4>
-            <p class="query-filter-breakdown">
-              {{ queryData.filter_value }}: {{ queryData.total }} ({{ queryData.percentage }})
-            </p>
-            <div class="query-metrics">
-              <div class="metric-item">
-                <span class="metric-label">Most Frequent Category:</span>
-                <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Average Spending:</span>
-                <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Highest Spender:</span>
-                <ul class="highest-spender-list">
-                  <li>
-                    Region: {{ queryData.highest_spender?.Region?.name || 'Unknown' }}
-                    ({{ queryData.highest_spender?.Region?.spending ? formatCurrency(queryData.highest_spender.Region.spending) : 'UGX 0' }})
-                  </li>
-                  <li>
-                    Age Group: {{ queryData.highest_spender?.Age?.name || 'Unknown' }}
-                    ({{ queryData.highest_spender?.Age?.spending ? formatCurrency(queryData.highest_spender.Age.spending) : 'UGX 0' }})
-                  </li>
-                  <li>
-                    Gender: {{ queryData.highest_spender?.Gender?.name || 'Unknown' }}
-                    ({{ queryData.highest_spender?.Gender?.spending ? formatCurrency(queryData.highest_spender.Gender.spending) : 'UGX 0' }})
-                  </li>
-                </ul>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Most Purchased Category:</span>
-                <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-else-if="queryData" class="query-details">
-            <h4 class="query-filter-title">Query Insights</h4>
-            <div class="query-metrics">
-              <div class="metric-item">
-                <span class="metric-label">Most Frequent Category:</span>
-                <span class="metric-value">{{ queryData.most_frequent_category || 'Unknown' }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Average Spending:</span>
-                <span class="metric-value">{{ queryData.average_spending ? formatCurrency(queryData.average_spending) : 'UGX 0' }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Most Purchased Category:</span>
-                <span class="metric-value">{{ queryData.most_purchased_category || 'Unknown' }}</span>
+                <span class="percentage-value">{{ Math.round(cluster.percentage * data.rows) }} customers</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Modal for Metric Details -->
-    <div v-if="selectedMetric && isDatasetUploaded" class="modal-overlay" @click.self="selectedMetric = null">
-      <div class="metric-modal">
-        <div class="modal-header">
-          <h2>{{ selectedMetric.title }} Details</h2>
-          <button class="close-modal" @click="selectedMetric = null">×</button>
+        <div v-else class="top-clusters-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Segment</th>
+                <th>Percentage</th>
+                <th>Customers</th>
+                <th>Visual</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(categoryData, category) in data.Top_clusters" :key="category">
+                <td :rowspan="categoryData.length" class="category-cell">{{ category }}</td>
+                <td v-for="(cluster, idx) in categoryData" :key="idx" :class="{ 'first-row': idx === 0 }">
+                  Segment {{ cluster.cluster }}
+                </td>
+                <td v-for="(cluster, idx) in categoryData" :key="idx + 'pct'" :class="{ 'first-row': idx === 0 }">
+                  {{ (cluster.percentage * 100).toFixed(1) }}%
+                </td>
+                <td v-for="(cluster, idx) in categoryData" :key="idx + 'count'" :class="{ 'first-row': idx === 0 }">
+                  {{ Math.round(cluster.percentage * data.rows) }}
+                </td>
+                <td v-for="(cluster, idx) in categoryData" :key="idx + 'vis'" :class="{ 'first-row': idx === 0 }">
+                  <div class="percentage-visual">
+                    <div 
+                      class="percentage-fill"
+                      :style="{ width: (cluster.percentage * 100) + '%' }"
+                    ></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="modal-body">
-          <div class="metric-summary">
-            <div class="summary-item">
-              <span class="summary-label">Current Value</span>
-              <span class="summary-value">
-                {{ selectedMetric.title === 'Churn Risk' ? selectedMetric.value : formatCurrency(parseCurrency(selectedMetric.value)) }}
-              </span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Trend</span>
-              <span class="summary-value summary-trend" :class="{ 'up': selectedMetric.trend > 0, 'down': selectedMetric.trend < 0 }">
-                {{ selectedMetric.trend > 0 ? '↑' : '↓' }} {{ Math.abs(selectedMetric.trend) }}%
-              </span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Confidence</span>
-              <span class="summary-value summary-confidence" :class="getConfidenceClass(selectedMetric.confidence)">
-                {{ selectedMetric.confidence }}%
-              </span>
-            </div>
+      </div>
+
+      <!-- Segment Patterns Section -->
+      <div class="section">
+        <div class="section-header">
+          <h2><i class="fas fa-project-diagram"></i> Segment Characteristics</h2>
+          <div class="section-actions">
+            <select v-model="selectedPatternView" class="view-selector">
+              <option value="radar">Radar View</option>
+              <option value="bar">Bar Chart</option>
+              <option value="polar">Polar Area</option>
+            </select>
+            <button class="action-button" @click="togglePatternExpand">
+              <i class="fas" :class="patternExpanded ? 'fa-compress' : 'fa-expand'"></i>
+              {{ patternExpanded ? 'Collapse' : 'Expand' }}
+            </button>
           </div>
-          <div class="metric-chart">
-            <canvas :id="'modalChart-' + selectedMetric.id"></canvas>
-          </div>
-          <div class="metric-details">
-            <h3>Model Explanation</h3>
-            <p>{{ selectedMetric.modelExplanation }}</p>
-            <h3>Key Influencers</h3>
-            <ul class="influencers-list">
-              <li v-for="(influencer, index) in selectedMetric.influencers" :key="index">
-                <span class="factor-name">{{ influencer.name }}</span>
-                <span class="factor-impact" :class="{ 'positive': influencer.impact > 0, 'negative': influencer.impact < 0 }">
-                  {{ influencer.impact > 0 ? '+' : '' }}{{ influencer.impact }}%
+        </div>
+        <div class="cluster-patterns" :class="{ 'expanded-view': patternExpanded }">
+          <div v-for="(patterns, cluster) in data.patterns_of_each_cluster" :key="cluster" class="cluster-card">
+            <div class="cluster-header">
+              <h3>Segment {{ cluster.replace('_', ' ') }}</h3>
+              <div class="cluster-meta">
+                <span class="meta-item">
+                  <i class="fas fa-users"></i> {{ calculateSegmentSize(cluster) }} customers
                 </span>
-              </li>
-            </ul>
+                <span class="meta-item">
+                  <i class="fas fa-percentage"></i> {{ calculateSegmentPercentage(cluster).toFixed(1) }}%
+                </span>
+              </div>
+            </div>
+            <div class="radar-chart-container chart-segment-patterns" :ref="'segmentChart-' + cluster"></div>
+            <div class="cluster-insights">
+              <h4>Key Insights</h4>
+              <ul>
+                <li v-for="(value, attr) in getTopAttributes(patterns, 3)" :key="attr">
+                  <strong>{{ attr }}:</strong> {{ value }}
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="modal-close-btn" @click="selectedMetric = null">Close</button>
+      </div>
+
+      <!-- Segment Attributes Section -->
+      <div class="section">
+        <div class="section-header">
+          <h2><i class="fas fa-chart-pie"></i> Segment Attributes</h2>
+          <div class="section-actions">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input 
+                v-model="attributeSearch" 
+                placeholder="Search attributes..."
+              />
+            </div>
+            <button class="action-button" @click="showAttributeGuide">
+              <i class="fas fa-question-circle"></i> Guide
+            </button>
+          </div>
+        </div>
+        <div class="tabs">
+          <button 
+            v-for="category in data.categories" 
+            :key="category" 
+            @click="activeCategory = category"
+            :class="{ active: activeCategory === category }"
+          >
+            <i class="fas" :class="getCategoryIcon(category)"></i> {{ category }}
+          </button>
+        </div>
+        <div v-if="activeCategory" class="attributes-container">
+          <div 
+            v-for="(attributes, cluster) in data.Attributes_of_top_clusters[activeCategory]" 
+            :key="cluster" 
+            class="attribute-card"
+          >
+            <div class="attribute-header">
+              <h3>Segment {{ cluster }}</h3>
+              <div class="attribute-meta">
+                <span class="meta-item">
+                  <i class="fas fa-percentage"></i> {{ calculateClusterPercentage(activeCategory, cluster).toFixed(1) }}%
+                </span>
+                <span class="meta-item">
+                  <i class="fas fa-users"></i> {{ calculateClusterSize(activeCategory, cluster) }} customers
+                </span>
+              </div>
+            </div>
+            <div class="attribute-grid">
+              <div 
+                v-for="(value, attr) in attributes" 
+                :key="attr"
+                v-show="attr.toLowerCase().includes(attributeSearch.toLowerCase())"
+                class="attribute-item"
+              >
+                <span class="attribute-name">{{ attr }}</span>
+                <span class="attribute-value">{{ formatAttributeValue(value) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>Customer Segmentation Dashboard v2.0 • Powered by AI Analytics</p>
     </div>
   </div>
 </template>
 
 <script>
-import Chart from "chart.js/auto";
-import axios from "axios";
+import axios from 'axios';
+import * as echarts from 'echarts';
+import { ref } from 'vue';
 
 export default {
-  name: "AICustomerDashboard",
+  name: 'DashboardPage',
   data() {
     return {
-      isDatasetUploaded: false,
-      keyMetrics: [],
-      recommendations: [],
-      customerPredictions: [],
-      timeRange: "30d",
-      isLoading: false,
-      selectedMetric: null,
-      charts: {},
-      sortBy: "predictedValue",
-      sortOrder: "desc",
-      currentPage: 1,
-      rowsPerPage: 10,
-      modelVersion: "2.4.1",
-      modelAccuracy: 92.4,
-      newCustomer: {
-        name: "",
-        Age: "18-24",
-        Gender: "Female",
-        "Monthly Income": "<450,000",
-        Region: "Central",
-        "Frequency of Shopping(Regular)": "Monthly",
-        "Average spending": "<50,000",
-        Categories: "Fashion",
-        "Means of Payment": "Cash on Delivery",
-        "Enrolled on Jumia Prime or any loyalty program": "No",
-        "Frequency of shopping(Occassional)": "Occasionally",
-        "Reason for your purchase": "Price",
-        "Device to shop": "Smart phones",
-        "Internet connection used": "Mobile data",
-        "Recommendation to others": "Yes",
-        "Rate of Satisfaction": 3,
-        "Rate of availability of products": 3,
-      },
-      insightGraphs: [],
-      graphsLoading: false,
-      graphsError: null,
-      queryFilters: {
-        age: "",
-        gender: "",
-        region: "",
-        spending: "",
-      },
-      queryData: null,
-      queryLoading: false,
+      file: null,
+      isUploading: false,
+      loading: false,
+      data: null,
+      activeCategory: null,
+      tableView: false,
+      selectedPatternView: 'radar',
+      selectedChartType: 'bar',
+      attributeSearch: '',
+      patternExpanded: false,
+      clusterDistributionChart: ref(null),
+      segmentCharts: {}
     };
   },
-  computed: {
-    sortedCustomers() {
-      const sorted = [...this.customerPredictions];
-      sorted.sort((a, b) => {
-        if (a[this.sortBy] < b[this.sortBy]) return this.sortOrder === "asc" ? -1 : 1;
-        if (a[this.sortBy] > b[this.sortBy]) return this.sortOrder === "asc" ? 1 : -1;
-        return 0;
-      });
-      const start = (this.currentPage - 1) * this.rowsPerPage;
-      const end = start + this.rowsPerPage;
-      return sorted.slice(start, end);
-    },
-    totalPages() {
-      return Math.ceil(this.customerPredictions.length / this.rowsPerPage);
-    },
-    activeFilterCount() {
-      return Object.values(this.queryFilters).filter(Boolean).length;
-    },
-    activeFilterName() {
-      const activeFilters = Object.keys(this.queryFilters).filter(
-        (key) => this.queryFilters[key]
-      );
-      return activeFilters.length === 1
-        ? activeFilters[0].charAt(0).toUpperCase() + activeFilters[0].slice(1)
-        : "";
-    },
+  mounted() {
+    window.addEventListener('resize', this.resizeCharts);
+    if (this.data) {
+      this.renderCharts();
+    }
   },
-  beforeMount() {
-    this.createCharts();
-  },
-  async mounted() {
-    await this.checkDatasetStatus();
-    if (this.isDatasetUploaded) {
-      await Promise.all([this.fetchModelData(), this.fetchRecommendations(), this.fetchQueryData(), this.fetchGraphs()]);
+  beforeUnmount() {
+    window.removeEventListener('resize', this.resizeCharts);
+    if (this.clusterDistributionChart && this.clusterDistributionChart.chart) {
+      this.clusterDistributionChart.chart.dispose();
+    }
+    for (const cluster in this.segmentCharts) {
+      if (this.segmentCharts[cluster]) {
+        this.segmentCharts[cluster].dispose();
+      }
     }
   },
   methods: {
-    async checkDatasetStatus() {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/segments", {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        this.isDatasetUploaded = !response.data.error || 
-          response.data.error !== "No dataset uploaded yet. Please upload a CSV dataset first.";
-      } catch (error) {
-        console.error("Error checking dataset status:", error);
-        if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
-          this.isDatasetUploaded = false;
+    handleFileUpload(event) {
+      this.file = event.target.files[0];
+    },
+    async uploadFile() {
+      if (!this.file) {
+        const errorMsg = 'Please select a file to upload.';
+        console.error(errorMsg);
+        if (this.$toast) {
+          this.$toast.error(errorMsg, { position: 'top-right', duration: 5000 });
         } else {
-          this.showError("Failed to verify dataset status: " + error.message);
+          alert(errorMsg);
         }
+        return;
       }
-    },
-async fetchGraphs() {
-  this.graphsLoading = true;
-  this.graphsError = null;
-  try {
-    const response = await axios.get("http://127.0.0.1:5000/graphs");
-    console.log("Graphs response:", response.data);
-    this.insightGraphs = response.data.graphs.map((graph) => ({
-      filename: graph.filename,
-      title: graph.title,
-      url: graph.url, // e.g., http://127.0.0.1:5000/static/img/age_distribution.png
-      description: graph.description || graph.title
-    }));
-    if (this.insightGraphs.length === 0) {
-      this.graphsError = "No graphs available. Please upload a dataset and generate graphs.";
-      this.showError(this.graphsError);
-    }
-    // Preload images to detect failures
-    await Promise.all(
-      this.insightGraphs.map(async (graph) => {
-        try {
-          const response = await fetch(graph.url, { method: "HEAD" });
-          if (!response.ok) {
-            throw new Error(`Image not found: ${graph.url}`);
-          }
-        } catch (error) {
-          console.error(`Preload failed for ${graph.title}: ${error.message}`);
-          this.handleImageError(graph);
-        }
-      })
-    );
-  } catch (error) {
-    console.error("Error fetching graphs:", error);
-    this.graphsError = error.response?.data?.error || "Failed to load model insights.";
-    this.insightGraphs = [];
-    if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
-      this.isDatasetUploaded = false;
-      this.showError("No dataset uploaded. Please upload a CSV dataset to generate graphs.");
-    } else {
-      this.showError(this.graphsError);
-    }
-  } finally {
-    this.graphsLoading = false;
-  }
-},
 
-handleImageError(graph) {
-  console.error(`Failed to load image for graph: ${graph.title}, URL: ${graph.url}`);
-  this.insightGraphs = this.insightGraphs.map((g) => {
-    if (g.filename === graph.filename) {
-      const currentDescription = g.description || g.title;
-      const alreadyHasError = currentDescription.toString().includes("failed to load");
-      return {
-        ...g,
-        url: "/placeholder.png",
-        description: alreadyHasError ? currentDescription : `${currentDescription} (Image failed to load)`
-      };
-    }
-    return g;
-  });
-},
-    async fetchModelData() {
-      this.isLoading = true;
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/dashboard");
-        this.keyMetrics = response.data.keyMetrics || [];
-        this.customerPredictions = response.data.customerPredictions || [];
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        this.showError("Failed to load dashboard data: " + error.message);
-        this.isDatasetUploaded = false;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-    async fetchRecommendations() {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/recommendations");
-        this.recommendations = response.data || [];
-      } catch (error) {
-        console.error("Error fetching recommendations:", error);
-        this.showError("Failed to load recommendations: " + error.message);
-      }
-    },
-    async implementRecommendation(id) {
-      try {
-        await axios.post("http://127.0.0.1:5000/implement-recommendation", { id });
-        this.recommendations = this.recommendations.filter(rec => rec.id !== id);
-        this.showSuccess("Recommendation implemented successfully!");
-      } catch (error) {
-        console.error("Error implementing recommendation:", error);
-        this.showError("Failed to implement recommendation: " + error.message);
-      }
-    },
-    createCharts() {
-      const chartConfigs = [
-        {
-          id: "queryChart",
-          type: "bar",
-          options: {
-            responsive: true,
-            scales: {
-              y: {
-                beginAtZero: true,
-                title: { display: true, text: "Customer Count" }
-              }
-            },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (context) => `${context.raw} customers`
-                }
-              }
-            }
-          }
-        }
-      ];
+      this.isUploading = true;
+      this.loading = true;
 
-      chartConfigs.forEach(({ id, type, options }) => {
-        const ctx = document.getElementById(id);
-        if (!ctx) {
-          console.error(`Canvas #${id} not found in DOM`);
-          return;
+      const formData = new FormData();
+      formData.append('file', this.file);
+      console.log('Uploading file:', this.file.name, this.file.type);
+
+      try {
+        const response = await axios.post('http://localhost:5000/cluster', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 15000
+        });
+
+        this.data = response.data;
+        if (this.data.categories && this.data.categories.length > 0) {
+          this.activeCategory = this.data.categories[0];
         }
-        if (!this.charts[id]) {
-          this.charts[id] = new Chart(ctx, {
-            type,
-            data: { labels: [], datasets: [] },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              ...options
-            }
+        if (this.$toast) {
+          this.$toast.success('File uploaded and processed successfully!', {
+            position: 'top-right',
+            duration: 5000
           });
         }
-      });
-    },
-    async fetchQueryData() {
-      this.queryLoading = true;
-      try {
-        const params = {};
-        if (this.queryFilters.age) params.age = this.queryFilters.age;
-        if (this.queryFilters.gender) params.gender = this.queryFilters.gender;
-        if (this.queryFilters.region) params.region = this.queryFilters.region;
-        if (this.queryFilters.spending) params.spending = this.queryFilters.spending;
-
-        const response = await axios.get("http://127.0.0.1:5000/query", { params });
-        this.queryData = response.data || {
-          total: 0,
-          counts: {},
-          most_frequent_category: null,
-          average_spending: 0,
-          highest_spender: null,
-          most_purchased_category: null
-        };
-        this.updateQueryChart();
-      } catch (error) {
-        console.error("fetchQueryData Error:", error);
-        this.showError("Failed to fetch query data: " + error.message);
-        this.queryData = null;
-        if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
-          this.isDatasetUploaded = false;
+        this.renderCharts();
+      } catch (err) {
+        console.error('Error uploading file:', err);
+        console.log('Error details:', JSON.stringify(err, null, 2));
+        let errorMessage = 'Error processing file. Please check the format and try again.';
+        if (err.code === 'ERR_NETWORK') {
+          errorMessage = 'Network Error: Failed to connect to server. Ensure the backend is running.';
+        } else if (err.response) {
+          errorMessage = err.response.data?.detail || err.message || errorMessage;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        if (this.$toast) {
+          this.$toast.error(errorMessage, { position: 'top-right', duration: 5000 });
+        } else {
+          alert(errorMessage);
         }
       } finally {
-        this.queryLoading = false;
+        this.isUploading = false;
+        this.loading = false;
       }
     },
-    updateQueryChart() {
-      if (!this.queryData || !this.charts["queryChart"]) return;
+    renderClusterDistributionChart() {
+      if (!this.data || !this.clusterDistributionChart || !this.transformClusterDistributionData().length) return;
 
-      let labels, data;
-      if (this.activeFilterCount === 0) {
-        labels = ["All Customers"];
-        data = [this.queryData.total || 0];
-      } else if (this.activeFilterCount === 1) {
-        const key = this.activeFilterName.toLowerCase();
-        labels = Object.keys(this.queryData.counts[key] || {});
-        data = Object.values(this.queryData.counts[key] || {});
+      const chartData = this.transformClusterDistributionData();
+      let option;
+
+      if (this.selectedChartType === 'bar') {
+        const categories = [...new Set(chartData.map(item => item.category))];
+        const clusters = [...new Set(chartData.map(item => item.cluster))].sort();
+        const series = clusters.map(cluster => ({
+          name: `Cluster ${cluster}`,
+          type: 'bar',
+          stack: 'total',
+          emphasis: { focus: 'series' },
+          data: categories.map(category => {
+            const item = chartData.find(d => d.category === category && d.cluster === cluster);
+            return item ? item.value : 0;
+          })
+        }));
+
+        option = {
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+          legend: { data: clusters.map(c => `Cluster ${c}`) },
+          grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+          xAxis: { type: 'value' },
+          yAxis: { type: 'category', data: categories },
+          series
+        };
       } else {
-        labels = ["Filtered Customers"];
-        data = [this.queryData.total || 0];
+        const seriesData = chartData.map(item => ({
+          value: item.value,
+          name: `${item.category} - Cluster ${item.cluster}`
+        }));
+        option = {
+          tooltip: { trigger: 'item' },
+          legend: { orient: 'vertical', right: 10 },
+          series: [{
+            type: this.selectedChartType === 'donut' ? 'pie' : this.selectedChartType,
+            radius: this.selectedChartType === 'donut' ? ['40%', '70%'] : '70%',
+            data: seriesData,
+            emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+          }]
+        };
       }
 
-      this.charts["queryChart"].data.labels = labels;
-      this.charts["queryChart"].data.datasets = [
-        {
-          label: "Customer Count",
-          data,
-          backgroundColor: "#4e79a7",
-          borderColor: "#2b5b8e",
-          borderWidth: 1
-        }
-      ];
-      this.charts["queryChart"].update();
+      if (!this.clusterDistributionChart.chart) {
+        this.clusterDistributionChart.chart = echarts.init(this.clusterDistributionChart);
+      }
+      this.clusterDistributionChart.chart.setOption(option, true);
     },
-    resetFilters() {
-      this.queryFilters.age = "";
-      this.queryFilters.gender = "";
-      this.queryFilters.region = "";
-      this.queryFilters.spending = "";
-      this.fetchQueryData();
+    renderSegmentPatternsChart(cluster, patterns) {
+      const chartRef = this.$refs[`segmentChart-${cluster}`];
+      if (!patterns || !chartRef) return;
+
+      const chartData = this.transformPatternData(patterns);
+      let option;
+
+      if (this.selectedPatternView === 'radar') {
+        option = {
+          tooltip: {},
+          radar: {
+            indicator: chartData.labels.map(label => ({
+              name: label,
+              max: Math.max(...chartData.datasets[0].data) * 1.2
+            }))
+          },
+          series: [{ type: 'radar', data: chartData.datasets }]
+        };
+      } else if (this.selectedPatternView === 'bar') {
+        option = {
+          tooltip: { trigger: 'axis' },
+          xAxis: { type: 'category', data: chartData.labels },
+          yAxis: { type: 'value' },
+          series: [{ type: 'bar', data: chartData.datasets[0].data }]
+        };
+      } else if (this.selectedPatternView === 'polar') {
+        option = {
+          tooltip: { trigger: 'item' },
+          polar: {},
+          angleAxis: { type: 'category', data: chartData.labels },
+          radiusAxis: {},
+          series: [{ type: 'bar', data: chartData.datasets[0].data, coordinateSystem: 'polar' }]
+        };
+      }
+
+      if (!this.segmentCharts[cluster]) {
+        this.segmentCharts[cluster] = echarts.init(chartRef);
+      }
+      this.segmentCharts[cluster].setOption(option, true);
     },
-    async segmentCustomer() {
-      try {
-        const customerData = { ...this.newCustomer };
-        const response = await axios.post("http://127.0.0.1:5000/segment", customerData);
-        if (response.data.status === "success") {
-          const newPrediction = {
-            id: response.data.id,
-            name: this.newCustomer.name,
-            segment: response.data.description,
-            churnRisk: response.data.cluster === 3 ? 50 : response.data.cluster === 0 ? 20 : 10,
-            predictedValue: this.estimatePredictedValue(this.newCustomer["Average spending"]),
-            nextPurchase: response.data.nextPurchase
-          };
-          this.customerPredictions.unshift(newPrediction);
-          this.newCustomer.name = "";
-          this.showSuccess("Customer segmented successfully!");
-        } else {
-          this.showError("Segmentation failed: " + response.data.error);
-        }
-      } catch (error) {
-        console.error("Error segmenting customer:", error);
-        this.showError("Failed to segment customer: " + error.message);
-        if (error.response?.data?.error === "No dataset uploaded yet. Please upload a CSV dataset first.") {
-          this.isDatasetUploaded = false;
+    renderCharts() {
+      this.renderClusterDistributionChart();
+      if (this.data && this.data.patterns_of_each_cluster) {
+        for (const cluster in this.data.patterns_of_each_cluster) {
+          this.renderSegmentPatternsChart(cluster, this.data.patterns_of_each_cluster[cluster]);
         }
       }
     },
-    estimatePredictedValue(spendingRange) {
-      const ranges = {
-        "<50,000": 500,
-        "50,000-100,000": 1500,
-        "100,000-200,000": 3000,
-        ">200,000": 5000
+    resizeCharts() {
+      if (this.clusterDistributionChart && this.clusterDistributionChart.chart) {
+        this.clusterDistributionChart.chart.resize();
+      }
+      for (const cluster in this.segmentCharts) {
+        if (this.segmentCharts[cluster]) {
+          this.segmentCharts[cluster].resize();
+        }
+      }
+    },
+    transformClusterDistributionData() {
+      if (!this.data || !this.data.category_distribution_by_cluster) return [];
+      const result = [];
+      for (const category in this.data.category_distribution_by_cluster) {
+        const clusters = this.data.category_distribution_by_cluster[category];
+        for (const cluster in clusters) {
+          result.push({
+            category,
+            cluster: cluster.replace('cluster_', ''),
+            value: clusters[cluster]
+          });
+        }
+      }
+      return result;
+    },
+    transformPatternData(patterns) {
+      const labels = [];
+      const data = [];
+      for (const category in patterns) {
+        labels.push(category);
+        data.push(patterns[category]);
+      }
+      return {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: 'rgba(58, 134, 255, 0.2)',
+          borderColor: 'rgba(58, 134, 255, 1)',
+          borderWidth: 1
+        }]
       };
-      return ranges[spendingRange] || 1000;
     },
-    formatCurrency(value) {
-      return `UGX ${Number(value).toLocaleString()}`;
+    getCategoryIcon(category) {
+      const icons = {
+        'Electronics': 'fa-laptop',
+        'Fashion': 'fa-tshirt',
+        'Health & Beauty': 'fa-spa',
+        'Groceries': 'fa-shopping-basket',
+        'Home & Living': 'fa-home',
+        'Shoes': 'fa-shoe-prints',
+        'Automotive': 'fa-car',
+        'Sports': 'fa-running',
+        'Entertainment': 'fa-gamepad'
+      };
+      return icons[category] || 'fa-tag';
     },
-    parseCurrency(value) {
-      if (typeof value === "string") {
-        return parseFloat(value.replace(/[^0-9,.]/g, "").replace(",", ""));
+    exportChart(chartType) {
+      let chart;
+      if (chartType === 'clusterDistribution' && this.clusterDistributionChart.chart) {
+        chart = this.clusterDistributionChart.chart;
+      }
+      if (chart) {
+        const url = chart.getDataURL({ type: 'png', pixelRatio: 2 });
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${chartType}.png`;
+        a.click();
+        if (this.$toast) {
+          this.$toast.success(`Exported ${chartType} as PNG`, { position: 'top-right', duration: 3000 });
+        }
+      }
+    },
+    toggleTableView() {
+      this.tableView = !this.tableView;
+    },
+    togglePatternExpand() {
+      this.patternExpanded = !this.patternExpanded;
+      this.$nextTick(() => this.resizeCharts());
+    },
+    calculateSegmentSize(cluster) {
+      if (!this.data || !this.data.category_distribution_by_cluster) return 0;
+      let total = 0;
+      for (const category in this.data.category_distribution_by_cluster) {
+        if (this.data.category_distribution_by_cluster[category][cluster]) {
+          total += this.data.category_distribution_by_cluster[category][cluster];
+        }
+      }
+      return total;
+    },
+    calculateSegmentPercentage(cluster) {
+      const size = this.calculateSegmentSize(cluster);
+      return this.data && this.data.rows ? (size / this.data.rows) * 100 : 0;
+    },
+    calculateClusterPercentage(category, cluster) {
+      if (!this.data || !this.data.category_distribution_by_cluster || 
+          !this.data.category_distribution_by_cluster[category] || 
+          !this.data.category_distribution_by_cluster[category][`cluster_${cluster}`]) {
+        return 0;
+      }
+      const count = this.data.category_distribution_by_cluster[category][`cluster_${cluster}`];
+      return this.data && this.data.rows ? (count / this.data.rows) * 100 : 0;
+    },
+    calculateClusterSize(category, cluster) {
+      if (!this.data || !this.data.category_distribution_by_cluster || 
+          !this.data.category_distribution_by_cluster[category] || 
+          !this.data.category_distribution_by_cluster[category][`cluster_${cluster}`]) {
+        return 0;
+      }
+      return this.data.category_distribution_by_cluster[category][`cluster_${cluster}`];
+    },
+    getTopAttributes(patterns, count) {
+      const entries = Object.entries(patterns);
+      entries.sort((a, b) => b[1] - a[1]);
+      return Object.fromEntries(entries.slice(0, count));
+    },
+    formatAttributeValue(value) {
+      if (typeof value === 'number') {
+        if (value < 1) return value.toFixed(3);
+        if (value < 10) return value.toFixed(2);
+        if (value < 100) return value.toFixed(1);
+        return Math.round(value).toLocaleString();
       }
       return value;
     },
-    async refreshData() {
-      await this.checkDatasetStatus();
-      if (this.isDatasetUploaded) {
-        await Promise.all([
-          this.fetchModelData(),
-          this.fetchRecommendations(),
-          this.fetchQueryData(),
-          this.fetchGraphs(),
-        ]);
-      } else {
-        this.keyMetrics = [];
-        this.recommendations = [];
-        this.customerPredictions = [];
-        this.queryData = null;
-        this.insightGraphs = [];
-        this.graphsError = "No dataset available. Please upload a dataset.";
-        this.showError(this.graphsError);
+    showSegmentInsights() {
+      if (this.$toast) {
+        this.$toast.info('Segment insights feature coming soon!', { position: 'top-right', duration: 3000 });
       }
     },
-    formatDate(dateString) {
-      const options = { month: "short", day: "numeric" };
-      return new Date(dateString).toLocaleDateString("en-US", options);
-    },
-    showMetricDetails(metric) {
-      this.selectedMetric = metric;
-      this.$nextTick(() => this.updateModalChart(metric));
-    },
-    sortCustomers(column) {
-      if (this.sortBy === column) {
-        this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
-      } else {
-        this.sortBy = column;
-        this.sortOrder = "desc";
+    showAttributeGuide() {
+      if (this.$toast) {
+        this.$toast.info('Attribute guide will help you understand the metrics', { position: 'top-right', duration: 3000 });
       }
+    }
+  },
+  watch: {
+    data() {
+      this.renderCharts();
     },
-    nextPage() {
-      if (this.currentPage < this.totalPages) this.currentPage++;
+    selectedChartType() {
+      this.renderClusterDistributionChart();
     },
-    prevPage() {
-      if (this.currentPage > 1) this.currentPage--;
-    },
-    getConfidenceClass(confidence) {
-      if (confidence >= 90) return "high";
-      if (confidence >= 75) return "medium";
-      return "low";
-    },
-    getRiskClass(risk) {
-      if (risk < 20) return "low";
-      if (risk < 50) return "medium";
-      return "high";
-    },
-    showError(message) {
-      alert(message);
-    },
-    showSuccess(message) {
-      alert(message);
-    },
-    hexToRgba(hex, alpha) {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    },
-    updateModalChart(metric) {
-      const ctx = document.getElementById(`modalChart-${metric.id}`);
-      if (!ctx) return;
-      if (ctx.chart) ctx.chart.destroy();
-
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-      const historicalData = months.map((_, i) => {
-        const baseValue = 100000 + i * 20000;
-        const randomFactor = Math.random() * 20000 - 10000;
-        return Math.round(baseValue + randomFactor);
-      });
-      const nextMonth = "Jul";
-      months.push(nextMonth);
-      historicalData.push(Math.round(historicalData[historicalData.length - 1] * (1 + metric.trend / 100)));
-
-      ctx.chart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: months,
-          datasets: [
-            {
-              label: "Historical Data",
-              data: historicalData.slice(0, -1),
-              borderColor: "#4e79a7",
-              backgroundColor: this.hexToRgba("#4e79a7", 0.1),
-              borderWidth: 2,
-              tension: 0.3
-            },
-            {
-              label: "Model Prediction",
-              data: [...Array(historicalData.length - 1).fill(null), historicalData[historicalData.length - 1]],
-              borderColor: "#e15759",
-              backgroundColor: this.hexToRgba("#e15759", 0.1),
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointBackgroundColor: "#e15759",
-              pointRadius: 5
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  let label = context.dataset.label || "";
-                  if (label) label += ": ";
-                  if (context.raw !== null) label += `UGX ${context.raw.toLocaleString()}`;
-                  return label;
-                }
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: false,
-              ticks: { callback: (value) => `UGX ${(value / 1000).toLocaleString()}K` }
-            }
-          }
-        }
-      });
-    },
-    viewCustomerDetails(customer) {
-      alert(`Details for ${customer.name} (ID: ${customer.id})\nSegment: ${customer.segment}\nChurn Risk: ${customer.churnRisk}%\nPredicted Value: ${this.formatCurrency(customer.predictedValue)}\nNext Purchase: ${this.formatDate(customer.nextPurchase)}`);
+    selectedPatternView() {
+      this.renderCharts();
     }
   }
 };
 </script>
 
-<style scoped>
-/* Transition Variables */
+<style lang="scss">
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
 :root {
-  --transition-fast: 150ms;
-  --transition-medium: 250ms;
-  --transition-slow: 400ms;
-  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --primary-color: #3a86ff;
+  --primary-light: #e6f0ff;
+  --secondary-color: #8338ec;
+  --tertiary-color: #ff006e;
+  --success-color: #06d6a0;
+  --danger-color: #ef476f;
+  --warning-color: #ffd166;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --gray-color: #6c757d;
+  --light-gray: #e9ecef;
+  --white: #ffffff;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 15px 30px rgba(0, 0, 0, 0.15);
+  --border-radius: 10px;
+  --border-radius-sm: 6px;
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* Animations */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Element Transitions */
-.dashboard {
-  animation: fadeInUp var(--transition-slow) var(--ease-out);
-}
-
-.metric-card,
-.recommendation-card,
-.insight-card {
-  transition: transform var(--transition-fast) var(--ease-out), box-shadow var(--transition-fast) var(--ease-out);
-}
-
-.metric-card:hover,
-.recommendation-card:hover,
-.insight-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15); /* Matches feature-card hover */
-}
-
-.refresh-button,
-.submit-button,
-.rec-action,
-.modal-close-btn,
-.action-button,
-.reset-button {
-  transition: background-color var(--transition-fast) var(--ease-out), transform 100ms var(--ease-out);
-}
-
-.refresh-button:active,
-.submit-button:active,
-.rec-action:active,
-.modal-close-btn:active,
-.action-button:active,
-.reset-button:active {
-  transform: scale(0.98);
-}
-
-.form-group input,
-.form-group select,
-.time-range {
-  transition: border-color var(--transition-fast) var(--ease-out), box-shadow var(--transition-fast) var(--ease-out);
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-@media (min-width: 769px) {
-  .predictions-table tr {
-    transition: background-color var(--transition-fast) linear;
-  }
-  .predictions-table tr:hover {
-    background-color: #f5f7fa; /* Matches LandingPage.vue hover */
-  }
-}
-
-.modal-overlay {
-  animation: fadeInUp var(--transition-medium) var(--ease-out);
-}
-
-.metric-modal {
-  animation: fadeInUp var(--transition-medium) var(--ease-out);
-}
-
-/* Reduced Motion */
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --transition-fast: 1ms;
-    --transition-medium: 1ms;
-    --transition-slow: 1ms;
-  }
-  .dashboard,
-  .modal-overlay,
-  .metric-modal {
-    animation: none;
-  }
-  .metric-card:hover,
-  .recommendation-card:hover,
-  .insight-card:hover {
-    transform: none;
-  }
-  .spinner {
-    animation: none;
-    border: 3px solid #4CAF50; /* Matches primary color */
-  }
-}
-
-/* Base Styles */
-.dashboard {
+body {
+  background-color: #f8fafc;
   font-family: 'Inter', sans-serif;
-  padding: 2rem;
-  color: #333;
-  max-width: 1800px;
-  margin: 0 auto;
-  background: #f5f7fa; /* Matches LandingPage.vue */
+  color: var(--dark-color);
+  line-height: 1.6;
+}
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-/* Header */
-.dashboard-header {
-  text-align: center;
+/* Header Styles */
+.header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: var(--white);
+  padding: 1.5rem 2.5rem;
+  box-shadow: var(--shadow);
   margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
   position: relative;
+  overflow: hidden;
 }
 
-.dashboard-header h1 {
-  font-size: clamp(1.8rem, 4.5vw, 2.5rem);
-  font-weight: 800; /* Matches LandingPage.vue h1 */
-  color: #333;
-  margin-bottom: 0.5rem;
-}
-
-.dashboard-header h1::after {
+.header::after {
   content: '';
   position: absolute;
-  bottom: 0.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 3px;
-  background: #4CAF50; /* Matches underline::after */
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="rgba(255,255,255,0.1)"><circle cx="25" cy="25" r="15"/><circle cx="75" cy="75" r="15"/><circle cx="75" cy="25" r="10"/><circle cx="25" cy="75" r="10"/></svg>');
+  opacity: 0.3;
+}
+
+.header-content {
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  font-size: clamp(0.9rem, 2.2vw, 1rem);
-  color: #666; /* Matches section-subtitle */
-  font-weight: 500;
+  font-size: 1rem;
+  opacity: 0.9;
+  font-weight: 400;
 }
 
-/* Upload Prompt */
-.upload-prompt {
-  background: #fff;
-  border-radius: 10px;
-  padding: 2rem;
-  text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Matches feature-card */
-  margin-bottom: 2rem;
-  animation: fadeInUp 0.6s ease-out;
+/* Upload Section */
+.upload-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
-.upload-prompt p {
-  font-size: clamp(0.9rem, 2.2vw, 1rem);
-  color: #555;
-  margin-bottom: 0.5rem;
+.file-upload-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 800px;
 }
 
-.upload-instruction {
-  font-size: clamp(0.85rem, 2vw, 0.9rem);
-  color: #666;
-}
-
-.upload-instruction strong {
-  color: #333;
-  font-weight: 600;
-}
-
-/* Section Title */
-.section-title {
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
-  font-weight: 700; /* Matches h2 in LandingPage.vue */
-  color: #333;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
+.file-upload-label {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
   position: relative;
 }
 
-.section-title::after {
-  content: '';
+.file-upload-label input[type="file"] {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 80px;
-  height: 3px;
-  background: #4CAF50; /* Matches primary color */
+  left: -9999px;
 }
 
-/* Controls Section */
-.controls-section {
-  margin-bottom: 2rem;
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.refresh-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.file-upload-button {
   padding: 0.75rem 1.5rem;
-  background: #4CAF50; /* Matches primary-btn */
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: clamp(0.9rem, 2vw, 1rem);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.refresh-button:hover,
-.refresh-button:focus {
-  background: #388E3C; /* Matches primary-btn:hover */
-  transform: translateY(-2px);
-  outline: none;
-}
-
-.refresh-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-}
-
-.icon {
-  font-size: clamp(1rem, 1.8vw, 1.1rem);
-}
-
-.time-selector {
-  display: flex;
+  font-weight: 500;
+  transition: var(--transition);
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  backdrop-filter: blur(5px);
 }
 
-.time-selector label {
-  font-weight: 600;
-  color: #555;
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+.file-upload-button:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
-.time-range {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #fff;
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+.file-upload-name {
+  margin-left: 1rem;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
+.upload-button {
+  padding: 0.75rem 2rem;
+  background-color: var(--white);
+  color: var(--primary-color);
+  border: none;
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.time-range:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-  outline: none;
-}
-
-.model-info {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  font-size: clamp(0.8rem, 1.6vw, 0.85rem);
-}
-
-.model-version,
-.accuracy {
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-}
-
-.model-version {
-  background: #f5f7fa;
-  color: #555;
-}
-
-.accuracy {
-  background: #e3f2fd;
-  color: #2196F3; /* Matches secondary color */
-}
-
-/* Metrics Section */
-.metrics-section {
-  margin-bottom: 2rem;
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
-  gap: 1.5rem;
-}
-
-.metric-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.metric-header h3 {
-  font-size: clamp(1rem, 2.2vw, 1.1rem);
   font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.confidence {
-  font-size: clamp(0.7rem, 1.4vw, 0.75rem);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.confidence.high {
-  background: #e8f5e9;
-  color: #4CAF50;
-}
-
-.confidence.medium {
-  background: #fff3e0;
-  color: #fb8c00;
-}
-
-.confidence.low {
-  background: #ffebee;
-  color: #f44336;
-}
-
-.metric-value {
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 0.75rem;
-}
-
-.metric-trend {
-  display: flex;
+  transition: var(--transition);
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.trend-indicator {
-  font-weight: 600;
-  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
+.upload-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
-.trend-indicator.up {
-  color: #4CAF50;
+.upload-button:disabled {
+  background-color: var(--light-gray);
+  color: var(--gray-color);
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
-.trend-indicator.down {
-  color: #f44336;
-}
-
-.trend-period {
-  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
-  color: #666;
-}
-
-.metric-description {
-  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
-  color: #666;
-  line-height: 1.5;
-}
-
-.loading-predictions {
+/* Loading Indicator */
+.loading-indicator {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  height: 50vh;
+  flex-direction: column;
+}
+
+.spinner-container {
+  text-align: center;
+  max-width: 400px;
   padding: 2rem;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
 }
 
 .spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 3px solid #ddd;
-  border-top-color: #4CAF50;
+  border: 4px solid var(--primary-light);
   border-radius: 50%;
-  margin-bottom: 1rem;
+  border-top: 4px solid var(--primary-color);
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1.5rem;
 }
 
-/* Recommendations Section */
-.recommendations-section {
-  margin-bottom: 2rem;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.recommendations-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
-  gap: 1.5rem;
+.loading-subtext {
+  font-size: 0.9rem;
+  color: var(--gray-color);
+  margin-top: 0.5rem;
 }
 
-.recommendation-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.rec-header {
-  display: linear-gradient(45deg, #4CAF50, #2196F3);
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.rec-priority {
-  font-size: 700;
-  color: white;
-  padding: 0.5rem;
-  text-align: center;
-  border-radius: 5px;
-}
-
-.priority-high {
-  background-color: #f44336;
-  color: white;
-}
-
-.priority-medium {
-  background-color: #fb8c00;
-  color: white;
-}
-
-.priority-low {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.rec-header h3 {
-  font-size: clamp(1rem, 2.2vw, 1.1rem);
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.rec-description {
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
-  color: #555;
-  line-height: 1.5;
-  margin-bottom: 1rem;
+/* Dashboard Content */
+.dashboard-content {
+  padding: 0 2.5rem 2rem;
   flex-grow: 1;
 }
 
-.rec-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  font-size: clamp(0.8rem, 1.6vw, 0.85rem);
-}
-
-.rec-metric {
-  background: #f5f7fa;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-}
-
-.rec-metric strong {
-  color: #555;
-}
-
-.rec-action {
-  align-self: flex-start;
-  padding: 0.5rem 1rem;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: clamp(0.8rem, 1.6vw, 0.85rem);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.rec-action:hover,
-.rec-action:focus {
-  background: #388E3C;
-  transform: translateY(-2px);
-}
-
-.rec-action:focus-visible {
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-}
-
-/* Insights Section */
-.insights-section {
-  margin-bottom: 2rem;
-}
-
-.insights-grid {
+/* Summary Cards */
+.summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
-.insight-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+.card {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  animation: fadeInUp 0.6s ease-out;
+  align-items: flex-start;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
 }
 
-.insight-card h3 {
-  font-size: clamp(1rem, 2.2vw, 1.1rem);
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 1rem;
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
 }
 
-.insight-image {
-  max-width: 100%;
-  width: 100%;
-  height: auto;
-  max-height: 300px;
-  object-fit: contain;
-  border-radius: 5px;
-  margin-bottom: 1rem;
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
 }
 
-.insight-description {
-  font-size: clamp(0.8rem, 1.8vw, 0.85rem);
-  color: #666;
-  line-height: 1.5;
-}
+.card-primary::after { background: var(--primary-color); }
+.card-secondary::after { background: var(--secondary-color); }
+.card-tertiary::after { background: var(--tertiary-color); }
 
-.loading-insights,
-.no-insights {
+.card-icon {
+  font-size: 1.5rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-right: 1.5rem;
+  flex-shrink: 0;
 }
 
-.loading-insights .spinner {
-  margin-bottom: 1rem;
-}
+.card-primary .card-icon { background-color: rgba(58, 134, 255, 0.1); color: var(--primary-color); }
+.card-secondary .card-icon { background-color: rgba(131, 56, 236, 0.1); color: var(--secondary-color); }
+.card-tertiary .card-icon { background-color: rgba(255, 0, 110, 0.1); color: var(--tertiary-color); }
 
-.no-insights p {
-  font-size: clamp(0.9rem, 2.2vw, 1rem);
-  color: #555;
-}
+.card-content { flex-grow: 1; }
 
-/* Predictions Section */
-.predictions-section {
-  margin-bottom: 2rem;
-}
-
-.form-container {
-  background: #fff;
-  border-radius: 10px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.segment-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
-  font-weight: 600;
-  color: #555;
+.card h3 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--gray-color);
   margin-bottom: 0.5rem;
 }
 
-.form-group input,
-.form-group select {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
-  background: #fff;
-  transition: border-color 0.3s, box-shadow 0.3s;
+.card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+  color: var(--dark-color);
+  line-height: 1;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-  outline: none;
+.card-trend {
+  font-size: 0.85rem;
+  color: var(--gray-color);
+  margin-top: 0.5rem;
 }
 
-.submit-button {
-  padding: 0.75rem 1.5rem;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  cursor: pointer;
-  transition: all 0.3s ease;
+.card-trend i { margin-right: 0.25rem; }
+.card-primary .card-trend i { color: var(--success-color); }
+.card-secondary .card-trend i { color: var(--warning-color); }
+
+/* Sections */
+.section {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 2rem;
+  transition: var(--transition);
 }
 
-.submit-button:hover,
-.submit-button:focus {
-  background: #388E3C;
-  transform: translateY(-2px);
-}
+.section:hover { box-shadow: var(--shadow-md); }
 
-.submit-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-}
-
-.table-container {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
-}
-
-@media (min-width: 769px) {
-  .predictions-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .predictions-table th {
-    text-align: left;
-    padding: 1rem;
-    background: #f5f7fa;
-    font-weight: 600;
-    color: #555;
-    cursor: pointer;
-  }
-  .predictions-table th:hover {
-    background: #e8f5e9;
-  }
-  .predictions-table td {
-    padding: 1rem;
-    border-bottom: 1px solid #ddd;
-  }
-}
-
-.customer-name {
+.section-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.name {
+.section-header h2 {
+  font-size: 1.4rem;
   font-weight: 600;
-  color: #333;
-}
-
-.customer-id {
-  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
-  color: #666;
-}
-
-.segment-tag {
-  display: inline-block;
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
-  font-weight: 600;
-}
-
-.segment-young-low-income-occasional-shoppers {
-  background: #ffebee;
-  color: #f44336;
-}
-
-.segment-young-moderate-income-shoppers {
-  background: #fff3e0;
-  color: #fb8c00;
-}
-
-.segment-middle-aged-high-spenders {
-  background: #e3f2fd;
-  color: #2196F3;
-}
-
-.segment-older-value-seeking-shoppers {
-  background: #e8f5e9;
-  color: #4CAF50;
-}
-
-.risk-meter {
+  color: var(--dark-color);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  margin: 0;
 }
 
-.risk-bar {
-  height: 0.5rem;
-  border-radius: 4px;
-  flex-grow: 1;
-  background: #ddd;
-  overflow: hidden;
-  position: relative;
-}
+.section-header h2 i { color: var(--primary-color); }
 
-.risk-bar::after {
-  content: current-color;
-}
-
-.risk-bar.low {
-  color: #4CAF50;
-}
-
-.risk-bar.medium {
-  color: #fb8c00;
-}
-
-.risk-bar.high {
-  color: #f44336;
-}
-
-.risk-value {
-  font-size: clamp(0.75rem, 1.6vw, 0.85rem);
-  color: #808080; 
-  font-weight: 600;
-  min-width: 40px;
-  text-align: right;
-}
-
-
-.predicted-value {
-  font-weight: 600;
-  color: #333;
+.section-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .action-button {
-  padding: 0 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background-color: var(--light-color);
+  color: var(--dark-color);
   border: none;
-  background: #e3f2fd;
-  color: #2196F3;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: clamp(0.75rem, 1.6vw, 0.85rem);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.action-button:hover,
-.action-button:focus {
-  background: #bbdefb;
-  transform: translateY(-2px);
-}
-
-.action-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: var(--transition);
+  display: inline-flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.action-button:hover {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.chart-type-selector,
+.view-selector {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--light-gray);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--white);
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 120px;
+  transition: var(--transition);
+}
+
+.chart-type-selector:hover,
+.view-selector:hover {
+  border-color: var(--primary-color);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: 12px;
+  color: var(--gray-color);
+  font-size: 0.9rem;
+}
+
+.search-box input {
+  padding: 0.6rem 1rem 0.6rem 2.25rem;
+  border: 1px solid var(--light-gray);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9rem;
+  width: 220px;
+  transition: var(--transition);
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2);
+}
+
+/* Chart Containers */
+.chart-container,
+.radar-chart-container {
+  margin-top: 1rem;
+  background-color: var(--white);
+  border-radius: var(--border-radius-sm);
   padding: 1rem;
-  background: rgba(245, 245, 250, 0.7); /* Soft translucent background */
-  gap: 1rem;
-  border-radius: 0 0 10px 10px;
+  border: 1px solid var(--light-gray);
+  width: 100%;
 }
 
-.pagination button {
-  padding: 0.5rem;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: clamp(0.75rem, 1.6vw, 0.85rem);
-  cursor: pointer;
-  transition: all 0.3s ease;
+.chart-cluster-distribution {
+  min-height: 400px;
 }
 
-.pagination button:hover:not(:disabled),
-.pagination button:focus:not(:disabled) {
-  background: #388e3c;
-  transform: translateY(-2px);
+.chart-segment-patterns {
+  min-height: 280px;
 }
 
-.pagination button:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-}
-
-/* Query Section */
-.query-section {
-  margin-bottom: 2rem;
-  background: #f5f7fa;
-  border-radius: 10px;
-  padding: 2rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.query-filters {
+/* Top Clusters */
+.top-clusters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1rem));
-  gap: auto;
-  margin-bottom: 2rem;
-  align-items: end;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
 }
 
-.reset-button {
-  padding: #0fff;
-  background-color: #4caf50;
-  border: none;
-  color: white;
-  border-radius: 50px;
-  font-weight: bold 600;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0.75rem 1.5rem;
-  transition: all 0.3s ease;
-  height: fit-content;
+.category-card {
+  background: var(--white);
+  border-radius: var(--border-radius-sm);
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--light-gray);
+  transition: var(--transition);
 }
 
-.reset-button:hover,
-.reset-button:hover,
-.reset-btn:hover {
-  background-color: #388e3c;
-  transform: translateY(-2px);
+.category-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-.reset-button:focus-visible {
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
 }
 
-.query-loading {
+.category-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dark-color);
+}
+
+.cluster-count {
+  font-size: 0.85rem;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.cluster-percentages {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  gap: 0.75rem;
 }
 
-.query-results {
+.percentage-bar {
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--white);
+  position: relative;
+  overflow: hidden;
+  transition: width 0.5s ease;
+}
+
+.percentage-label {
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.percentage-value {
+  z-index: 1;
+  font-size: 0.8rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.bar-color-0 { background-color: var(--primary-color); }
+.bar-color-1 { background-color: var(--secondary-color); }
+.bar-color-2 { background-color: var(--success-color); }
+.bar-color-3 { background-color: var(--warning-color); }
+.bar-color-4 { background-color: var(--danger-color); }
+
+/* Table View */
+.top-clusters-table {
+  overflow-x: auto;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--light-gray);
+}
+
+.top-clusters-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.top-clusters-table th, 
+.top-clusters-table td {
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.top-clusters-table th {
+  background-color: var(--light-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-color);
+}
+
+.top-clusters-table tr:hover {
+  background-color: rgba(58, 134, 255, 0.03);
+}
+
+.category-cell {
+  font-weight: 600;
+  color: var(--primary-color);
+  vertical-align: top;
+  padding-top: 1.25rem;
+}
+
+.first-row {
+  border-top: 1px solid var(--light-gray);
+}
+
+.percentage-visual {
+  width: 120px;
+  height: 8px;
+  background-color: var(--light-gray);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.percentage-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* Cluster Patterns */
+.cluster-patterns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  transition: var(--transition);
+}
+
+.cluster-patterns.expanded-view {
+  grid-template-columns: 1fr;
+}
+
+.cluster-card {
+  background: var(--white);
+  border-radius: var(--border-radius-sm);
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--light-gray);
+  transition: var(--transition);
+}
+
+.cluster-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.cluster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.cluster-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dark-color);
+}
+
+.cluster-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: 0.85rem;
+  color: var(--gray-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--light-gray);
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+}
+
+.meta-item i { color: var(--primary-color); }
+
+.cluster-insights {
+  margin-top: 1rem;
+}
+
+.cluster-insights h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--dark-color);
+}
+
+.cluster-insights ul {
+  list-style: none;
+  padding: 0;
+}
+
+.cluster-insights li {
+  font-size: 0.9rem;
+  color: var(--dark-color);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cluster-insights li strong { color: var(--primary-color); }
+
+/* Attributes Section */
+.tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
-  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--light-gray);
 }
 
-.chart-container {
-  flex: 1 1 100%;
-  min-width: 260px;
-  position: relative;
-  height: 280px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 1rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.query-query-card {
-  flex: 1;
-  min-width: 1 260px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-}
-
-.query-total {
-  font-size: clamp(1.2rem, 2.8vw, 1.3rem);
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #4CAF50;
-}
-
-.query-total strong {
-  color: #333;
-  font-weight: 700;
-}
-
-.query-filter-title {
-  font-size: clamp(1rem, 4.2vw, 1.15rem);
-  color: #333;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-
-.query-filter-breakdown {
-  font-size: clamp(0.9rem, .8vw, 0.95rem);
-  font-weight: 500;
-  color: #555;
-  background: #e3e3f2fd;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-}
-
-.query-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex-grow: 1;
-}
-
-.metric-item {
-  padding: #0fff;
-  background-color: #fff;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-  padding-bottom: 0.75rem;
-  transition: box-shadow 0.3s ease;
-}
-
-.metric-item:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.metric-label {
-  font-size: clamp(0.875rem, 1.8vw, 0.9rem);
-  font-weight: 600;
-  color: #555;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.metric-value {
-  font-size: clamp(0.875rem, 1.8vw, 0.9rem);
-  font-weight: 600;
-  color: #333;
-}
-
-.highest-spending-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: clamp(0.8rem, 1.6vw, 0.85rem);
-  color: #555;
-}
-
-.highest-spending-list li {
-  margin-bottom: 0.5rem;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.metric-modal {
-  background: #fff;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #ddd;
-}
-
-.modal-header h2 {
-  font-size: clamp(0.1rem,2vw, 1.3rem);
-  font-weight: 700;
-  color: #333;
-  margin: 0;
-}
-
-.close-modal {
+.tabs button {
+  padding: 0.75rem 1.5rem;
   background: none;
   border: none;
-  color: #555;
-  font-size: 1.2rem;
+  border-bottom: 2px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--gray-color);
   cursor: pointer;
-  transition: color 0.3 ease;
-}
-
-.close-modal:hover,
-.close-modal:focus {
-  color: #4CAF50;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.metric-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.summary-item {
+  transition: var(--transition);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.summary-label {
-  font-size: clamp(0.8rem, 1.6vw, 0.85rem);
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 0.5rem;
+.tabs button:hover { color: var(--primary-color); }
+.tabs button.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
+
+.attributes-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-.summary-value {
-  font-size: clamp(0.875rem, 1.8vw, 0.9rem);
-  font-weight: 600;
-  color: #333;
+.attribute-card {
+  background: var(--white);
+  border-radius: var(--border-radius-sm);
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--light-gray);
+  transition: var(--transition);
 }
 
-.summary-trend.up {
-  color: #4CAF50;
+.attribute-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-.summary-trend.down {
-  color: #f44336;
-}
-
-.summary-confidence.high {
-  color: #4CAF50;
-}
-
-.summary-confidence.medium {
-  color: #fb8c00;
-}
-
-.summary-confidence.low {
-  color: #f44336;
-}
-
-.metric-chart {
-  margin-bottom: 2rem;
-  height: 200px;
-}
-
-.modal-details h3 {
-  font-size: clamp(0.1rem, 2.2vw, 1.1rem);
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.75rem;
-}
-
-.modal-details p {
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
-  color: #555;
-  line-height: 1.5;
-  margin-bottom: 1rem;
-}
-
-.influencers-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.influencers-list li {
+.attribute-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.attribute-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dark-color);
+}
+
+.attribute-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.attribute-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.attribute-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--light-gray);
 }
 
-.factor-name {
-  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
-  color: #555;
+.attribute-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--dark-color);
 }
 
-.factor-impact {
-  font-size: clamp(0.8rem, 1.6vw, 0.85rem);
-  font-weight: 600;
+.attribute-value {
+  font-size: 0.9rem;
+  color: var(--gray-color);
 }
 
-.factor-impact.positive {
-  color: #4CAF50;
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: var(--light-color);
+  color: var(--gray-color);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--light-gray);
+  margin-top: auto;
 }
 
-.factor-impact.negative {
-  color: #f44336;
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .dashboard-content { padding: 0 1.5rem 1.5rem; }
+  .summary-cards { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .top-clusters-grid, .cluster-patterns, .attributes-container { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .header { padding: 1rem 1.5rem; }
+  .file-upload-wrapper { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .file-upload-name { max-width: 100%; }
+  .chart-cluster-distribution { min-height: 350px; }
+  .chart-segment-patterns { min-height: 250px; }
 }
 
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #ddd;
-  text-align: right;
-}
-
-.modal-close-btn {
-  padding: 0.75rem 1.5rem;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: clamp(0.9rem, 1.8vw, 1rem);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.modal-close-btn:hover,
-.modal-close-btn:focus {
-  background: #388E3C;
-  transform: translateY(-2px);
-}
-
-.modal-close-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-}
-
-/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .dashboard {
-    padding: 1rem;
-  }
-  .dashboard-header h1 {
-    font-size: clamp(1.6rem, 3.5vw, 2rem);
-  }
-  .section-title {
-    font-size: clamp(1.1rem, 3vw, 1.3rem);
-  }
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  .metrics-grid,
-  .recommendations-grid,
-  .insights-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-grid,
-  .query-filters {
-    grid-template-columns: 1fr;
-  }
-  .query-results {
-    flex-direction: column;
-  }
-  .metric-modal {
-    width: 95%;
-    max-height: 95vh;
-  }
-  .predictions-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-  .predictions-table thead,
-  .predictions-table tbody,
-  .predictions-table tr {
-    display: block;
-  }
-  .predictions-table th,
-  .predictions-table td {
-    display: flex;
-    align-items: center;
-    width: 150px;
-    min-width: 120px;
-    padding: 0.75rem;
-    text-align: left;
-  }
-  .predictions-table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-  .pagination {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
+  .header h1 { font-size: 1.6rem; }
+  .subtitle { font-size: 0.9rem; }
+  .section-header { flex-direction: column; align-items: flex-start; }
+  .section-actions { width: 100%; flex-wrap: wrap; }
+  .search-box input { width: 100%; }
+  .tabs { flex-direction: column; align-items: flex-start; }
+  .tabs button { width: 100%; justify-content: flex-start; }
+  .chart-cluster-distribution, .chart-segment-patterns { min-height: 300px; }
+  .card .value { font-size: 1.6rem; }
 }
 
 @media (max-width: 480px) {
-  .dashboard {
-    padding: 0.75rem;
-  }
-  .metric-card,
-  .recommendation-card,
-  .insight-card,
-  .form-container,
-  .table-container,
-  .query-section {
-    padding: 1rem;
-  }
-  .form-group input,
-  .form-group select,
-  .time-range,
-  .submit-button,
-  .refresh-button,
-  .rec-action,
-  .action-button,
-  .modal-close-btn,
-  .reset-button {
-    font-size: clamp(0.8rem, 3vw, 0.85rem);
-  }
-  .metric-value {
-    font-size: clamp(1.3rem, 3vw, 1.5rem);
-  }
-  .chart-container {
-    height: 200px;
-  }
-  .metric-chart {
-    height: 150px;
-  }
+  .dashboard-content { padding: 0 1rem 1rem; }
+  .header { padding: 0.75rem 1rem; }
+  .section { padding: 1rem; }
+  .summary-cards, .top-clusters-grid, .cluster-patterns, .attributes-container { grid-template-columns: 1fr; }
+.file-upload-button,
+.upload-button {
+  display: inline-block;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+  .top-clusters-table table { min-width: 600px auto; }
+  .chart-cluster-distribution { min-height: 250px; }
+  .chart-segment-patterns { min-height: 200px; }
 }
 </style>
