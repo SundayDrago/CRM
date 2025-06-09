@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-container">
-    <!-- Header with Professional Gradient -->
+    <!-- Header (unchanged) -->
     <div class="header">
       <div class="header-content">
         <h1>Customer Segmentation Analytics</h1>
@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <!-- Loading State -->
+    <!-- Loading State (unchanged) -->
     <div v-if="loading" class="loading-indicator">
       <div class="spinner-container">
         <div class="spinner"></div>
@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      <!-- Cluster Distribution Section -->
+      <!-- Segment Distribution Section -->
       <div class="section">
         <div class="section-header">
           <h2><i class="fas fa-chart-bar"></i> Segment Distribution</h2>
@@ -85,13 +85,23 @@
               <option value="bar">Bar Chart</option>
               <option value="pie">Pie Chart</option>
               <option value="donut">Donut Chart</option>
+              <option value="polar">Polar Area</option>
+              <option value="radar">Radar</option>
             </select>
             <button class="action-button" @click="exportChart('clusterDistribution')">
               <i class="fas fa-file-export"></i> Export
             </button>
           </div>
         </div>
-        <div class="chart-container chart-cluster-distribution" ref="clusterDistributionChart"></div>
+        <div class="chart-container chart-cluster-distribution" ref="clusterDistributionChart">
+          <component
+            :is="currentChartComponent"
+            :labels="chartLabels"
+            :values="chartValues"
+            :colors="chartColors"
+            title="Segment Distribution by Category"
+          />
+        </div>
       </div>
 
       <!-- Top Segments Section -->
@@ -112,22 +122,14 @@
           <div v-for="(categoryData, category) in data.Top_clusters" :key="category" class="category-card">
             <div class="category-header">
               <h3>{{ category }}</h3>
-              <span class="cluster-count">{{ categoryData.length }} segments</span>
+              <span class="cluster-count">{{ Object.keys(categoryData).length }} segments</span>
             </div>
-            <div class="cluster-percentages">
-              <div 
-                v-for="(cluster, idx) in categoryData" 
-                :key="idx"
-                class="percentage-bar"
-                :style="{ width: (cluster.percentage * 100) + '%' }"
-                :class="'bar-color-' + (idx % 5)"
-              >
-                <span class="percentage-label">
-                  Segment {{ cluster.cluster }} ({{ (cluster.percentage * 100).toFixed(1) }}%)
-                </span>
-                <span class="percentage-value">{{ Math.round(cluster.percentage * data.rows) }} customers</span>
-              </div>
-            </div>
+            <FourBarChart
+              :labels="Object.keys(categoryData).map(cluster => `Cluster ${cluster}`)"
+              :values="Object.values(categoryData)"
+              :colors="chartColors"
+              :title="`${category} Top Segments`"
+            />
           </div>
         </div>
         <div v-else class="top-clusters-table">
@@ -143,24 +145,26 @@
             </thead>
             <tbody>
               <tr v-for="(categoryData, category) in data.Top_clusters" :key="category">
-                <td :rowspan="categoryData.length" class="category-cell">{{ category }}</td>
-                <td v-for="(cluster, idx) in categoryData" :key="idx" :class="{ 'first-row': idx === 0 }">
-                  Segment {{ cluster.cluster }}
-                </td>
-                <td v-for="(cluster, idx) in categoryData" :key="idx + 'pct'" :class="{ 'first-row': idx === 0 }">
-                  {{ (cluster.percentage * 100).toFixed(1) }}%
-                </td>
-                <td v-for="(cluster, idx) in categoryData" :key="idx + 'count'" :class="{ 'first-row': idx === 0 }">
-                  {{ Math.round(cluster.percentage * data.rows) }}
-                </td>
-                <td v-for="(cluster, idx) in categoryData" :key="idx + 'vis'" :class="{ 'first-row': idx === 0 }">
-                  <div class="percentage-visual">
-                    <div 
-                      class="percentage-fill"
-                      :style="{ width: (cluster.percentage * 100) + '%' }"
-                    ></div>
-                  </div>
-                </td>
+                <td :rowspan="Object.keys(categoryData).length" class="category-cell">{{ category }}</td>
+                <template v-for="(percentage, cluster) in categoryData" :key="cluster">
+                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
+                    Segment {{ cluster }}
+                  </td>
+                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
+                    {{ percentage.toFixed(1) }}%
+                  </td>
+                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
+                    {{ Math.round((percentage / 100) * data.rows) }}
+                  </td>
+                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
+                    <div class="percentage-visual">
+                      <div 
+                        class="percentage-fill"
+                        :style="{ width: percentage + '%' }"
+                      ></div>
+                    </div>
+                  </td>
+                </template>
               </tr>
             </tbody>
           </table>
@@ -186,7 +190,7 @@
         <div class="cluster-patterns" :class="{ 'expanded-view': patternExpanded }">
           <div v-for="(patterns, cluster) in data.patterns_of_each_cluster" :key="cluster" class="cluster-card">
             <div class="cluster-header">
-              <h3>Segment {{ cluster.replace('_', ' ') }}</h3>
+              <h3>Segment {{ cluster.replace('cluster_', '') }}</h3>
               <div class="cluster-meta">
                 <span class="meta-item">
                   <i class="fas fa-users"></i> {{ calculateSegmentSize(cluster) }} customers
@@ -196,13 +200,21 @@
                 </span>
               </div>
             </div>
-            <div class="radar-chart-container chart-segment-patterns" :ref="'segmentChart-' + cluster"></div>
+            <div class="radar-chart-container chart-segment-patterns" :ref="'segmentChart-' + cluster">
+              <component
+                :is="patternChartComponent"
+                :labels="Object.keys(patterns)"
+                :values="Object.values(patterns)"
+                :colors="chartColors"
+                :title="`Segment ${cluster.replace('cluster_', '')} Patterns`"
+              />
+            </div>
             <div class="cluster-insights">
               <h4>Key Insights</h4>
               <ul>
                 <li v-for="(value, attr) in getTopAttributes(patterns, 3)" :key="attr">
                   <strong>{{ attr }}:</strong> {{ value }}
-                </li>    
+                </li>
               </ul>
             </div>
           </div>
@@ -262,6 +274,12 @@
               >
                 <span class="attribute-name">{{ attr }}</span>
                 <span class="attribute-value">{{ formatAttributeValue(value) }}</span>
+                <HorizontalBarChart
+                  :labels="Object.keys(value)"
+                  :values="Object.values(value)"
+                  :colors="['#4285F4', '#FF7139', '#34C759', '#FF2D55', '#5856D6']"
+                  :title="`${attr} Distribution`"
+                />
               </div>
             </div>
           </div>
@@ -269,7 +287,7 @@
       </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer (unchanged) -->
     <div class="footer">
       <p>Customer Segmentation Dashboard v2.0 • Powered by AI Analytics</p>
     </div>
@@ -278,11 +296,26 @@
 
 <script>
 import axios from 'axios';
-import * as echarts from 'echarts';
+import ThreeBarChart from '@/components/Constants/ThreeBarChart.vue';
+import HorizontalBarChart from '@/components/Constants/HorizontalBarChart.vue';
+import FourBarChart from '@/components/Constants/FourBarChart.vue';
+import PieChart from '@/components/Constants/PieChart.vue';
+import DonutChart from '@/components/Constants/DonutChart.vue';
+import PolarAreaChart from '@/components/Constants/PolarAreaChart.vue';
+import RadarChart from '@/components/Constants/RadarChart.vue';
 import { ref } from 'vue';
 
 export default {
   name: 'DashboardPage',
+  components: {
+    ThreeBarChart,
+    HorizontalBarChart,
+    FourBarChart,
+    PieChart,
+    DonutChart,
+    PolarAreaChart,
+    RadarChart
+  },
   data() {
     return {
       file: null,
@@ -296,25 +329,40 @@ export default {
       attributeSearch: '',
       patternExpanded: false,
       clusterDistributionChart: ref(null),
-      segmentCharts: {}
+      segmentCharts: {},
+      chartLabels: [],
+      chartValues: [],
+      chartColors: ['#1abc9c', '#f39c12', '#8e44ad', '#3498db', '#e74c3c', '#2ecc71']
     };
+  },
+  computed: {
+    currentChartComponent() {
+      switch (this.selectedChartType) {
+        case 'bar': return 'ThreeBarChart';
+        case 'pie': return 'PieChart';
+        case 'donut': return 'DonutChart';
+        case 'polar': return 'PolarAreaChart';
+        case 'radar': return 'RadarChart';
+        default: return 'ThreeBarChart';
+      }
+    },
+    patternChartComponent() {
+      switch (this.selectedPatternView) {
+        case 'bar': return 'ThreeBarChart';
+        case 'polar': return 'PolarAreaChart';
+        case 'radar': return 'RadarChart';
+        default: return 'RadarChart';
+      }
+    }
   },
   mounted() {
     window.addEventListener('resize', this.resizeCharts);
     if (this.data) {
-      this.renderCharts();
+      this.updateChartData();
     }
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.resizeCharts);
-    if (this.clusterDistributionChart && this.clusterDistributionChart.chart) {
-      this.clusterDistributionChart.chart.dispose();
-    }
-    for (const cluster in this.segmentCharts) {
-      if (this.segmentCharts[cluster]) {
-        this.segmentCharts[cluster].dispose();
-      }
-    }
   },
   methods: {
     handleFileUpload(event) {
@@ -337,7 +385,6 @@ export default {
 
       const formData = new FormData();
       formData.append('file', this.file);
-      console.log('Uploading file:', this.file.name, this.file.type);
 
       try {
         const response = await axios.post('http://localhost:8000/cluster', formData, {
@@ -349,16 +396,15 @@ export default {
         if (this.data.categories && this.data.categories.length > 0) {
           this.activeCategory = this.data.categories[0];
         }
+        this.updateChartData();
         if (this.$toast) {
           this.$toast.success('File uploaded and processed successfully!', {
             position: 'top-right',
             duration: 5000
           });
         }
-        this.renderCharts();
       } catch (err) {
         console.error('Error uploading file:', err);
-        console.log('Error details:', JSON.stringify(err, null, 2));
         let errorMessage = 'Error processing file. Please check the format and try again.';
         if (err.code === 'ERR_NETWORK') {
           errorMessage = 'Network Error: Failed to connect to server. Ensure the backend is running.';
@@ -377,144 +423,62 @@ export default {
         this.loading = false;
       }
     },
-    renderClusterDistributionChart() {
-      if (!this.data || !this.clusterDistributionChart || !this.transformClusterDistributionData().length) return;
+    updateChartData() {
+      if (!this.data) return;
 
-      const chartData = this.transformClusterDistributionData();
-      let option;
-
-      if (this.selectedChartType === 'bar') {
-        const categories = [...new Set(chartData.map(item => item.category))];
-        const clusters = [...new Set(chartData.map(item => item.cluster))].sort();
-        const series = clusters.map(cluster => ({
-          name: `Cluster ${cluster}`,
-          type: 'bar',
-          stack: 'total',
-          emphasis: { focus: 'series' },
-          data: categories.map(category => {
-            const item = chartData.find(d => d.category === category && d.cluster === cluster);
-            return item ? item.value : 0;
-          })
-        }));
-
-        option = {
-          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-          legend: { data: clusters.map(c => `Cluster ${c}`) },
-          grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-          xAxis: { type: 'value' },
-          yAxis: { type: 'category', data: categories },
-          series
-        };
-      } else {
-        const seriesData = chartData.map(item => ({
-          value: item.value,
-          name: `${item.category} - Cluster ${item.cluster}`
-        }));
-        option = {
-          tooltip: { trigger: 'item' },
-          legend: { orient: 'vertical', right: 10 },
-          series: [{
-            type: this.selectedChartType === 'donut' ? 'pie' : this.selectedChartType,
-            radius: this.selectedChartType === 'donut' ? ['40%', '70%'] : '70%',
-            data: seriesData,
-            emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
-          }]
-        };
-      }
-
-      if (!this.clusterDistributionChart.chart) {
-        this.clusterDistributionChart.chart = echarts.init(this.clusterDistributionChart);
-      }
-      this.clusterDistributionChart.chart.setOption(option, true);
+      // Segment Distribution Chart
+      const clusterData = this.transformClusterDistributionData();
+      this.chartLabels = clusterData.labels;
+      this.chartValues = clusterData.values;
     },
-    renderSegmentPatternsChart(cluster, patterns) {
-      const chartRef = this.$refs[`segmentChart-${cluster}`];
-      if (!patterns || !chartRef) return;
-
-      const chartData = this.transformPatternData(patterns);
-      let option;
-
-      if (this.selectedPatternView === 'radar') {
-        option = {
-          tooltip: {},
-          radar: {
-            indicator: chartData.labels.map(label => ({
-              name: label,
-              max: Math.max(...chartData.datasets[0].data) * 1.2
-            }))
-          },
-          series: [{ type: 'radar', data: chartData.datasets }]
-        };
-      } else if (this.selectedPatternView === 'bar') {
-        option = {
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: chartData.labels },
-          yAxis: { type: 'value' },
-          series: [{ type: 'bar', data: chartData.datasets[0].data }]
-        };
-      } else if (this.selectedPatternView === 'polar') {
-        option = {
-          tooltip: { trigger: 'item' },
-          polar: {},
-          angleAxis: { type: 'category', data: chartData.labels },
-          radiusAxis: {},
-          series: [{ type: 'bar', data: chartData.datasets[0].data, coordinateSystem: 'polar' }]
-        };
-      }
-
-      if (!this.segmentCharts[cluster]) {
-        this.segmentCharts[cluster] = echarts.init(chartRef);
-      }
-      this.segmentCharts[cluster].setOption(option, true);
-    },
-    renderCharts() {
-      this.renderClusterDistributionChart();
-      if (this.data && this.data.patterns_of_each_cluster) {
-        for (const cluster in this.data.patterns_of_each_cluster) {
-          this.renderSegmentPatternsChart(cluster, this.data.patterns_of_each_cluster[cluster]);
-        }
-      }
-    },
-    resizeCharts() {
-      if (this.clusterDistributionChart && this.clusterDistributionChart.chart) {
-        this.clusterDistributionChart.chart.resize();
-      }
-      for (const cluster in this.segmentCharts) {
-        if (this.segmentCharts[cluster]) {
-          this.segmentCharts[cluster].resize();
+    exportChart(refName) {
+      const canvas = this.$refs[refName]?.querySelector('canvas');
+      if (canvas) {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `${refName}.png`;
+        link.click();
+        if (this.$toast) {
+          this.$toast.success(`Exported ${refName} as PNG`, { position: 'top-right', duration: 3000 });
         }
       }
     },
     transformClusterDistributionData() {
-      if (!this.data || !this.data.category_distribution_by_cluster) return [];
-      const result = [];
-      for (const category in this.data.category_distribution_by_cluster) {
-        const clusters = this.data.category_distribution_by_cluster[category];
-        for (const cluster in clusters) {
-          result.push({
-            category,
-            cluster: cluster.replace('cluster_', ''),
-            value: clusters[cluster]
+      if (!this.data || !this.data.category_distribution_by_cluster) return { labels: [], values: [] };
+
+      const labels = [];
+      const values = [];
+      const categories = this.data.categories;
+      const clusters = this.data.clusters;
+
+      if (this.selectedChartType === 'bar') {
+        // For bar chart, stack by category
+        labels.push(...categories);
+        const datasets = clusters.map(cluster => {
+          return categories.map(category => {
+            return this.data.category_distribution_by_cluster[category][`cluster_${cluster}`] || 0;
           });
-        }
+        });
+        values.push(...datasets[0]); // Use first dataset for simplicity; adjust if multiple datasets needed
+      } else {
+        // For pie/donut/polar/radar, aggregate by category-cluster combination
+        categories.forEach(category => {
+          clusters.forEach(cluster => {
+            const value = this.data.category_distribution_by_cluster[category][`cluster_${cluster}`] || 0;
+            if (value > 0) {
+              labels.push(`${category} - Cluster ${cluster}`);
+              values.push(value);
+            }
+          });
+        });
       }
-      return result;
+
+      return { labels, values };
     },
     transformPatternData(patterns) {
-      const labels = [];
-      const data = [];
-      for (const category in patterns) {
-        labels.push(category);
-        data.push(patterns[category]);
-      }
       return {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: 'rgba(58, 134, 255, 0.2)',
-          borderColor: 'rgba(58, 134, 255, 1)',
-          borderWidth: 1
-        }]
+        labels: Object.keys(patterns),
+        values: Object.values(patterns)
       };
     },
     getCategoryIcon(category) {
@@ -524,66 +488,31 @@ export default {
         'Health & Beauty': 'fa-spa',
         'Groceries': 'fa-shopping-basket',
         'Home & Living': 'fa-home',
-        'Shoes': 'fa-shoe-prints',
-        'Automotive': 'fa-car',
-        'Sports': 'fa-running',
-        'Entertainment': 'fa-gamepad'
+        'Shoes': 'fa-shoe-prints'
       };
       return icons[category] || 'fa-tag';
-    },
-    exportChart(chartType) {
-      let chart;
-      if (chartType === 'clusterDistribution' && this.clusterDistributionChart.chart) {
-        chart = this.clusterDistributionChart.chart;
-      }
-      if (chart) {
-        const url = chart.getDataURL({ type: 'png', pixelRatio: 2 });
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${chartType}.png`;
-        a.click();
-        if (this.$toast) {
-          this.$toast.success(`Exported ${chartType} as PNG`, { position: 'top-right', duration: 3000 });
-        }
-      }
     },
     toggleTableView() {
       this.tableView = !this.tableView;
     },
     togglePatternExpand() {
       this.patternExpanded = !this.patternExpanded;
-      this.$nextTick(() => this.resizeCharts());
     },
     calculateSegmentSize(cluster) {
-      if (!this.data || !this.data.category_distribution_by_cluster) return 0;
-      let total = 0;
-      for (const category in this.data.category_distribution_by_cluster) {
-        if (this.data.category_distribution_by_cluster[category][cluster]) {
-          total += this.data.category_distribution_by_cluster[category][cluster];
-        }
-      }
-      return total;
+      if (!this.data || !this.data.patterns_of_each_cluster[cluster]) return 0;
+      return Object.values(this.data.patterns_of_each_cluster[cluster]).reduce((sum, val) => sum + val, 0);
     },
     calculateSegmentPercentage(cluster) {
       const size = this.calculateSegmentSize(cluster);
       return this.data && this.data.rows ? (size / this.data.rows) * 100 : 0;
     },
     calculateClusterPercentage(category, cluster) {
-      if (!this.data || !this.data.category_distribution_by_cluster || 
-          !this.data.category_distribution_by_cluster[category] || 
-          !this.data.category_distribution_by_cluster[category][`cluster_${cluster}`]) {
-        return 0;
-      }
-      const count = this.data.category_distribution_by_cluster[category][`cluster_${cluster}`];
-      return this.data && this.data.rows ? (count / this.data.rows) * 100 : 0;
+      if (!this.data || !this.data.category_distribution_by_cluster[category][`cluster_${cluster}`]) return 0;
+      return this.data.category_distribution_by_cluster[category][`cluster_${cluster}`];
     },
     calculateClusterSize(category, cluster) {
-      if (!this.data || !this.data.category_distribution_by_cluster || 
-          !this.data.category_distribution_by_cluster[category] || 
-          !this.data.category_distribution_by_cluster[category][`cluster_${cluster}`]) {
-        return 0;
-      }
-      return this.data.category_distribution_by_cluster[category][`cluster_${cluster}`];
+      const percentage = this.calculateClusterPercentage(category, cluster);
+      return Math.round((percentage / 100) * this.data.rows);
     },
     getTopAttributes(patterns, count) {
       const entries = Object.entries(patterns);
@@ -596,6 +525,8 @@ export default {
         if (value < 10) return value.toFixed(2);
         if (value < 100) return value.toFixed(1);
         return Math.round(value).toLocaleString();
+      } else if (typeof value === 'object') {
+        return JSON.stringify(value); // Simplified for display; adjust as needed
       }
       return value;
     },
@@ -608,21 +539,26 @@ export default {
       if (this.$toast) {
         this.$toast.info('Attribute guide will help you understand the metrics', { position: 'top-right', duration: 3000 });
       }
+    },
+    resizeCharts() {
+      // No eCharts-specific resizing needed; Chart.js handles resizing automatically
     }
   },
   watch: {
     data() {
-      this.renderCharts();
+      this.updateChartData();
     },
     selectedChartType() {
-      this.renderClusterDistributionChart();
+      this.updateChartData();
     },
     selectedPatternView() {
-      this.renderCharts();
+      // Pattern charts update automatically via component binding
     }
   }
 };
 </script>
+
+
 
 <style lang="scss">
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
