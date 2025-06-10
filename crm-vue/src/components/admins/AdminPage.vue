@@ -241,16 +241,16 @@ export default {
       defaultAvatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
       menuItems: [
         { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt', hasNotification: false },
-        { id: 'users', label: 'User Management', icon: 'fas fa-users', hasNotification: true },
+        { id: 'users', label: 'Users', icon: 'fas fa-users', hasNotification: true },
         {
           id: 'segmentation',
-          label: 'Segmentation',
+          label: 'Recommendation',
           icon: 'fas fa-chart-pie',
           hasNotification: false,
           isOpen: false,
           subItems: [
             { id: 'view-segments', label: 'View', icon: 'fas fa-eye' },
-            { id: 'create-segment', label: 'Create Segment', icon: 'fas fa-plus' },
+            { id: 'create-segment', label: 'Target-Strategy', icon: 'fas fa-plus' },
           ],
         },
         { id: 'reports', label: 'Reports', icon: 'fas fa-chart-bar', hasNotification: false },

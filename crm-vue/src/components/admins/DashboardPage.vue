@@ -746,6 +746,57 @@ body {
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
 }
+.cluster-insights {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f8fafc; /* Subtle background to distinguish the section */
+  border-radius: 6px;
+  border: 1px solid var(--light-gray); /* Light border for definition */
+}
+
+.cluster-insights h4 {
+  font-size: 0.95rem; /* Slightly larger for hierarchy */
+  font-weight: 500;
+  color: var(--dark-color);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cluster-insights h4::before {
+  content: '\f0eb'; /* Font Awesome lightbulb icon */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+.cluster-insights ul {
+  list-style: none; /* Remove default bullets for a cleaner look */
+}
+
+.cluster-insights li {
+  font-size: 0.85rem; /* Slightly larger for readability */
+  margin-bottom: 0.5rem; /* More spacing between items */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dark-color);
+}
+
+.cluster-insights li::before {
+  content: '\f058'; /* Font Awesome check-circle icon */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: var(--success-color);
+  font-size: 0.8rem;
+}
+
+.cluster-insights li strong {
+  color: var(--primary-color);
+  font-weight: 500;
+}
 
 @keyframes spin {
   to { transform: rotate(360deg); }
