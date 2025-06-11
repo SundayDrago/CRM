@@ -73,28 +73,45 @@
       <!-- Segment Distribution Section -->
       <div class="section">
         <div class="section-header">
-          <h2><i class="fas fa-chart-bar"></i> Segment Distribution</h2>
+          <h2><i class="fas fa-chart-bar"></i> Segment Distribution by Category</h2>
           <div class="section-actions">
-            <select v-model="selectedChartType" class="chart-type-selector">
-              <option value="bar">Bar Chart</option>
-              <option value="pie">Pie Chart</option>
-              <option value="donut">Donut Chart</option>
-              <option value="polar">Polar Area</option>
-              <option value="radar">Radar</option>
-            </select>
             <button class="action-button" @click="exportChart('clusterDistribution')">
               <i class="fas fa-file-export"></i> Export
             </button>
+            <div class="carousel-controls">
+              <button 
+                class="action-button" 
+                @click="prevClusterCharts" 
+                :disabled="currentClusterIndex === 0"
+              >
+                <i class="fas fa-chevron-left"></i> Previous
+              </button>
+              <button 
+                class="action-button" 
+                @click="nextClusterCharts" 
+                :disabled="currentClusterIndex >= data.clusters.length - 2"
+              >
+                <i class="fas fa-chevron-right"></i> Next
+              </button>
+            </div>
           </div>
         </div>
-        <div class="chart-container chart-cluster-distribution" ref="clusterDistributionChart">
-          <component
-            :is="currentChartComponent"
-            :labels="chartLabels"
-            :values="chartValues"
-            :colors="chartColors"
-            title="Segment Distribution by Category"
-          />
+        <div class="chart-container chart-cluster-distribution">
+          <div class="cluster-charts-grid">
+            <div 
+              v-for="cluster in displayedClusters" 
+              :key="cluster" 
+              class="cluster-chart"
+            >
+              <DonutChart
+                :labels="chartLabels[cluster]"
+                :values="chartValues[cluster]"
+                :colors="chartColors"
+                :title="`Cluster ${cluster} Distribution`"
+                :showPercentages="true"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -140,25 +157,14 @@
             <tbody>
               <tr v-for="(categoryData, category) in data.Top_clusters" :key="category">
                 <td :rowspan="Object.keys(categoryData).length" class="category-cell">{{ category }}</td>
-                <template v-for="(percentage, cluster) in categoryData" :key="cluster">
-                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
-                    Segment {{ cluster }}
-                  </td>
-                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
-                    {{ percentage.toFixed(1) }}%
-                  </td>
-                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
-                    {{ Math.round((percentage / 100) * data.rows) }}
-                  </td>
-                  <td :class="{ 'first-row': cluster === Object.keys(categoryData)[0] }">
-                    <div class="percentage-visual">
-                      <div 
-                        class="percentage-fill"
-                        :style="{ width: percentage + '%' }"
-                      ></div>
-                    </div>
-                  </td>
-                </template>
+                <td v-for="(percentage, cluster) in categoryData" :key="cluster">Segment {{ cluster }}</td>
+                <td v-for="(percentage, cluster) in categoryData" :key="cluster">{{ percentage.toFixed(1) }}%</td>
+                <td v-for="(percentage, cluster) in categoryData" :key="cluster">{{ Math.round((percentage / 100) * data.rows) }}</td>
+                <td v-for="(percentage, cluster) in categoryData" :key="cluster">
+                  <div class="percentage-visual">
+                    <div class="percentage-fill" :style="{ width: percentage + '%' }"></div>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -184,7 +190,7 @@
         <div class="cluster-patterns" :class="{ 'expanded-view': patternExpanded }">
           <div v-for="(patterns, cluster) in data.patterns_of_each_cluster" :key="cluster" class="cluster-card">
             <div class="cluster-header">
-              <h3>Segment {{ cluster.replace('cluster_', '') }}</h3>
+              <h3>Category {{ cluster.replace('cluster_', '') }}</h3>
               <div class="cluster-meta">
                 <span class="meta-item">
                   <i class="fas fa-users"></i> {{ calculateSegmentSize(cluster) }} customers
@@ -230,13 +236,29 @@
             <button class="action-button" @click="showAttributeGuide">
               <i class="fas fa-question-circle"></i> Guide
             </button>
+            <div class="carousel-controls">
+              <button 
+                class="action-button" 
+                @click="prevAttributeCharts" 
+                :disabled="currentAttributeIndex === 0"
+              >
+                <i class="fas fa-chevron-left"></i> Previous
+              </button>
+              <button 
+                class="action-button" 
+                @click="nextAttributeCharts" 
+                :disabled="currentAttributeIndex >= Object.keys(data.Attributes_of_top_clusters[activeCategory]).length - 2"
+              >
+                <i class="fas fa-chevron-right"></i> Next
+              </button>
+            </div>
           </div>
         </div>
         <div class="tabs">
           <button 
             v-for="category in data.categories" 
             :key="category" 
-            @click="activeCategory = category"
+            @click="activeCategory = category; currentAttributeIndex = 0"
             :class="{ active: activeCategory === category }"
           >
             <i class="fas" :class="getCategoryIcon(category)"></i> {{ category }}
@@ -244,7 +266,7 @@
         </div>
         <div v-if="activeCategory" class="attributes-container">
           <div 
-            v-for="(attributes, cluster) in data.Attributes_of_top_clusters[activeCategory]" 
+            v-for="cluster in displayedAttributes" 
             :key="cluster" 
             class="attribute-card"
           >
@@ -261,7 +283,7 @@
             </div>
             <div class="attribute-grid">
               <div 
-                v-for="(value, attr) in filteredAttributes(attributes)" 
+                v-for="(value, attr) in filteredAttributes(data.Attributes_of_top_clusters[activeCategory][cluster])" 
                 :key="attr"
                 class="attribute-item"
               >
@@ -276,6 +298,7 @@
                     :colors="chartColors"
                     :title="`${attr} Distribution`"
                     :options="chartOptions"
+                    :showPercentages="true"
                   />
                 </div>
               </div>
@@ -294,22 +317,17 @@
 
 <script>
 import axios from 'axios';
-import ThreeBarChart from '@/components/Constants/ThreeBarChart.vue';
 import HorizontalBarChart from '@/components/Constants/HorizontalBarChart.vue';
 import FourBarChart from '@/components/Constants/FourBarChart.vue';
-import PieChart from '@/components/Constants/PieChart.vue';
 import DonutChart from '@/components/Constants/DonutChart.vue';
 import PolarAreaChart from '@/components/Constants/PolarAreaChart.vue';
 import RadarChart from '@/components/Constants/RadarChart.vue';
-import { ref } from 'vue';
 
 export default {
   name: 'DashboardPage',
   components: {
-    ThreeBarChart,
     HorizontalBarChart,
     FourBarChart,
-    PieChart,
     DonutChart,
     PolarAreaChart,
     RadarChart
@@ -323,14 +341,14 @@ export default {
       activeCategory: null,
       tableView: false,
       selectedPatternView: 'radar',
-      selectedChartType: 'bar',
       attributeSearch: '',
       patternExpanded: false,
-      clusterDistributionChart: ref(null),
-      segmentCharts: {},
-      chartLabels: [],
-      chartValues: [],
-      chartColors: ['#1abc9c', '#f39c12', '#8e44ad', '#3498db', '#e74c3c', '#2ecc71'],
+      currentClusterIndex: 0,
+      currentAttributeIndex: 0,
+      chartsPerPage: 2,
+      chartLabels: {},
+      chartValues: {},
+      chartColors: ['#1abc9c', '#f39c12', '#8e44ad', '#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#e67e22'],
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -356,23 +374,28 @@ export default {
     };
   },
   computed: {
-    currentChartComponent() {
-      switch (this.selectedChartType) {
-        case 'bar': return 'ThreeBarChart';
-        case 'pie': return 'PieChart';
-        case 'donut': return 'DonutChart';
-        case 'polar': return 'PolarAreaChart';
-        case 'radar': return 'RadarChart';
-        default: return 'ThreeBarChart';
-      }
-    },
     patternChartComponent() {
       switch (this.selectedPatternView) {
-        case 'bar': return 'ThreeBarChart';
+        case 'bar': return 'HorizontalBarChart'; // Changed from 'ThreeBarChart' to 'HorizontalBarChart'
         case 'polar': return 'PolarAreaChart';
         case 'radar': return 'RadarChart';
         default: return 'RadarChart';
       }
+    },
+    displayedClusters() {
+      return this.data?.clusters.slice(
+        this.currentClusterIndex,
+        this.currentClusterIndex + this.chartsPerPage
+      ) || [];
+    },
+    displayedAttributes() {
+      if (!this.activeCategory || !this.data?.Attributes_of_top_clusters[this.activeCategory]) {
+        return [];
+      }
+      return Object.keys(this.data.Attributes_of_top_clusters[this.activeCategory]).slice(
+        this.currentAttributeIndex,
+        this.currentAttributeIndex + this.chartsPerPage
+      );
     }
   },
   mounted() {
@@ -458,44 +481,34 @@ export default {
       this.chartValues = clusterData.values;
     },
     exportChart(refName) {
-      const canvas = this.$refs[refName]?.querySelector('canvas');
-      if (canvas) {
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${refName}.png`;
-        link.click();
+      const canvases = this.$refs[refName]?.querySelectorAll('canvas');
+      if (canvases && canvases.length > 0) {
+        canvases.forEach((canvas, index) => {
+          const link = document.createElement('a');
+          link.href = canvas.toDataURL('image/png');
+          link.download = `${refName}-cluster-${index + 1}.png`;
+          link.click();
+        });
         if (this.$toast) {
-          this.$toast.success(`Exported ${refName} as PNG`, { position: 'top-right', duration: 3000 });
+          this.$toast.success(`Exported ${refName} charts as PNG`, { position: 'top-right', duration: 3000 });
         }
       }
     },
     transformClusterDistributionData() {
-      if (!this.data || !this.data.category_distribution_by_cluster) return { labels: [], values: [] };
+      if (!this.data || !this.data.category_distribution_by_cluster) return { labels: {}, values: {} };
 
-      const labels = [];
-      const values = [];
-      const categories = this.data.categories;
+      const labels = {};
+      const values = {};
+      const maxCategories = 8;
+      const categories = this.data.categories.slice(0, maxCategories);
       const clusters = this.data.clusters;
 
-      if (this.selectedChartType === 'bar') {
-        labels.push(...categories);
-        const datasets = clusters.map(cluster => {
-          return categories.map(category => {
-            return this.data.category_distribution_by_cluster[category][`cluster_${cluster}`] || 0;
-          });
+      clusters.forEach(cluster => {
+        labels[cluster] = categories;
+        values[cluster] = categories.map(category => {
+          return this.data.category_distribution_by_cluster[category][`cluster_${cluster}`] || 0;
         });
-        values.push(...datasets[0]);
-      } else {
-        categories.forEach(category => {
-          clusters.forEach(cluster => {
-            const value = this.data.category_distribution_by_cluster[category][`cluster_${cluster}`] || 0;
-            if (value > 0) {
-              labels.push(`${category} - Cluster ${cluster}`);
-              values.push(value);
-            }
-          });
-        });
-      }
+      });
 
       return { labels, values };
     },
@@ -521,6 +534,26 @@ export default {
     },
     togglePatternExpand() {
       this.patternExpanded = !this.patternExpanded;
+    },
+    prevClusterCharts() {
+      if (this.currentClusterIndex > 0) {
+        this.currentClusterIndex -= this.chartsPerPage;
+      }
+    },
+    nextClusterCharts() {
+      if (this.currentClusterIndex < this.data.clusters.length - this.chartsPerPage) {
+        this.currentClusterIndex += this.chartsPerPage;
+      }
+    },
+    prevAttributeCharts() {
+      if (this.currentAttributeIndex > 0) {
+        this.currentAttributeIndex -= this.chartsPerPage;
+      }
+    },
+    nextAttributeCharts() {
+      if (this.currentAttributeIndex < Object.keys(this.data.Attributes_of_top_clusters[this.activeCategory]).length - this.chartsPerPage) {
+        this.currentAttributeIndex += this.chartsPerPage;
+      }
     },
     calculateSegmentSize(cluster) {
       if (!this.data || !this.data.patterns_of_each_cluster[cluster]) return 0;
@@ -550,10 +583,8 @@ export default {
         if (value < 100) return value.toFixed(1);
         return Math.round(value).toLocaleString();
       } else if (typeof value === 'object') {
-        // Instead of JSON.stringify, show the dominant category or total count
         const entries = Object.entries(value);
         if (entries.length === 0) return 'No data';
-        // Find the category with the highest value
         const [topCategory, topValue] = entries.reduce((max, entry) => 
           entry[1] > max[1] ? entry : max, entries[0]);
         const total = Object.values(value).reduce((sum, val) => sum + val, 0);
@@ -566,11 +597,14 @@ export default {
         this.$toast.info('Segment insights feature coming soon!', { position: 'top-right', duration: 3000 });
       }
     },
-    showAttributeGuide() {
-      if (this.$toast) {
-        this.$toast.info('Attribute guide will help you understand the metrics', { position: 'top-right', duration: 3000 });
-      }
-    },
+showAttributeGuide() {
+  if (this.$toast) {
+    this.$toast.info(
+      `Attribute_sampling guide will help you understand the metrics`,
+      { position: 'top-right', duration: 3000 }
+    );
+  }
+},
     resizeCharts() {
       // Chart.js handles resizing automatically
     }
@@ -579,11 +613,8 @@ export default {
     data() {
       this.updateChartData();
     },
-    selectedChartType() {
-      this.updateChartData();
-    },
-    selectedPatternView() {
-      // Pattern charts update automatically via component binding
+    activeCategory() {
+      this.currentAttributeIndex = 0;
     }
   }
 };
@@ -609,6 +640,7 @@ export default {
   --transition: all 0.3s ease;
 }
 
+/* Base Styles */
 * {
   margin: 0;
   padding: 0;
@@ -619,8 +651,10 @@ body {
   font-family: 'Roboto', sans-serif;
   background-color: var(--light-color);
   color: var(--dark-color);
+  line-height: 1.6;
 }
 
+/* Dashboard Layout */
 .dashboard-container {
   max-width: 100%;
   margin: 0 auto;
@@ -630,6 +664,7 @@ body {
   padding: 1rem;
 }
 
+/* Header Styles */
 .header {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: white;
@@ -651,6 +686,7 @@ body {
   opacity: 0.9;
 }
 
+/* Upload Section */
 .upload-section {
   margin-top: 1rem;
 }
@@ -722,6 +758,7 @@ body {
   cursor: not-allowed;
 }
 
+/* Loading State */
 .loading-indicator {
   display: flex;
   justify-content: center;
@@ -746,57 +783,6 @@ body {
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
 }
-.cluster-insights {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background-color: #f8fafc; /* Subtle background to distinguish the section */
-  border-radius: 6px;
-  border: 1px solid var(--light-gray); /* Light border for definition */
-}
-
-.cluster-insights h4 {
-  font-size: 0.95rem; /* Slightly larger for hierarchy */
-  font-weight: 500;
-  color: var(--dark-color);
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.cluster-insights h4::before {
-  content: '\f0eb'; /* Font Awesome lightbulb icon */
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  color: var(--primary-color);
-  font-size: 0.9rem;
-}
-
-.cluster-insights ul {
-  list-style: none; /* Remove default bullets for a cleaner look */
-}
-
-.cluster-insights li {
-  font-size: 0.85rem; /* Slightly larger for readability */
-  margin-bottom: 0.5rem; /* More spacing between items */
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--dark-color);
-}
-
-.cluster-insights li::before {
-  content: '\f058'; /* Font Awesome check-circle icon */
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  color: var(--success-color);
-  font-size: 0.8rem;
-}
-
-.cluster-insights li strong {
-  color: var(--primary-color);
-  font-weight: 500;
-}
 
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -807,6 +793,7 @@ body {
   font-size: 0.875rem;
 }
 
+/* Dashboard Content */
 .dashboard-content {
   flex: 1;
 }
@@ -863,9 +850,10 @@ body {
   color: var(--gray-color);
 }
 
+/* Section Styles */
 .section {
   background: white;
-  padding: 1.25rem;
+  padding: 1.5rem;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
   margin-bottom: 1.5rem;
@@ -877,7 +865,7 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .section-header h2 {
@@ -890,8 +878,13 @@ body {
 
 .section-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.carousel-controls {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .action-button {
@@ -903,22 +896,42 @@ body {
   font-size: 0.875rem;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
   transition: var(--transition);
 }
 
-.action-button:hover {
+.action-button:hover:not(:disabled) {
   background-color: #e5e7eb;
 }
 
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Chart Type Selector */
 .chart-type-selector,
 .view-selector {
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--light-gray);
   border-radius: 6px;
   font-size: 0.875rem;
+  background-color: white;
+  color: var(--dark-color);
+  cursor: pointer;
+  transition: var(--transition);
 }
 
+.chart-type-selector:hover {
+  border-color: var(--primary-color);
+}
+
+.chart-type-selector:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Search Box */
 .search-box {
   position: relative;
   flex: 1;
@@ -941,34 +954,189 @@ body {
   color: var(--gray-color);
 }
 
-.chart-container,
-.radar-chart-container {
+/* Chart Container Styles */
+.chart-container {
   position: relative;
   width: 100%;
+  min-height: 350px;
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  border: 1px solid var(--light-gray);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: var(--transition);
+  animation: fadeIn 0.6s ease-out;
+}
+
+.chart-container:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.cluster-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.cluster-chart {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 400px;
+  transition: transform 0.3s ease;
+  animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Chart Specific Styles */
+.donut-chart-container {
+  position: relative;
+  max-width: 400px;
+  margin: 0 auto;
   min-height: 300px;
+}
+
+.donut-chart-container .chart-center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.donut-chart-container .center-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark-color);
+  margin-bottom: 0.25rem;
+}
+
+.donut-chart-container .center-title {
+  font-size: 0.875rem;
+  color: var(--gray-color);
+}
+
+.radar-chart-container {
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+}
+
+.radar-chart-container canvas {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.chart-cluster-distribution .chart-title {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--gray-color);
+  font-weight: 500;
 }
 
 .chart-segment-patterns {
   min-height: 250px;
 }
 
+/* Cluster Insights */
+.cluster-insights {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid var(--light-gray);
+}
+
+.cluster-insights h4 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--dark-color);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cluster-insights h4::before {
+  content: '\f0eb';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+.cluster-insights ul {
+  list-style: none;
+}
+
+.cluster-insights li {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dark-color);
+}
+
+.cluster-insights li::before {
+  content: '\f058';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: var(--success-color);
+  font-size: 0.8rem;
+}
+
+.cluster-insights li strong {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* Top Segments Section */
 .top-clusters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .category-card {
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid var(--light-gray);
   border-radius: var(--border-radius);
+  background-color: white;
+  transition: var(--transition);
+}
+
+.category-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .category-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .category-header h3 {
@@ -980,7 +1148,7 @@ body {
   font-size: 0.75rem;
   background-color: rgba(59, 130, 246, 0.1);
   color: var(--primary-color);
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 12px;
 }
 
@@ -1078,24 +1246,7 @@ body {
   gap: 0.25rem;
 }
 
-.cluster-insights {
-  margin-top: 0.75rem;
-}
-
-.cluster-insights h4 {
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
-}
-
-.cluster-insights li {
-  font-size: 0.75rem;
-  margin-bottom: 0.25rem;
-}
-
-.cluster-insights li strong {
-  color: var(--primary-color);
-}
-
+/* Tabs */
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -1127,6 +1278,7 @@ body {
   border-bottom-color: var(--primary-color);
 }
 
+/* Attributes Section */
 .attributes-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -1200,14 +1352,16 @@ body {
   border: 1px solid var(--light-gray);
 }
 
+/* Footer */
 .footer {
   text-align: center;
-  padding: 1rem;
+  padding: 1.5rem;
   color: var(--gray-color);
   font-size: 0.875rem;
   margin-top: auto;
 }
 
+/* Responsive Styles */
 @media (max-width: 1024px) {
   .dashboard-container {
     padding: 0.75rem;
@@ -1228,7 +1382,7 @@ body {
 
   .chart-container,
   .radar-chart-container {
-    min-height: 280px;
+    min-height: 320px;
   }
 }
 
@@ -1266,7 +1420,12 @@ body {
 
   .chart-container,
   .radar-chart-container {
-    min-height: 260px;
+    min-height: 300px;
+    padding: 1rem;
+  }
+
+  .cluster-charts-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1295,7 +1454,7 @@ body {
 
   .chart-container,
   .radar-chart-container {
-    min-height: 240px;
+    min-height: 280px;
   }
 
   .attribute-chart {
