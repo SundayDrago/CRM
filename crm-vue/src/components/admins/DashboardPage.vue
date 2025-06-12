@@ -174,7 +174,7 @@
       <!-- Segment Patterns Section -->
       <div class="section">
         <div class="section-header">
-          <h2><i class="fas fa-project-diagram"></i> Segment Characteristics</h2>
+          <h2><i class="fas fa-project-diagram"></i> Segment Patterns</h2>
           <div class="section-actions">
             <select v-model="selectedPatternView" class="view-selector">
               <option value="radar">Radar View</option>
